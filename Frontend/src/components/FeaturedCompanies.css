@@ -1,0 +1,327 @@
+/* =========================================================
+   FIGMA EXACT FEATURED COMPANIES SECTION (Frame 48)
+   Container: width 1381px, height 311px, left 53px
+   4 Cards: width 334px, height 192px, radius 10px, border 1px #E8E9FE
+   ========================================================= */
+
+.figma-featured-companies-sec {
+  width: 100%;
+  background: #ffffff;
+  padding: 12px 0 24px;
+}
+
+.figma-fc-frame48 {
+  max-width: 1440px;
+  width: 100%;
+  min-height: 311px;
+  margin: 0 auto;
+  padding-left: 53px;
+  padding-right: 6px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+/* Header Row */
+.figma-fc-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding-right: 45px;
+  margin-bottom: 16px;
+}
+
+.figma-fc-header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.figma-fc-tag {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.figma-fc-tag-icon {
+  width: 30px;
+  height: 30px;
+  object-fit: contain;
+}
+
+.figma-fc-tag span {
+  font-family: 'Inter', sans-serif;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 100%;
+  letter-spacing: 0.02em;
+  color: #D31BFF;
+  text-transform: uppercase;
+}
+
+.figma-fc-title {
+  font-family: 'Inter', sans-serif;
+  font-size: 24px;
+  font-weight: 600;
+  line-height: 100%;
+  letter-spacing: 0.02em;
+  color: #0F123F;
+  margin: 4px 0 2px 0;
+}
+
+.figma-fc-subtitle {
+  font-family: 'Inter', sans-serif;
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 100%;
+  letter-spacing: 0.02em;
+  color: #0F123F;
+  margin: 0;
+}
+
+.figma-fc-view-all {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'Inter', sans-serif;
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 100%;
+  color: #750292;
+  text-decoration: none;
+  margin-top: 6px;
+  transition: opacity 0.15s ease;
+}
+
+.figma-fc-view-all:hover {
+  opacity: 0.8;
+}
+
+/* 4 Cards in 1 Single Row: each 334px × 192px */
+.figma-fc-cards-row {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 334px));
+  gap: 15px;
+  width: 100%;
+  max-width: 1381px;
+}
+
+/* Individual Card: 334 × 192px, radius 10px, border 1px solid #E8E9FE */
+.figma-fc-card {
+  width: 100%;
+  max-width: 334px;
+  height: 192px;
+  background: #ffffff;
+  border: 1px solid #E8E9FE;
+  border-radius: 10px;
+  padding: 12px 14px;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.figma-fc-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(90, 44, 228, 0.12);
+}
+
+/* Left Column inside Card */
+.figma-fc-card-left {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: flex-start;
+  width: 85px;
+  flex-shrink: 0;
+}
+
+.figma-fc-logo-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  min-height: 55px;
+}
+
+.logo-forever img {
+  width: 50px;
+  height: 60px;
+  object-fit: contain;
+}
+
+.logo-amway img {
+  width: 65px;
+  height: 40px;
+  object-fit: contain;
+}
+
+.logo-oriflame img {
+  width: 80px;
+  height: 32px;
+  object-fit: contain;
+}
+
+.logo-herbalife img {
+  width: 80px;
+  height: 32px;
+  object-fit: contain;
+}
+
+/* Soft decorative shapes in bottom-left of card */
+.figma-fc-ellipse-shape {
+  width: 75px;
+  height: 28px;
+  border-radius: 50%;
+  background: linear-gradient(90deg, #F2F5FE 0%, #F5F7FE 50%, #F1F5FE 100%);
+  margin-bottom: 6px;
+}
+
+.figma-fc-polygon-shape {
+  margin-left: 2px;
+  margin-bottom: 2px;
+}
+
+.figma-fc-polygon-shape svg {
+  width: 68px;
+  height: 65px;
+}
+
+/* Right Column inside Card */
+.figma-fc-card-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: space-between;
+  flex: 1;
+  min-width: 0;
+}
+
+/* Featured Pill: compact fit so it never clips */
+.figma-fc-badge {
+  align-self: flex-end;
+  padding: 4px 16px;
+  height: 26px;
+  border-radius: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 100%;
+  letter-spacing: 0.02em;
+  color: #ffffff;
+  white-space: nowrap;
+}
+
+.badge-solid {
+  background: #5A2CE4;
+}
+
+.badge-grad {
+  background: linear-gradient(90deg, #8B17F8 0%, #A938E1 100%);
+}
+
+/* Company Name: 17px / 500 / #000000 */
+.figma-fc-company-name {
+  width: 100%;
+  text-align: left;
+  font-family: 'Inter', sans-serif;
+  font-size: 17px;
+  font-weight: 500;
+  line-height: 1.18;
+  letter-spacing: 0.01em;
+  color: #000000;
+  margin: 2px 0;
+  word-break: break-word;
+}
+
+/* Rating Row */
+.figma-fc-rating-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 2px;
+}
+
+.figma-fc-star {
+  color: #F59E0B;
+  font-size: 15px;
+  line-height: 1;
+}
+
+.figma-fc-rating-text {
+  font-family: 'Inter', sans-serif;
+  font-size: 13.5px;
+  font-weight: 400;
+  line-height: 100%;
+  letter-spacing: 0.01em;
+  color: #000000;
+  white-space: nowrap;
+}
+
+/* View Company Button: fully visible, never cut off */
+.figma-fc-btn-view {
+  width: 100%;
+  max-width: 195px;
+  height: 32px;
+  border-radius: 10px;
+  background: #5A2CE4;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 12px;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 100%;
+  letter-spacing: 0.01em;
+  color: #ffffff;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  box-sizing: border-box;
+}
+
+.figma-fc-btn-view:hover {
+  opacity: 0.92;
+  transform: translateY(-1px);
+}
+
+.figma-fc-btn-view img {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+}
+
+/* Responsive Breakpoints */
+@media (max-width: 1420px) {
+  .figma-fc-frame48 {
+    padding: 0 24px;
+  }
+  .figma-fc-header {
+    padding-right: 0;
+  }
+}
+
+@media (max-width: 1180px) {
+  .figma-fc-cards-row {
+    grid-template-columns: repeat(2, 334px);
+    justify-content: center;
+  }
+}
+
+@media (max-width: 740px) {
+  .figma-fc-header {
+    flex-direction: column;
+    gap: 10px;
+  }
+  .figma-fc-cards-row {
+    grid-template-columns: 1fr;
+    justify-items: center;
+  }
+}

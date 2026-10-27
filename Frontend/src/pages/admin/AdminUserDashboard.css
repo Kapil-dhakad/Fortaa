@@ -1,0 +1,1025 @@
+/* =========================================================
+   FORTAA ADMIN USER DASHBOARD STYLESHEET
+   Matching Figma Administration Panel - User Dashboard Design
+   Colors: Dark Navy #020633, Purple #6B109F, Gradient #9F21FE to #4F24FF, BG #F4F5FB
+   ========================================================= */
+
+.aud-page {
+  min-height: 100vh;
+  background: #F4F5FB;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  color: #1A1A3A;
+  display: flex;
+}
+
+/* ───────────────── LEFT SIDEBAR ───────────────── */
+.aud-sidebar {
+  width: 210px;
+  background: #020633;
+  color: #FFFFFF;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  min-height: 100vh;
+  box-sizing: border-box;
+  padding: 14px 10px;
+}
+
+.aud-sidebar-brand {
+  padding: 4px 6px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  margin-bottom: 10px;
+}
+
+.aud-brand-link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+}
+
+.aud-brand-icon {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+}
+
+.aud-brand-text-col {
+  display: flex;
+  flex-direction: column;
+}
+
+.aud-brand-logo {
+  width: 75px;
+  height: auto;
+  filter: brightness(0) invert(1);
+}
+
+.aud-brand-badge {
+  font-size: 9px;
+  color: #CBD5E1;
+  letter-spacing: 0.5px;
+}
+
+/* Nav */
+.aud-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+}
+
+.aud-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  border: none;
+  color: #CBD5E1;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 7px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  text-align: left;
+  text-decoration: none;
+  width: 100%;
+  box-sizing: border-box;
+  transition: all 0.15s ease;
+}
+
+.aud-nav-item:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: #FFFFFF;
+}
+
+.aud-nav-icon {
+  font-size: 13px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.aud-nav-label {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.aud-chevron {
+  font-size: 9px;
+  color: #94A3B8;
+  transition: transform 0.2s ease;
+}
+
+.aud-chevron.open {
+  transform: rotate(0deg);
+}
+
+/* Accordion Groups */
+.aud-nav-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.aud-nav-group.active-group {
+  background: rgba(107, 16, 159, 0.25);
+  border-radius: 6px;
+}
+
+.aud-nav-group-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: transparent;
+  border: none;
+  color: #CBD5E1;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 7px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  transition: all 0.15s ease;
+}
+
+.aud-nav-group-header.active {
+  background: #6B109F;
+  color: #FFFFFF;
+  font-weight: 600;
+}
+
+.aud-nav-gh-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.aud-nav-sublist {
+  display: flex;
+  flex-direction: column;
+  padding: 2px 0 4px 18px;
+  gap: 2px;
+}
+
+.aud-nav-sublink {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: none;
+  font-size: 10px;
+  color: #CBD5E1;
+  text-decoration: none;
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.aud-nav-sublink:hover {
+  color: #FFFFFF;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.aud-nav-sublink.active {
+  color: #FFFFFF;
+  background: rgba(255, 255, 255, 0.15);
+  font-weight: 700;
+}
+
+.sublink-arrow {
+  font-size: 12px;
+  line-height: 1;
+}
+
+/* Footer Brand Box */
+.aud-sidebar-footer {
+  margin-top: 14px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.aud-footer-brand-box {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  padding: 8px;
+  text-align: center;
+}
+
+.aud-fb-title {
+  display: block;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  color: #FFFFFF;
+}
+
+.aud-fb-sub {
+  display: block;
+  font-size: 8px;
+  color: #94A3B8;
+}
+
+/* ───────────────── MAIN WRAPPER ───────────────── */
+.aud-main-wrap {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Topbar */
+.aud-topbar {
+  height: 54px;
+  background: #FFFFFF;
+  border-bottom: 1px solid #E2E8F0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+
+.aud-search-wrap {
+  flex: 1;
+  max-width: 540px;
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.aud-search-icon {
+  position: absolute;
+  left: 12px;
+  font-size: 12px;
+  color: #94A3B8;
+  pointer-events: none;
+}
+
+.aud-search-input {
+  width: 100%;
+  height: 36px;
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 50px;
+  padding: 0 14px 0 34px;
+  font-size: 11.5px;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.aud-search-input:focus {
+  background: #FFFFFF;
+  border-color: #7C3AED;
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
+}
+
+.aud-topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.aud-circle-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid #E2E8F0;
+  background: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  position: relative;
+  font-size: 13px;
+  transition: all 0.15s ease;
+}
+
+.aud-circle-btn:hover {
+  background: #F1F5F9;
+}
+
+.aud-wa-btn {
+  background: #25D366;
+  color: #FFFFFF;
+  border-color: #25D366;
+}
+
+.aud-badge {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  background: #EF4444;
+  color: #FFFFFF;
+  font-size: 9px;
+  font-weight: 700;
+  border-radius: 50%;
+  width: 14px;
+  height: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid #FFFFFF;
+}
+
+.aud-profile-pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 10px 3px 3px;
+  background: #020633;
+  color: #FFFFFF;
+  border-radius: 50px;
+  cursor: pointer;
+}
+
+.aud-profile-img {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.aud-profile-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.aud-profile-name {
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.aud-profile-role {
+  font-size: 8px;
+  color: #94A3B8;
+}
+
+/* ───────────────── CONTENT BODY ───────────────── */
+.aud-content {
+  padding: 14px 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.aud-page-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.aud-title {
+  font-size: 20px;
+  font-weight: 800;
+  color: #1E1B4B;
+  margin: 0;
+}
+
+.aud-subtitle {
+  font-size: 11px;
+  color: #64748B;
+  margin: 2px 0 0;
+}
+
+.aud-title-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.aud-date-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 6px;
+  padding: 4px 10px;
+}
+
+.aud-date-icon {
+  font-size: 14px;
+}
+
+.aud-date-meta {
+  display: flex;
+  flex-direction: column;
+}
+
+.aud-date-day {
+  font-size: 9.5px;
+  font-weight: 700;
+  color: #1E1B4B;
+  line-height: 1.1;
+}
+
+.aud-date-sub {
+  font-size: 8px;
+  color: #64748B;
+}
+
+.aud-btn-view-website {
+  background: #4F24FF;
+  background: linear-gradient(270deg, #9F21FE 0%, #4F24FF 100%);
+  color: #FFFFFF;
+  border: none;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 6px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(79, 36, 255, 0.25);
+  transition: opacity 0.15s ease;
+}
+
+.aud-btn-view-website:hover {
+  opacity: 0.95;
+}
+
+/* ── ROW 1: 5 STAT CARDS ── */
+.aud-stats-5-row {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+}
+
+.aud-stat-card {
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 8px;
+  padding: 8px 10px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+}
+
+.aud-stat-top {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.aud-stat-icon-wrap {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 14px;
+}
+
+.bg-purple-light { background: #EDE9FE; }
+.text-purple { color: #8B21E0; }
+
+.bg-blue-light { background: #DBEAFE; }
+.text-blue { color: #2563EB; font-weight: 800; }
+
+.bg-orange-light { background: #FFEDD5; }
+.text-orange { color: #EA580C; }
+
+.bg-pink-light { background: #FFE4E6; }
+.text-pink { color: #E11D48; font-weight: 800; }
+
+.bg-green-light { background: #DCFCE7; }
+.text-green { color: #16A34A; }
+
+.aud-stat-label-col {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.aud-stat-title-small {
+  font-size: 8.5px;
+  font-weight: 600;
+  color: #64748B;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.aud-stat-num {
+  font-size: 17px;
+  font-weight: 800;
+  color: #1E1B4B;
+  line-height: 1.15;
+  margin: 1px 0;
+}
+
+.aud-stat-trend {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 8px;
+}
+
+.trend-green {
+  color: #10B981;
+  font-weight: 700;
+}
+
+.trend-red {
+  color: #EF4444;
+  font-weight: 700;
+}
+
+.trend-sub {
+  color: #94A3B8;
+}
+
+/* ── ROW 2: USER REGISTRATION OVERVIEW & USER DISTRIBUTION ── */
+.aud-row-charts {
+  display: grid;
+  grid-template-columns: 1.65fr 1fr;
+  gap: 12px;
+}
+
+.aud-card {
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 10px;
+  padding: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+}
+
+.aud-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.aud-card-title {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #1E1B4B;
+  margin: 0;
+}
+
+.aud-card-view-all {
+  font-size: 9.5px;
+  color: #6B109F;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.aud-select {
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 4px;
+  font-size: 9.5px;
+  padding: 3px 6px;
+  outline: none;
+  color: #475569;
+  cursor: pointer;
+}
+
+/* Chart Body */
+.aud-chart-body {
+  display: flex;
+  gap: 6px;
+}
+
+.aud-chart-y {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  font-size: 8px;
+  font-weight: 600;
+  color: #94A3B8;
+  padding-bottom: 18px;
+  text-align: right;
+  width: 20px;
+}
+
+.aud-chart-svg-wrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.aud-svg-graph {
+  width: 100%;
+  height: 125px;
+}
+
+.aud-chart-x {
+  display: flex;
+  justify-content: space-between;
+  font-size: 8px;
+  font-weight: 600;
+  color: #94A3B8;
+  padding-top: 3px;
+}
+
+.aud-chart-legend {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 8px;
+  padding-top: 6px;
+  border-top: 1px solid #F8FAFC;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 8.5px;
+  font-weight: 600;
+  color: #64748B;
+}
+
+.legend-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.dot-purple { background: #8B21E0; }
+.dot-green { background: #10B981; }
+.dot-yellow { background: #F59E0B; }
+.dot-red { background: #EF4444; }
+.dot-blue { background: #3B82F6; }
+
+/* Donut Card */
+.aud-donut-body {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 4px 0;
+}
+
+.aud-donut-svg-wrap {
+  width: 110px;
+  height: 110px;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.aud-donut-svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.aud-donut-center-label {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.center-val {
+  font-size: 12px;
+  font-weight: 800;
+  color: #1E1B4B;
+  line-height: 1;
+}
+
+.center-sub {
+  font-size: 7.5px;
+  color: #94A3B8;
+}
+
+.aud-donut-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+}
+
+.aud-dl-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 9px;
+}
+
+.dl-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.dl-name {
+  flex: 1;
+  font-weight: 600;
+  color: #1E1B4B;
+  white-space: nowrap;
+}
+
+.dl-pct {
+  font-size: 8px;
+  color: #64748B;
+  width: 24px;
+  text-align: right;
+}
+
+.dl-val {
+  font-size: 8.5px;
+  font-weight: 700;
+  color: #1E1B4B;
+  width: 38px;
+  text-align: right;
+}
+
+/* ── ROW 3: RECENT REGISTERED USERS TABLE ── */
+.aud-table-card {
+  padding: 10px 12px;
+}
+
+.aud-ch-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.aud-db-live-badge {
+  background: #DCFCE7;
+  color: #15803D;
+  font-size: 8.5px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 12px;
+}
+
+.aud-table-wrap {
+  overflow-x: auto;
+}
+
+.aud-users-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 10px;
+}
+
+.aud-users-table th {
+  text-align: left;
+  padding: 6px 8px;
+  font-size: 8.5px;
+  font-weight: 600;
+  color: #94A3B8;
+  border-bottom: 1px solid #F1F5F9;
+  white-space: nowrap;
+}
+
+.aud-users-table td {
+  padding: 6px 8px;
+  border-bottom: 1px solid #F8FAFC;
+  vertical-align: middle;
+}
+
+.aud-tr-db {
+  background: #FAF5FF;
+}
+
+.aud-td-num {
+  color: #94A3B8;
+  font-weight: 600;
+  width: 16px;
+}
+
+.aud-td-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.aud-user-avatar-circle {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #EDE9FE;
+  color: #6B109F;
+  font-weight: 700;
+  font-size: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.aud-name-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.aud-user-name-text {
+  font-weight: 700;
+  color: #1E1B4B;
+  white-space: nowrap;
+}
+
+.aud-real-tag {
+  background: #3B82F6;
+  color: #FFFFFF;
+  font-size: 7px;
+  font-weight: 700;
+  padding: 1px 4px;
+  border-radius: 3px;
+}
+
+.aud-td-email,
+.aud-td-phone,
+.aud-td-type,
+.aud-td-date {
+  color: #64748B;
+  font-size: 9px;
+  white-space: nowrap;
+}
+
+.aud-status-badge {
+  display: inline-block;
+  font-size: 8px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 12px;
+}
+
+.status-approved {
+  background: #DCFCE7;
+  color: #15803D;
+}
+
+.status-pending {
+  background: #FEF3C7;
+  color: #D97706;
+}
+
+.status-followup {
+  background: #FFE4E6;
+  color: #E11D48;
+}
+
+.aud-td-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.aud-action-btn {
+  background: transparent;
+  border: none;
+  font-size: 11px;
+  color: #94A3B8;
+  cursor: pointer;
+  padding: 2px;
+  transition: color 0.15s ease;
+}
+
+.aud-action-btn:hover {
+  color: #6B109F;
+}
+
+/* ── ROW 4: 3-COLUMN BOTTOM GRID ── */
+.aud-row-bottom-grid {
+  display: grid;
+  grid-template-columns: 1.25fr 1.25fr 1fr;
+  gap: 12px;
+}
+
+.aud-mini-grid-card {
+  padding: 10px 12px;
+}
+
+.aud-mini-title {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #1E1B4B;
+  margin: 0;
+}
+
+.aud-bottom-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 9.5px;
+}
+
+.aud-bottom-table th {
+  text-align: left;
+  padding: 5px 6px;
+  font-size: 8.5px;
+  font-weight: 600;
+  color: #94A3B8;
+  border-bottom: 1px solid #F1F5F9;
+  white-space: nowrap;
+}
+
+.aud-bottom-table td {
+  padding: 5px 6px;
+  border-bottom: 1px solid #F8FAFC;
+  vertical-align: middle;
+}
+
+.aud-td-title {
+  font-weight: 700;
+  color: #1E1B4B;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 120px;
+}
+
+.aud-td-sub {
+  color: #64748B;
+  font-size: 8.5px;
+  white-space: nowrap;
+}
+
+.aud-badge-published {
+  background: #DCFCE7;
+  color: #15803D;
+  font-size: 8px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 12px;
+}
+
+.aud-badge-upcoming {
+  background: #EDE9FE;
+  color: #6B109F;
+  font-size: 8px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 12px;
+}
+
+/* Platform Statistics */
+.aud-platform-stats-card {
+  padding: 10px 12px;
+}
+
+.aud-ps-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.aud-ps-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  background: #F8FAFC;
+  border: 1px solid #F1F5F9;
+  border-radius: 6px;
+  padding: 6px 8px;
+}
+
+.aud-ps-icon-wrap {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  flex-shrink: 0;
+}
+
+.aud-ps-meta {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.aud-ps-label {
+  font-size: 7.5px;
+  color: #64748B;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.aud-ps-val {
+  font-size: 12px;
+  font-weight: 800;
+  color: #1E1B4B;
+  line-height: 1.1;
+  margin: 1px 0;
+}
+
+.aud-ps-trend {
+  font-size: 7.5px;
+  font-weight: 700;
+  color: #10B981;
+}

@@ -1,0 +1,351 @@
+/* =========================================================
+   FIGMA EXACT EXPLORE CATEGORIES SECTION
+   6 Cards: width 223px, height 280px, left: 51px to 1215px
+   ========================================================= */
+
+.figma-explore-section {
+  width: 100%;
+  background: #ffffff;
+  padding: 28px 0 36px;
+}
+
+.figma-explore-container {
+  max-width: 1440px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 0 51px;
+}
+
+/* Header Row */
+.figma-explore-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-bottom: 18px;
+}
+
+.figma-explore-header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.figma-explore-tag {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.figma-explore-tag-icon {
+  width: 30px;
+  height: 30px;
+  object-fit: contain;
+}
+
+.figma-explore-tag span {
+  font-family: 'Inter', sans-serif;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 100%;
+  letter-spacing: 0.02em;
+  color: #D31BFF;
+  text-transform: uppercase;
+}
+
+.figma-explore-heading {
+  font-family: 'Inter', sans-serif;
+  font-size: 24px;
+  font-weight: 600;
+  line-height: 100%;
+  letter-spacing: 0.02em;
+  color: #0F123F;
+  margin: 0 0 0 24px;
+}
+
+.figma-explore-view-all {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'Inter', sans-serif;
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 100%;
+  color: #3B52C4;
+  text-decoration: none;
+  transition: opacity 0.15s ease;
+}
+
+.figma-explore-view-all:hover {
+  opacity: 0.8;
+}
+
+/* 6 Cards in 1 Single Row */
+.figma-categories-row {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 223px));
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+}
+
+/* Base Card: width 223px (scales slightly if screen < 1440px so all 6 stay in 1 row), height 280px, border-radius 10px */
+.figma-cat-card {
+  position: relative;
+  width: 100%;
+  max-width: 223px;
+  height: 280px;
+  border-radius: 10px;
+  padding: 16px 14px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  overflow: hidden;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.figma-cat-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 24px rgba(47, 2, 143, 0.2);
+}
+
+/* ── Card 1 & 2: Companies & Opportunities ── */
+.cat-card-companies,
+.cat-card-opportunities {
+  background: linear-gradient(200deg, #9E04C3 0%, #2F028F 100%);
+}
+
+/* ── Card 3: Leaders ── */
+.cat-card-leaders {
+  background: linear-gradient(206.75deg, #FF91E7 5.07%, #FF45D7 49.58%, #D51CFD 94.09%);
+}
+
+/* ── Card 4: Products ── */
+.cat-card-products {
+  background: linear-gradient(0deg, #FFC9ED, #FFC9ED);
+}
+
+/* ── Card 5: Promotions ── */
+.cat-card-promotions {
+  background: linear-gradient(0deg, #FBDFCA, #FBDFCA);
+}
+
+/* ── Card 6: Industry News ── */
+.cat-card-news {
+  background: #DEF1FF;
+}
+
+/* Decorative Corner & Soft Glow Shapes matching Figma */
+.figma-cat-glow-1 {
+  position: absolute;
+  top: -15px;
+  right: 32px;
+  width: 81px;
+  height: 85px;
+  border-radius: 18px;
+  filter: blur(10px);
+  opacity: 0.75;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.cat-card-companies .figma-cat-glow-1,
+.cat-card-opportunities .figma-cat-glow-1,
+.cat-card-leaders .figma-cat-glow-1 {
+  background: #D51CFD;
+}
+
+.cat-card-products .figma-cat-glow-1 {
+  background: linear-gradient(180deg, #FF96A0 0%, #FFD0E0 100%);
+}
+
+.cat-card-promotions .figma-cat-glow-1 {
+  background: linear-gradient(180deg, #FF93B2 0%, #FFD0E0 100%);
+}
+
+.cat-card-news .figma-cat-glow-1 {
+  background: linear-gradient(180deg, #93DBFF 0%, #EAF9FF 100%);
+}
+
+.figma-cat-glow-2 {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 54px;
+  height: 58px;
+  border-bottom-left-radius: 42px;
+  opacity: 0.85;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.dark-card .figma-cat-glow-2 {
+  background: #EB97FF;
+}
+
+.cat-card-products .figma-cat-glow-2,
+.cat-card-promotions .figma-cat-glow-2 {
+  background: #FFE1EB;
+}
+
+.cat-card-news .figma-cat-glow-2 {
+  background: #E5F5FF;
+}
+
+/* Top Icon & Title */
+.figma-cat-top {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* 40x40 Icon Box with exact Figma gradients and 1px white border */
+.figma-cat-icon-box {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  border: 1px solid #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.figma-cat-icon-box img {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+}
+
+/* Exact 6 Icon Box Gradients provided by User */
+.cat-icon-companies {
+  background: linear-gradient(135.43deg, #6436F9 0%, #3C1F7A 83.13%);
+}
+
+.cat-icon-opportunities {
+  background: linear-gradient(135.43deg, #922EF0 0%, #4C2080 83.13%);
+}
+
+.cat-icon-leaders {
+  background: linear-gradient(180deg, #FF45D7 0%, #9E04C3 48.56%);
+}
+
+.cat-icon-products {
+  background: linear-gradient(180deg, #F8013F 0%, #FD195A 48.56%);
+}
+
+.cat-icon-promotions {
+  background: linear-gradient(270deg, #FB4D30 12.5%, #F4803E 100%);
+}
+
+.cat-icon-news {
+  background: linear-gradient(270deg, #094DDE 12.5%, #0EBDFF 100%);
+}
+
+/* Category Title (20px / 500) */
+.figma-cat-title {
+  font-family: 'Inter', sans-serif;
+  font-size: 20px;
+  font-weight: 500;
+  line-height: 1.15;
+  margin: 0;
+}
+
+.dark-card .figma-cat-title {
+  color: #ffffff;
+}
+
+.light-card .figma-cat-title {
+  color: #070447;
+}
+
+/* Body Text */
+.figma-cat-body {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+  margin-top: 8px;
+}
+
+.figma-cat-subtitle {
+  font-family: 'Inter', sans-serif;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 1.2;
+  margin: 0;
+}
+
+.figma-cat-desc {
+  font-family: 'Inter', sans-serif;
+  font-size: 12.5px;
+  font-weight: 400;
+  line-height: 1.3;
+  margin: 0;
+}
+
+.dark-card .figma-cat-subtitle,
+.dark-card .figma-cat-desc {
+  color: #ffffff;
+}
+
+.light-card .figma-cat-subtitle,
+.light-card .figma-cat-desc {
+  color: #040248;
+}
+
+/* Bottom CTA Link */
+.figma-cat-cta {
+  position: relative;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  font-family: 'Inter', sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1;
+  text-decoration: none;
+  margin-top: 8px;
+  transition: transform 0.15s ease;
+}
+
+.figma-cat-cta:hover {
+  transform: translateX(3px);
+}
+
+/* Responsive Breakpoints — Keep all 6 cards in 1 single row on laptops & desktops */
+@media (max-width: 1420px) {
+  .figma-explore-container {
+    padding: 0 24px;
+  }
+}
+
+@media (max-width: 900px) {
+  .figma-explore-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .figma-explore-heading {
+    margin-left: 0;
+    font-size: 20px;
+  }
+  .figma-categories-row {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+  }
+  .figma-cat-card {
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 580px) {
+  .figma-categories-row {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

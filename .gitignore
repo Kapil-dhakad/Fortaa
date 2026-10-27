@@ -1,0 +1,31 @@
+# Dependencies
+node_modules/
+*/node_modules/
+
+# Environment variables & secrets
+.env
+.env.*
+!.env.example
+*.env
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# OS Files
+.DS_Store
+Thumbs.db
+
+# Editor directories
+.vscode/
+.idea/
+
+# Frontend dist (since production build is in Backend/src/build)
+Frontend/dist/
+Frontend/dist-ssr/
+
+# Ensure Backend/src/build is NOT ignored (needed for AWS EC2 direct deployment)
+!Backend/src/build/

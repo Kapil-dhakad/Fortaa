@@ -1,0 +1,247 @@
+/* =========================================================
+   FIGMA EXACT NAVBAR — 1440 × 41px
+   ========================================================= */
+
+.figma-navbar {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  width: 100%;
+  background: #ffffff;
+  height: 41px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+}
+
+.figma-navbar-inner {
+  position: relative;
+  max-width: 1440px;
+  width: 100%;
+  height: 41px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 29px;
+}
+
+/* Logo [128:530] x:29, y:0, w:234, h:42 */
+.figma-logo {
+  display: flex;
+  align-items: flex-start;
+  text-decoration: none;
+  position: relative;
+  width: 234px;
+  height: 41px;
+  flex-shrink: 0;
+}
+
+.figma-logo-icon {
+  width: 31px;
+  height: 25px;
+  object-fit: contain;
+  margin-top: 0px;
+}
+
+.figma-logo-text-wrap {
+  display: flex;
+  flex-direction: column;
+  margin-left: 0px;
+}
+
+.figma-logo-word {
+  width: 91px;
+  height: 23px;
+  object-fit: contain;
+  margin-top: 1px;
+}
+
+.figma-logo-tagline {
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 100%;
+  letter-spacing: 0.02em;
+  color: #232356;
+  white-space: nowrap;
+  margin-top: -1px;
+}
+
+/* Navbar Feature [2:43] x:271, y:10, w:604, gap:20 */
+.figma-nav-links {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.figma-nav-item {
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 100%;
+  color: #3c1f7a;
+  text-decoration: none;
+  position: relative;
+  padding: 4px 0;
+  white-space: nowrap;
+  transition: color 0.15s ease;
+}
+
+.figma-nav-item:hover {
+  color: #d31bff;
+}
+
+.figma-nav-item.active {
+  color: #d31bff;
+  font-weight: 600;
+}
+
+.figma-nav-item.active::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -4px;
+  height: 2px;
+  background: #d31bff;
+}
+
+/* Right Actions [62:27] w:308, h:30 */
+.figma-nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 19px;
+  height: 30px;
+  flex-shrink: 0;
+}
+
+.figma-search-btn {
+  width: 30px;
+  height: 30px;
+  background: #ffffff;
+  border: none;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.figma-search-btn img {
+  width: 30px;
+  height: 30px;
+  object-fit: contain;
+}
+
+/* Log In [2:39] w:87, h:30, stroke:#9e04c3, r:10 */
+.figma-btn-login {
+  width: 87px;
+  height: 30px;
+  border: 1px solid #9e04c3;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 100%;
+  color: #a938e1;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background 0.15s ease;
+}
+
+.figma-btn-login:hover {
+  background: rgba(158, 4, 195, 0.06);
+}
+
+/* List Your Business [2:38] w:153, h:30, r:10 */
+.figma-btn-list-business {
+  width: 153px;
+  height: 30px;
+  border-radius: 10px;
+  padding: 10px;
+  gap: 10px;
+  background: linear-gradient(270deg, #E26BFE 0%, #6436F9 18.27%, #6436F9 82.21%, #E26BFE 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 100%;
+  color: #ebdeff;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: opacity 0.15s ease;
+}
+
+.figma-btn-list-business:hover {
+  opacity: 0.92;
+}
+
+.figma-hamburger {
+  display: none;
+  flex-direction: column;
+  gap: 4px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+}
+
+.figma-hamburger span {
+  display: block;
+  width: 20px;
+  height: 2px;
+  background: #232356;
+}
+
+.figma-nav-search-dropdown {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 8px 29px;
+  background: #ffffff;
+  border-bottom: 1px solid #e8e9fe;
+}
+
+.figma-nav-search-dropdown input {
+  width: 100%;
+  padding: 8px 14px;
+  border: 1px solid #9e04c3;
+  border-radius: 8px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  outline: none;
+}
+
+@media (max-width: 1100px) {
+  .figma-nav-links {
+    gap: 12px;
+  }
+  .figma-logo-tagline {
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 900px) {
+  .figma-nav-links {
+    display: none;
+    position: absolute;
+    top: 41px;
+    left: 0;
+    right: 0;
+    background: #ffffff;
+    flex-direction: column;
+    padding: 16px 29px;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+    z-index: 999;
+  }
+  .figma-nav-links.open {
+    display: flex;
+  }
+  .figma-hamburger {
+    display: flex;
+  }
+}
