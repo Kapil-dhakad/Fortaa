@@ -16,7 +16,7 @@
 /* ───────────────── TOPBAR ───────────────── */
 .prof-topbar {
   background: #020633;
-  height: 60px;
+  height: 51px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   display: flex;
   align-items: center;
@@ -32,8 +32,37 @@
 .prof-topbar-left {
   display: flex;
   align-items: center;
-  width: 180px;
+  width: 175px;
+  min-width: 175px;
+  max-width: 175px;
   flex-shrink: 0;
+}
+
+.prof-mobile-toggle-btn {
+  display: none;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 6px;
+  flex-direction: column;
+  gap: 4px;
+  margin-right: 8px;
+}
+
+.prof-mobile-toggle-btn span {
+  display: block;
+  width: 20px;
+  height: 2px;
+  background: #FFFFFF;
+  border-radius: 2px;
+}
+
+.prof-mobile-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(2, 6, 51, 0.65);
+  backdrop-filter: blur(2px);
+  z-index: 150;
 }
 
 .prof-brand-logo-card {
@@ -79,8 +108,8 @@
 
 .prof-search-wrapper {
   flex: 1;
-  max-width: 580px;
-  margin: 0 20px;
+  max-width: 741px;
+  margin: 0 16px;
   position: relative;
   display: flex;
   align-items: center;
@@ -88,23 +117,24 @@
 
 .prof-search-icon {
   position: absolute;
-  left: 14px;
-  font-size: 14px;
+  left: 12px;
+  font-size: 13px;
   color: #94A3B8;
   pointer-events: none;
 }
 
 .prof-search-input {
   width: 100%;
-  height: 38px;
+  height: 35px;
   background: #FFFFFF;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 20px;
-  padding: 0 16px 0 40px;
-  font-size: 12.5px;
+  border: none;
+  border-radius: 10px;
+  padding: 0 14px 0 34px;
+  font-size: 12px;
   color: #1E293B;
   outline: none;
   transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
 }
 
 .prof-search-input:focus {
@@ -207,7 +237,7 @@
 .prof-main-wrapper {
   display: flex;
   width: 100%;
-  height: calc(100vh - 60px);
+  height: calc(100vh - 51px);
   overflow: hidden;
   box-sizing: border-box;
 }
@@ -215,9 +245,9 @@
 /* ── LEFT SIDEBAR ── */
 .prof-sidebar-left {
   background: #020633;
-  width: 190px;
-  min-width: 190px;
-  max-width: 190px;
+  width: 175px;
+  min-width: 175px;
+  max-width: 175px;
   height: 100%;
   overflow-y: auto;
   scrollbar-width: none;
@@ -225,6 +255,7 @@
   padding: 8px 10px 24px;
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: 5px;
   color: #FFFFFF;
   flex-shrink: 0;
@@ -239,27 +270,31 @@
 .prof-nav-list {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 3px;
+  width: 100%;
+  align-items: center;
   margin-top: 6px;
 }
 
 .prof-nav-link {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   background: transparent;
   border: none;
   color: rgba(255, 255, 255, 0.75);
-  padding: 7px 12px;
-  border-radius: 8px;
-  font-size: 12.5px;
+  width: 155px;
+  height: 45px;
+  min-height: 45px;
+  box-sizing: border-box;
+  padding: 8px 10px 7px 10px;
+  border-radius: 10px;
+  font-size: 12px;
   font-family: inherit;
   font-weight: 500;
   text-align: left;
   cursor: pointer;
   transition: all 0.15s ease;
-  width: 100%;
-  box-sizing: border-box;
 }
 
 .prof-nav-link:hover {
@@ -268,68 +303,161 @@
 }
 
 .prof-nav-link.active {
-  background: linear-gradient(270deg, #9F21FE 0%, #4F24FF 100%);
+  background: rgba(99, 38, 174, 0.71);
   color: #FFFFFF;
   font-weight: 600;
-  box-shadow: 0 4px 12px rgba(159, 33, 254, 0.3);
+  box-shadow: 0 2px 8px rgba(99, 38, 174, 0.35);
 }
 
 .prof-nav-icon {
-  font-size: 14px;
+  width: 25px;
+  height: 25px;
+  min-width: 25px;
+  min-height: 25px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
+.prof-nav-icon-img {
+  width: 25px;
+  height: 25px;
+  object-fit: contain;
+  opacity: 1;
+  transform: rotate(0deg);
+  display: block;
+}
+
+.prof-nav-label {
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  font-size: 13px;
+  line-height: 100%;
+  letter-spacing: 0.02em;
+  color: #FFFFFF;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Sidebar Promo Card: Grow Together (Figma: 134x154px, radius 10px, border 1px solid #1E0241, gradient #6326AE 71% to #420191) */
 .prof-sidebar-promo-card {
-  margin-top: 14px;
-  background: linear-gradient(135deg, #4A1584, #8421BA);
-  border-radius: 10px;
-  padding: 10px;
-  text-align: center;
+  width: 134px;
+  height: 154px;
+  min-height: 154px;
   box-sizing: border-box;
+  margin-top: 14px;
+  background: linear-gradient(180deg, rgba(99, 38, 174, 0.71) 0%, #420191 100%);
+  border-radius: 10px;
+  border: 1px solid #1E0241;
+  padding: 8px 6px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .prof-promo-img-wrap {
+  width: 100%;
+  height: 40px;
   display: flex;
+  align-items: center;
   justify-content: center;
-  margin-bottom: 6px;
 }
 
 .prof-promo-megaphone {
-  width: 60px;
-  height: auto;
+  max-width: 54px;
+  max-height: 38px;
   object-fit: contain;
 }
 
 .prof-promo-title {
-  font-size: 11.5px;
+  font-size: 11px;
   font-weight: 700;
-  margin: 0;
   color: #FFFFFF;
+  margin: 0;
+  line-height: 1.1;
 }
 
-.prof-promo-dim {
-  font-size: 8px;
-  color: rgba(255, 255, 255, 0.6);
+.prof-promo-desc {
+  font-size: 7.5px;
+  line-height: 1.25;
+  color: rgba(255, 255, 255, 0.85);
+  margin: 0;
+  text-align: center;
 }
 
-.prof-sidebar-bottom-brand {
-  margin-top: auto;
-  padding-top: 16px;
+.prof-promo-btn {
+  width: 113px;
+  height: 20px;
+  min-height: 20px;
+  background: #FFFFFF;
+  color: #420191;
+  border: none;
+  border-radius: 5px;
+  font-size: 9px;
+  font-weight: 700;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+  line-height: 1;
+  padding: 0;
+  margin: 0 auto;
 }
 
-.prof-sbb-icon {
-  width: 18px;
-  height: 18px;
+.prof-promo-btn:hover {
+  opacity: 0.9;
 }
 
-.prof-sbb-name {
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 1px;
+/* Sidebar Bottom Brand Footer (Same size as top logo: 152x42px, radius 5px, border 1.5px solid #6B109F) */
+.prof-brand-logo-card-bottom {
+  margin-top: 10px;
+  flex-shrink: 0;
+}
+
+/* Sidebar Social Icons (Figma: 20x20px circles, gradient #9E04C3 -> #5A2CE4, 10px icons, 10px gap) */
+.prof-sidebar-socials {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 10px;
+  margin-bottom: 10px;
+  width: 100%;
+  flex-shrink: 0;
+}
+
+.prof-social-circle-btn {
+  width: 20px;
+  height: 20px;
+  min-width: 20px;
+  min-height: 20px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #9E04C3 0%, #5A2CE4 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
   color: #FFFFFF;
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  transition: transform 0.15s ease, opacity 0.15s ease;
+}
+
+.prof-social-circle-btn:hover {
+  transform: scale(1.15);
+  opacity: 0.95;
+}
+
+.prof-social-circle-btn svg {
+  width: 10px;
+  height: 10px;
+  display: block;
 }
 
 /* ── SCROLLABLE RIGHT CONTENT CONTAINER ── */
@@ -1576,7 +1704,156 @@
 }
 
 @media (max-width: 900px) {
+  .prof-mobile-toggle-btn {
+    display: flex;
+  }
+  .prof-topbar-left {
+    width: auto;
+  }
+  .prof-sidebar-left {
+    position: fixed;
+    top: 51px;
+    left: -260px;
+    width: 230px;
+    min-width: 230px;
+    max-width: 230px;
+    height: calc(100vh - 51px);
+    z-index: 200;
+    transition: left 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 6px 0 24px rgba(0, 0, 0, 0.3);
+    display: flex;
+  }
+  .prof-sidebar-left.mobile-open {
+    left: 0;
+  }
+  .prof-page {
+    height: auto;
+    overflow: visible;
+  }
+  .prof-main-wrapper {
+    height: auto;
+    overflow: visible;
+    flex-direction: column;
+  }
+  .prof-content-scroll-container {
+    height: auto;
+    overflow: visible;
+    padding: 12px;
+  }
+  .prof-stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
   .prof-edit-view {
     grid-template-columns: 1fr;
+  }
+  .prof-cover-thumbs-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 600px) {
+  .prof-cover-wrap {
+    height: auto;
+    min-height: 180px;
+    padding: 16px 14px;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: flex-end;
+    position: relative;
+  }
+  .prof-btn-edit-profile {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    padding: 4px 10px;
+    font-size: 11px;
+  }
+  .prof-user-header-content {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    margin-top: 24px;
+  }
+  .prof-user-name {
+    font-size: 17px;
+  }
+  .prof-stat-number {
+    font-size: 18px;
+  }
+  .prof-stat-label {
+    font-size: 11.5px;
+  }
+  .prof-stat-card {
+    padding: 12px 14px;
+    gap: 10px;
+  }
+  .prof-tabs-bar {
+    overflow-x: auto;
+    padding: 4px 8px;
+    gap: 4px;
+  }
+  .prof-tab-btn {
+    padding: 8px 10px;
+    font-size: 11.5px;
+    white-space: nowrap;
+  }
+  .prof-post-metrics-row,
+  .prof-post-interact-bar {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .prof-interact-btn {
+    font-size: 11px;
+    padding: 6px 10px;
+  }
+  .prof-edit-sidebar {
+    position: static;
+  }
+  .prof-form-row-2 {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+}
+
+@media (max-width: 480px) {
+  .prof-topbar {
+    padding: 0 10px;
+    gap: 6px;
+  }
+  .prof-search-wrapper {
+    margin: 0 4px;
+  }
+  .prof-search-input {
+    font-size: 11px;
+    padding: 0 10px 0 32px;
+    height: 34px;
+  }
+  .prof-topbar-right {
+    gap: 6px;
+  }
+  .prof-icon-circle-btn {
+    width: 30px;
+    height: 30px;
+  }
+  .prof-user-pill-role {
+    display: none;
+  }
+  .prof-user-pill-name {
+    max-width: 65px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .prof-stats-grid {
+    grid-template-columns: 1fr;
+  }
+  .prof-meta-contact-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .prof-about-card {
+    padding: 14px 16px;
   }
 }

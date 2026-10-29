@@ -3,6 +3,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import logoIconImg from '../../assets/figma/logo_icon_img.png';
 import logoTextImg from '../../assets/figma/logo_text_img.png';
+import registrationSuccessImg from '../../assets/figma/registration_success.png';
+import priyaSharmaImg from '../../assets/figma/priya_sharma.png';
 import './SignUpPage.css';
 
 export default function SignUpPage() {
@@ -12,6 +14,29 @@ export default function SignUpPage() {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+
+  // Field-level error messages
+  const [fieldErrors, setFieldErrors] = useState({
+    name: '',
+    email: '',
+    mobileNumber: '',
+    whatsappNumber: '',
+    password: '',
+    dob: '',
+    gender: '',
+  });
+
+  // Track whether user has blurred out of field or clicked submit
+  const [touched, setTouched] = useState({
+    name: false,
+    email: false,
+    mobileNumber: false,
+    whatsappNumber: false,
+    password: false,
+    dob: false,
+    gender: false,
+  });
 
   // Registered user response from backend
   const [registeredUser, setRegisteredUser] = useState(null);
@@ -38,8 +63,134 @@ export default function SignUpPage() {
     emailVerified: false,
   });
 
+  const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+  const INDIAN_PHONE_REGEX = /^[6-9]\d{9}$/;
+  const NAME_REGEX = /^[a-zA-Z\s]{3,50}$/;
+
   const handleChange = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  // Real-time password criteria
+  const passwordCriteria = {
+    minLength: formData.password.length >= 8,
+    hasUpper: /[A-Z]/.test(formData.password),
+    hasLower: /[a-z]/.test(formData.password),
+    hasNumber: /\d/.test(formData.password),
+    hasSpecial: /[!@#$%^&*(),.?":{}|<>_\-+=]/.test(formData.password),
+  };
+
+  // Field validation function
+  const validateField = (field, value, isSubmit = false) => {
+    let error = '';
+    const val = String(value || '').trim();
+
+    // If empty and not submit, don't show error on blur (caught by browser required tooltip on button click)
+    if (!val) {
+      if (isSubmit && field !== 'whatsappNumber' && field !== 'referralId') {
+        if (field === 'dob') return 'Date of birth is required.';
+        if (field === 'gender') return 'Please select your gender.';
+        return 'This field is required.';
+      }
+      return '';
+    }
+
+    switch (field) {
+      case 'name':
+        if (val.length < 3) {
+          error = 'Full name must be at least 3 characters long.';
+        } else if (!NAME_REGEX.test(val)) {
+          error = 'Full name must contain only letters and spaces.';
+        }
+        break;
+
+      case 'email':
+        if (!EMAIL_REGEX.test(val.toLowerCase())) {
+          error = 'Please enter a valid email address (e.g. name@domain.com).';
+        }
+        break;
+
+      case 'mobileNumber':
+        if (!INDIAN_PHONE_REGEX.test(val)) {
+          if (val.length !== 10) {
+            error = 'Mobile number must be a valid 10-digit number.';
+          } else if (!/^[6-9]/.test(val)) {
+            error = 'Indian mobile number must start with 6, 7, 8, or 9.';
+          } else {
+            error = 'Please enter a valid 10-digit mobile number.';
+          }
+        }
+        break;
+
+      case 'whatsappNumber':
+        if (val && !INDIAN_PHONE_REGEX.test(val)) {
+          error = 'WhatsApp number must be a valid 10-digit number (starting with 6-9).';
+        }
+        break;
+
+      case 'password':
+        if (value.length < 8) {
+          error = 'Password must be at least 8 characters long.';
+        } else if (!/[A-Z]/.test(value)) {
+          error = 'Password must include at least one uppercase letter (A-Z).';
+        } else if (!/[a-z]/.test(value)) {
+          error = 'Password must include at least one lowercase letter (a-z).';
+        } else if (!/\d/.test(value)) {
+          error = 'Password must include at least one number (0-9).';
+        } else if (!/[!@#$%^&*(),.?":{}|<>_\-+=]/.test(value)) {
+          error = 'Password must include at least one special character (!@#$%^&* etc.).';
+        }
+        break;
+
+      case 'dob':
+        if (!value) {
+          error = 'Date of birth is required.';
+        }
+        break;
+
+      case 'gender':
+        if (!value) {
+          error = 'Please select your gender.';
+        }
+        break;
+
+      default:
+        break;
+    }
+    return error;
+  };
+
+  // Strip non-digits and limit to 10 digits for Indian phone numbers
+  const handlePhoneInput = (field, rawValue) => {
+    const digitsOnly = rawValue.replace(/\D/g, '').slice(0, 10);
+    handleChange(field, digitsOnly);
+
+    // If an error was showing and user resolved it, clear it
+    if (fieldErrors[field]) {
+      const err = validateField(field, digitsOnly);
+      if (!err) {
+        setFieldErrors((prev) => ({ ...prev, [field]: '' }));
+      }
+    }
+  };
+
+  const handleFieldChange = (field, value) => {
+    handleChange(field, value);
+
+    // If an error was showing and user resolved it, clear it
+    if (fieldErrors[field]) {
+      const err = validateField(field, value);
+      if (!err) {
+        setFieldErrors((prev) => ({ ...prev, [field]: '' }));
+      }
+    }
+  };
+
+  // Called when cursor leaves the input field (onBlur)
+  const handleBlur = (field) => {
+    setTouched((prev) => ({ ...prev, [field]: true }));
+    const err = validateField(field, formData[field]);
+    setFieldErrors((prev) => ({ ...prev, [field]: err }));
   };
 
   // Step 1: Select Account Type
@@ -100,30 +251,43 @@ export default function SignUpPage() {
   const handleStep2Submit = (e) => {
     e.preventDefault();
     setErrorMessage('');
-    if (!formData.name.trim()) {
-      setErrorMessage('Full name is required.');
+
+    // Mark all fields as touched so any errors become visible on submit
+    setTouched({
+      name: true,
+      email: true,
+      mobileNumber: true,
+      whatsappNumber: true,
+      dob: true,
+      gender: true,
+      password: true,
+    });
+
+    const errors = {
+      name: validateField('name', formData.name, true),
+      email: validateField('email', formData.email, true),
+      mobileNumber: validateField('mobileNumber', formData.mobileNumber, true),
+      whatsappNumber: validateField('whatsappNumber', formData.whatsappNumber, true),
+      dob: validateField('dob', formData.dob, true),
+      gender: validateField('gender', formData.gender, true),
+      password: validateField('password', formData.password, true),
+    };
+
+    setFieldErrors(errors);
+
+    const firstError = Object.values(errors).find((err) => Boolean(err));
+    if (firstError) {
+      setErrorMessage(firstError);
+      toast.error(firstError);
       return;
     }
-    if (!formData.email.trim()) {
-      setErrorMessage('Email address is required.');
-      return;
-    }
-    if (!formData.mobileNumber.trim()) {
-      setErrorMessage('Mobile number is required.');
-      return;
-    }
-    if (!formData.dob) {
-      setErrorMessage('Date of birth is required.');
-      return;
-    }
-    if (!formData.gender) {
-      setErrorMessage('Please select your gender.');
-      return;
-    }
+
     if (!formData.agreeTerms) {
-      setErrorMessage('Please accept the Terms & Conditions.');
+      setErrorMessage('Please accept the Terms & Conditions and Privacy Policy.');
+      toast.error('Please accept the Terms & Conditions and Privacy Policy.');
       return;
     }
+
     setStep(3);
   };
 
@@ -194,24 +358,29 @@ export default function SignUpPage() {
   };
 
   return (
-    <div className="onboarding-page">
-      <div className="onboarding-container">
-        {/* Header */}
-        <header className="onboarding-header">
-          <Link to="/" className="figma-logo" title="Back to Home">
-            <img src={logoIconImg} alt="Fortaa F" className="figma-logo-icon" />
-            <div className="figma-logo-text-wrap">
-              <img src={logoTextImg} alt="FORTAA" className="figma-logo-word" />
-              <span className="figma-logo-tagline">Discover, easy and Grow</span>
-            </div>
-          </Link>
-          <Link to="/login" className="onboarding-login-link">
-            Log In
-          </Link>
-        </header>
+    <div className={`onboarding-page ${step === 5 ? 'step-success' : ''}`}>
+      <div className={`onboarding-container ${step === 5 ? 'step-success' : ''}`}>
+        {/* Card Container (Figma: Logo & Form all inside the card) */}
+        <div className={`onboarding-card ${step === 5 ? 'step-success' : ''}`}>
+          {/* Card Top Brand Header (Matching Figma 248x42 Logo at top: 25px, left: 48px) */}
+          <div className="card-brand-header">
+            <Link to="/" className="figma-logo" title="Back to Home">
+              <img src={logoIconImg} alt="Fortaa F" className="figma-logo-icon" />
+              <div className="figma-logo-text-wrap">
+                <img src={logoTextImg} alt="FORTAA" className="figma-logo-word" />
+                <span className="figma-logo-tagline">Discover, easy and Grow</span>
+              </div>
+            </Link>
+            {step <= 4 && (
+              <div className="card-login-prompt">
+                Already have an account?{' '}
+                <Link to="/login" className="card-login-link">
+                  Log In
+                </Link>
+              </div>
+            )}
+          </div>
 
-        {/* Card Container */}
-        <div className="onboarding-card">
           {/* Stepper (Only on Steps 1 to 4) */}
           {step <= 4 && (
             <div className="onboarding-stepper">
@@ -284,13 +453,16 @@ export default function SignUpPage() {
                 ))}
               </div>
 
-              <button
-                type="button"
-                className="btn-step-next full-width"
-                onClick={() => setStep(2)}
-              >
-                Next →
-              </button>
+              <div style={{ display: 'flex', justifyContent: 'center', marginTop: '16px' }}>
+                <button
+                  type="button"
+                  className="btn-step-next"
+                  style={{ width: '100%', maxWidth: '433px', height: '46px', background: '#5A2CE4', justifyContent: 'center' }}
+                  onClick={() => setStep(2)}
+                >
+                  Next →
+                </button>
+              </div>
             </div>
           )}
 
@@ -301,6 +473,7 @@ export default function SignUpPage() {
               <p className="step-subheading">Please provide your personal information to continue:</p>
 
               <div className="form-grid-2">
+                {/* Row 1: Full Name & Email Address */}
                 {/* Full Name */}
                 <div className="form-field">
                   <label className="form-label">
@@ -315,13 +488,15 @@ export default function SignUpPage() {
                     </span>
                     <input
                       type="text"
-                      className="field-input"
+                      className={`field-input ${touched.name && fieldErrors.name ? 'has-error' : ''}`}
                       placeholder="Enter your full name"
                       value={formData.name}
-                      onChange={(e) => handleChange('name', e.target.value)}
+                      onChange={(e) => handleFieldChange('name', e.target.value)}
+                      onBlur={() => handleBlur('name')}
                       required
                     />
                   </div>
+                  {touched.name && fieldErrors.name && <span className="field-error-text">⚠️ {fieldErrors.name}</span>}
                 </div>
 
                 {/* Email Address */}
@@ -338,15 +513,18 @@ export default function SignUpPage() {
                     </span>
                     <input
                       type="email"
-                      className="field-input"
+                      className={`field-input ${touched.email && fieldErrors.email ? 'has-error' : ''}`}
                       placeholder="Enter your email address"
                       value={formData.email}
-                      onChange={(e) => handleChange('email', e.target.value)}
+                      onChange={(e) => handleFieldChange('email', e.target.value)}
+                      onBlur={() => handleBlur('email')}
                       required
                     />
                   </div>
+                  {touched.email && fieldErrors.email && <span className="field-error-text">⚠️ {fieldErrors.email}</span>}
                 </div>
 
+                {/* Row 2: Mobile Number & WhatsApp Number */}
                 {/* Mobile Number */}
                 <div className="form-field">
                   <label className="form-label">
@@ -362,20 +540,23 @@ export default function SignUpPage() {
                     <div className="field-input-box" style={{ flex: 1 }}>
                       <input
                         type="tel"
-                        className="field-input no-icon"
+                        className={`field-input no-icon ${touched.mobileNumber && fieldErrors.mobileNumber ? 'has-error' : ''}`}
                         placeholder="Enter your mobile number"
                         value={formData.mobileNumber}
-                        onChange={(e) => handleChange('mobileNumber', e.target.value)}
+                        onChange={(e) => handlePhoneInput('mobileNumber', e.target.value)}
+                        onBlur={() => handleBlur('mobileNumber')}
+                        maxLength={10}
                         required
                       />
                     </div>
                   </div>
+                  {touched.mobileNumber && fieldErrors.mobileNumber && <span className="field-error-text">⚠️ {fieldErrors.mobileNumber}</span>}
                 </div>
 
-                {/* WhatsApp Number */}
+                {/* WhatsApp Number (Preserved) */}
                 <div className="form-field">
                   <label className="form-label">
-                    WhatsApp Number<span className="required">*</span>
+                    WhatsApp Number (Optional)
                   </label>
                   <div className="phone-input-group">
                     <div className="country-code-pill">
@@ -387,15 +568,19 @@ export default function SignUpPage() {
                     <div className="field-input-box" style={{ flex: 1 }}>
                       <input
                         type="tel"
-                        className="field-input no-icon"
+                        className={`field-input no-icon ${touched.whatsappNumber && fieldErrors.whatsappNumber ? 'has-error' : ''}`}
                         placeholder="Enter your WhatsApp number"
                         value={formData.whatsappNumber}
-                        onChange={(e) => handleChange('whatsappNumber', e.target.value)}
+                        onChange={(e) => handlePhoneInput('whatsappNumber', e.target.value)}
+                        onBlur={() => handleBlur('whatsappNumber')}
+                        maxLength={10}
                       />
                     </div>
                   </div>
+                  {touched.whatsappNumber && fieldErrors.whatsappNumber && <span className="field-error-text">⚠️ {fieldErrors.whatsappNumber}</span>}
                 </div>
 
+                {/* Row 3: Date of Birth & Gender */}
                 {/* Date of Birth */}
                 <div className="form-field">
                   <label className="form-label">
@@ -412,12 +597,15 @@ export default function SignUpPage() {
                     </span>
                     <input
                       type="date"
-                      className="field-input custom-date-input"
+                      className={`field-input custom-date-input ${touched.dob && fieldErrors.dob ? 'has-error' : ''}`}
+                      placeholder="DD/MM/YYYY"
                       value={formData.dob}
-                      onChange={(e) => handleChange('dob', e.target.value)}
+                      onChange={(e) => handleFieldChange('dob', e.target.value)}
+                      onBlur={() => handleBlur('dob')}
                       required
                     />
                   </div>
+                  {touched.dob && fieldErrors.dob && <span className="field-error-text">⚠️ {fieldErrors.dob}</span>}
                 </div>
 
                 {/* Gender */}
@@ -427,9 +615,10 @@ export default function SignUpPage() {
                   </label>
                   <div className="field-input-box">
                     <select
-                      className="field-select no-icon"
+                      className={`field-select no-icon ${touched.gender && fieldErrors.gender ? 'has-error' : ''}`}
                       value={formData.gender}
-                      onChange={(e) => handleChange('gender', e.target.value)}
+                      onChange={(e) => handleFieldChange('gender', e.target.value)}
+                      onBlur={() => handleBlur('gender')}
                       required
                     >
                       <option value="">Select Gender</option>
@@ -443,6 +632,53 @@ export default function SignUpPage() {
                       </svg>
                     </span>
                   </div>
+                  {touched.gender && fieldErrors.gender && <span className="field-error-text">⚠️ {fieldErrors.gender}</span>}
+                </div>
+
+                {/* Row 4: Password & Referral ID */}
+                {/* Password field (Preserved) */}
+                <div className="form-field">
+                  <label className="form-label">
+                    Password<span className="required">*</span>
+                  </label>
+                  <div className="field-input-box">
+                    <span className="field-icon">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                      </svg>
+                    </span>
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      className={`field-input ${touched.password && fieldErrors.password ? 'has-error' : ''}`}
+                      placeholder="Enter strong password (min 8 chars)"
+                      value={formData.password}
+                      onChange={(e) => handleFieldChange('password', e.target.value)}
+                      onBlur={() => handleBlur('password')}
+                      required
+                    />
+                    <button
+                      type="button"
+                      className="input-eye-btn"
+                      onClick={() => setShowPassword(!showPassword)}
+                      aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    >
+                      {showPassword ? (
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24" />
+                          <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68" />
+                          <path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61" />
+                          <line x1="2" y1="2" x2="22" y2="22" />
+                        </svg>
+                      ) : (
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+                          <circle cx="12" cy="12" r="3" />
+                        </svg>
+                      )}
+                    </button>
+                  </div>
+                  {touched.password && fieldErrors.password && <span className="field-error-text">⚠️ {fieldErrors.password}</span>}
                 </div>
 
                 {/* Referral ID */}
@@ -465,49 +701,68 @@ export default function SignUpPage() {
                   </div>
                 </div>
 
-                {/* Password field for account login */}
-                <div className="form-field form-group-full">
-                  <label className="form-label">
-                    Password<span className="required">*</span>
-                  </label>
-                  <div className="field-input-box">
-                    <span className="field-icon">
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
-                        <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                      </svg>
-                    </span>
-                    <input
-                      type="password"
-                      className="field-input"
-                      placeholder="Create a strong password (min 6 characters)"
-                      value={formData.password}
-                      onChange={(e) => handleChange('password', e.target.value)}
-                      required
-                    />
+                {/* Password Criteria Checklist (Spans nicely under password) */}
+                <div className="form-group-full">
+                  <div className="password-requirements-card">
+                    <div className="password-req-header">Password must contain:</div>
+                    <div className="password-req-list">
+                      <span className={`password-req-item ${passwordCriteria.minLength ? 'met' : ''}`}>
+                        <span className="password-req-icon">{passwordCriteria.minLength ? '✓' : '○'}</span>
+                        At least 8 characters
+                      </span>
+                      <span className={`password-req-item ${passwordCriteria.hasUpper ? 'met' : ''}`}>
+                        <span className="password-req-icon">{passwordCriteria.hasUpper ? '✓' : '○'}</span>
+                        1 uppercase letter (A-Z)
+                      </span>
+                      <span className={`password-req-item ${passwordCriteria.hasLower ? 'met' : ''}`}>
+                        <span className="password-req-icon">{passwordCriteria.hasLower ? '✓' : '○'}</span>
+                        1 lowercase letter (a-z)
+                      </span>
+                      <span className={`password-req-item ${passwordCriteria.hasNumber ? 'met' : ''}`}>
+                        <span className="password-req-icon">{passwordCriteria.hasNumber ? '✓' : '○'}</span>
+                        1 number (0-9)
+                      </span>
+                      <span
+                        className={`password-req-item ${passwordCriteria.hasSpecial ? 'met' : ''}`}
+                        style={{ gridColumn: '1 / -1' }}
+                      >
+                        <span className="password-req-icon">{passwordCriteria.hasSpecial ? '✓' : '○'}</span>
+                        1 special character (!@#$%^&* etc.)
+                      </span>
+                    </div>
                   </div>
                 </div>
 
-                {/* Terms and Conditions Checkbox */}
-                <div className="form-group-full" style={{ marginTop: 6 }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', fontSize: '13.5px', color: '#374151' }}>
+                {/* Terms and Conditions Checkbox (Matching Figma Image 1) */}
+                <div className="form-group-full" style={{ marginTop: 4 }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', fontSize: '13.5px', color: '#1A1A3A' }}>
                     <input
                       type="checkbox"
                       checked={formData.agreeTerms}
                       onChange={(e) => handleChange('agreeTerms', e.target.checked)}
-                      style={{ width: 18, height: 18, accentColor: '#5B21B6' }}
+                      style={{ width: 18, height: 18, accentColor: '#5A2CE4' }}
+                      required
                     />
                     <span>I agree to the Terms &amp; Conditions and Privacy Policy of Fortaa.</span>
                   </label>
                 </div>
               </div>
 
-              <div className="step-actions-row">
-                <button type="button" className="btn-step-back" onClick={() => setStep(1)}>
-                  ← Back
-                </button>
-                <button type="submit" className="btn-step-next">
+              {/* Centered Next Button (Matching Figma Frame 28) */}
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', marginTop: '16px' }}>
+                <button
+                  type="submit"
+                  className="btn-step-next"
+                  style={{ width: '100%', maxWidth: '433px', height: '46px', background: '#5A2CE4', justifyContent: 'center' }}
+                >
                   Next →
+                </button>
+                <button
+                  type="button"
+                  style={{ background: 'none', border: 'none', color: '#5A2CE4', fontSize: '13px', fontWeight: '600', cursor: 'pointer', padding: '4px 8px' }}
+                  onClick={() => setStep(1)}
+                >
+                  ← Back to Account Type
                 </button>
               </div>
             </form>
@@ -811,38 +1066,11 @@ export default function SignUpPage() {
           {step === 5 && (
             <div className="success-screen-wrapper">
               <div className="celebration-badge-box">
-                <svg viewBox="0 0 160 160" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: '100%', height: '100%' }}>
-                  {/* Confetti ribbons */}
-                  <path d="M30 65C24 70 20 82 32 86" stroke="#A855F7" strokeWidth="5" strokeLinecap="round" />
-                  <path d="M132 52C138 58 142 70 128 76" stroke="#06B6D4" strokeWidth="4.5" strokeLinecap="round" />
-                  <path d="M132 112C138 120 142 130 130 136" stroke="#EC4899" strokeWidth="5" strokeLinecap="round" />
-                  <path d="M26 112C20 120 26 130 36 128" stroke="#8B5CF6" strokeWidth="4" strokeLinecap="round" />
-
-                  {/* Confetti dots */}
-                  <circle cx="28" cy="90" r="4.5" fill="#3B82F6" />
-                  <circle cx="34" cy="42" r="3" fill="#EC4899" />
-                  <circle cx="140" cy="92" r="3.5" fill="#8B5CF6" />
-                  <circle cx="40" cy="140" r="4.5" fill="#F59E0B" />
-                  <circle cx="122" cy="40" r="3.5" fill="#F43F5E" />
-
-                  {/* Star */}
-                  <polygon points="144,56 146,62 152,62 147,66 149,72 144,68 139,72 141,66 136,62 142,62" fill="#F59E0B" />
-
-                  {/* Purple Glowing Sphere */}
-                  <defs>
-                    <linearGradient id="purpleSphereGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop offset="0%" stopColor="#8B5CF6" />
-                      <stop offset="100%" stopColor="#5B21B6" />
-                    </linearGradient>
-                    <filter id="badgeShadow" x="-20%" y="-20%" width="140%" height="140%">
-                      <feDropShadow dx="0" dy="8" stdDeviation="12" floodColor="#7C3AED" floodOpacity="0.4" />
-                    </filter>
-                  </defs>
-                  <circle cx="80" cy="80" r="44" fill="url(#purpleSphereGrad)" filter="url(#badgeShadow)" />
-
-                  {/* 3D Checkmark */}
-                  <path d="M62 80L74 92L98 68" stroke="#FFFFFF" strokeWidth="7" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
+                <img
+                  src={registrationSuccessImg}
+                  alt="Registration Successful"
+                  className="celebration-hero-img"
+                />
               </div>
 
               <h2 className="success-hero-title">Registration Successful!</h2>
@@ -850,16 +1078,28 @@ export default function SignUpPage() {
                 Your account has been created successfully.<br />Welcome to Fortaa
               </p>
 
-              {/* Member Profile Card */}
+              {/* Member Profile Card (Matching Figma Frame 81 & Profile) */}
               <div className="member-profile-card">
-                <div className="profile-avatar-circle">
-                  {(registeredUser?.name || formData.name || 'Rahul').charAt(0).toUpperCase()}
-                </div>
-                <div className="profile-welcome-text">
-                  Welcome, {registeredUser?.name || formData.name || 'Rahul Sharma'}
-                </div>
-                <div className="profile-member-id">
-                  Member ID: {registeredUser?.memberId || 'NS123456'}
+                <div className="profile-header-row">
+                  <div className="profile-avatar-box">
+                    <img
+                      src={priyaSharmaImg}
+                      alt="User Avatar"
+                      className="profile-avatar-img"
+                      onError={(e) => {
+                        e.target.style.display = 'none';
+                        e.target.parentNode.textContent = (registeredUser?.name || formData.name || 'R').charAt(0).toUpperCase();
+                      }}
+                    />
+                  </div>
+                  <div className="profile-text-wrap">
+                    <div className="profile-welcome-text">
+                      Welcome, {registeredUser?.name || formData.name || 'Rahul Sharma'}
+                    </div>
+                    <div className="profile-member-id">
+                      Member ID: {registeredUser?.memberId || 'NS123456'}
+                    </div>
+                  </div>
                 </div>
 
                 <button
@@ -883,23 +1123,52 @@ export default function SignUpPage() {
                 You can now access all features and start your journey.
               </p>
 
-              {/* Bottom 4 Category Pills */}
+              {/* Bottom 4 Category Pills (Matching Figma Frame 8) */}
               <div className="success-category-pills">
                 <div className="cat-pill-item">
-                  <span className="cat-pill-icon">🏢</span>
-                  <span>Companies</span>
+                  <div className="cat-pill-icon-box">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <rect x="4" y="2" width="16" height="20" rx="2" />
+                      <path d="M9 22v-4h6v4" />
+                      <path d="M8 6h.01M16 6h.01M8 10h.01M16 10h.01M8 14h.01M16 14h.01" />
+                    </svg>
+                  </div>
+                  <span className="cat-pill-label">Companies</span>
                 </div>
+
                 <div className="cat-pill-item">
-                  <span className="cat-pill-icon">📦</span>
-                  <span>Products</span>
+                  <div className="cat-pill-icon-box">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="m7.5 4.27 9 5.15" />
+                      <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" />
+                      <path d="m3.3 7 8.7 5 8.7-5" />
+                      <path d="M12 22V12" />
+                    </svg>
+                  </div>
+                  <span className="cat-pill-label">Products</span>
                 </div>
+
                 <div className="cat-pill-item">
-                  <span className="cat-pill-icon">👥</span>
-                  <span>Leaders</span>
+                  <div className="cat-pill-icon-box">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                      <circle cx="9" cy="7" r="4" />
+                      <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+                      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                    </svg>
+                  </div>
+                  <span className="cat-pill-label">Leaders</span>
                 </div>
+
                 <div className="cat-pill-item">
-                  <span className="cat-pill-icon">🎯</span>
-                  <span>Opportunity</span>
+                  <div className="cat-pill-icon-box">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <circle cx="12" cy="12" r="10" />
+                      <circle cx="12" cy="12" r="6" />
+                      <circle cx="12" cy="12" r="2" />
+                    </svg>
+                  </div>
+                  <span className="cat-pill-label">Opportunity</span>
                 </div>
               </div>
             </div>

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import AuthLayout from '../../components/AuthLayout';
+import GoogleLoginButton from '../../components/auth/GoogleLoginButton';
 import './Auth.css';
 
 export default function LoginPage() {
@@ -81,7 +82,7 @@ export default function LoginPage() {
       </div>
 
       {errorMsg && (
-        <div style={{ color: '#EF4444', background: '#FEE2E2', padding: '10px 14px', borderRadius: '8px', marginBottom: '14px', fontSize: '13px' }}>
+        <div style={{ color: '#EF4444', background: '#FEE2E2', padding: '8px 12px', borderRadius: '8px', marginBottom: '8px', fontSize: '12.5px', maxWidth: 398, margin: '0 auto 8px' }}>
           ⚠️ {errorMsg}
         </div>
       )}
@@ -165,7 +166,7 @@ export default function LoginPage() {
               toast.success('Password reset link will be sent to your email.');
             }}
           >
-            Forget Password?
+            Forgot Password?
           </a>
         </div>
 
@@ -182,31 +183,7 @@ export default function LoginPage() {
 
       {/* Social Login Buttons */}
       <div className="auth-social-stack">
-        <button
-          type="button"
-          className="btn-social btn-social-google"
-          onClick={() => handleSocialLogin('Google')}
-        >
-          <svg width="18" height="18" viewBox="0 0 24 24">
-            <path
-              fill="#EA4335"
-              d="M12 5c1.6 0 3 .6 4.1 1.7l3.1-3.1C17.3 1.8 14.8 1 12 1 7.5 1 3.7 3.6 1.9 7.3l3.7 2.9C6.5 7.4 9 5 12 5z"
-            />
-            <path
-              fill="#4285F4"
-              d="M23.5 12.3c0-.8-.1-1.7-.2-2.3H12v4.5h6.5c-.3 1.5-1.1 2.8-2.4 3.7l3.7 2.9c2.2-2 3.7-5.1 3.7-8.8z"
-            />
-            <path
-              fill="#FBBC05"
-              d="M5.6 14.8c-.2-.7-.4-1.5-.4-2.3 0-.8.1-1.6.4-2.3L1.9 7.3C.7 9.7 0 12.3 0 15s.7 5.3 1.9 7.7l3.7-2.9z"
-            />
-            <path
-              fill="#34A853"
-              d="M12 23c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3 0-5.5-2.4-6.4-5.2L1.9 16c1.8 3.7 5.6 7 10.1 7z"
-            />
-          </svg>
-          Continue with Google
-        </button>
+        <GoogleLoginButton buttonText="Continue with Google" />
 
         <button
           type="button"

@@ -12,6 +12,7 @@ export default function AdminUserDashboard() {
   const [dbUsers, setDbUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [timeRange, setTimeRange] = useState('Last 7 Days');
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [dbStats, setDbStats] = useState({
     totalUsers: '24,892',
     approvedUsers: '21,568',
@@ -190,8 +191,16 @@ export default function AdminUserDashboard() {
 
   return (
     <div className="aud-page">
+      {/* Mobile Drawer Backdrop */}
+      {mobileMenuOpen && (
+        <div
+          className="aud-mobile-backdrop"
+          onClick={() => setMobileMenuOpen(false)}
+        />
+      )}
+
       {/* ───────────────── LEFT SIDEBAR ───────────────── */}
-      <aside className="aud-sidebar">
+      <aside className={`aud-sidebar ${mobileMenuOpen ? 'mobile-open' : ''}`}>
         {/* Brand Header */}
         <div className="aud-sidebar-brand">
           <Link to="/admin" className="aud-brand-link">
@@ -353,6 +362,16 @@ export default function AdminUserDashboard() {
       <div className="aud-main-wrap">
         {/* Top Navbar */}
         <header className="aud-topbar">
+          <button
+            type="button"
+            className="aud-mobile-toggle-btn"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            aria-label="Toggle Admin Sidebar"
+          >
+            <span></span>
+            <span></span>
+            <span></span>
+          </button>
           <div className="aud-search-wrap">
             <span className="aud-search-icon">🔍</span>
             <input

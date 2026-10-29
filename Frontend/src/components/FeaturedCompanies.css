@@ -316,6 +316,9 @@
 }
 
 @media (max-width: 740px) {
+  .figma-fc-frame48 {
+    padding: 0 16px;
+  }
   .figma-fc-header {
     flex-direction: column;
     gap: 10px;
@@ -323,5 +326,23 @@
   .figma-fc-cards-row {
     grid-template-columns: 1fr;
     justify-items: center;
+  }
+  .figma-fc-card {
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 400px) {
+  .figma-fc-card {
+    height: auto;
+    min-height: 180px;
+    padding: 10px 12px;
+  }
+  .figma-fc-company-name {
+    font-size: 15px;
+  }
+  .figma-fc-btn-view {
+    font-size: 12px;
+    height: 30px;
   }
 }

@@ -428,10 +428,31 @@
 @media (max-width: 1024px) {
   .figma-hero-canvas {
     height: auto;
+    min-height: auto;
     padding-bottom: 32px;
+  }
+  .figma-hero-mountain {
+    position: absolute;
+    right: 0;
+    left: auto;
+    top: 0;
+    width: 60%;
+    height: 100%;
+    opacity: 0.3;
+    z-index: 1;
+  }
+  .figma-hero-vec-7,
+  .figma-hero-vec-10,
+  .figma-hero-vec-11,
+  .figma-hero-vec-12,
+  .figma-hero-vec-9,
+  .figma-hero-vec-8,
+  .figma-hero-poly-1 {
+    display: none;
   }
   .figma-hero-left-content {
     padding: 32px 24px 20px;
+    max-width: 100%;
   }
   .figma-hero-search {
     width: 100%;
@@ -441,23 +462,76 @@
     position: relative;
     left: auto;
     top: auto;
+    right: auto;
     width: calc(100% - 48px);
     margin: 20px 24px 0;
     height: auto;
-    flex-wrap: wrap;
-    gap: 16px;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
   }
   .figma-hero-together {
     display: none;
   }
 }
 
-@media (max-width: 640px) {
+@media (max-width: 768px) {
+  .figma-hero-stats-bar {
+    grid-template-columns: repeat(2, 1fr);
+    width: calc(100% - 32px);
+    margin: 20px 16px 0;
+    padding: 14px 16px;
+  }
+  .figma-hero-left-content {
+    padding: 24px 16px 16px;
+  }
   .figma-hero-title,
   .figma-hero-subtitle-grad {
-    font-size: 28px;
+    font-size: 26px;
+    line-height: 1.15;
+  }
+  .figma-hero-desc {
+    font-size: 14px;
   }
   .figma-hero-quick-cats {
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+}
+
+@media (max-width: 480px) {
+  .figma-hero-badge span {
+    font-size: 11px;
+    letter-spacing: 0.5px;
+  }
+  .figma-badge-icon {
+    width: 22px;
+    height: 22px;
+  }
+  .figma-hero-title,
+  .figma-hero-subtitle-grad {
+    font-size: 22px;
+  }
+  .figma-hero-cta-row {
+    flex-direction: column;
+    width: 100%;
+    gap: 10px;
+  }
+  .figma-hero-btn-explore,
+  .figma-hero-btn-list {
+    width: 100%;
+  }
+  .figma-hero-search {
+    height: 44px;
+  }
+  .figma-hero-stats-bar {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .figma-stat-count {
+    font-size: 14px;
+  }
+  .figma-stat-name {
+    font-size: 12px;
   }
 }

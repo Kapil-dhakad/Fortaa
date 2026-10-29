@@ -1023,3 +1023,109 @@
   font-weight: 700;
   color: #10B981;
 }
+
+/* ───────────────── MOBILE SIDEBAR TOGGLE & BACKDROP ───────────────── */
+.aud-mobile-toggle-btn {
+  display: none;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 6px;
+  flex-direction: column;
+  gap: 4px;
+  margin-right: 10px;
+}
+
+.aud-mobile-toggle-btn span {
+  display: block;
+  width: 20px;
+  height: 2px;
+  background: #020633;
+  border-radius: 2px;
+}
+
+.aud-mobile-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(2, 6, 51, 0.65);
+  backdrop-filter: blur(2px);
+  z-index: 150;
+}
+
+/* ───────────────── RESPONSIVE BREAKPOINTS ───────────────── */
+@media (max-width: 1200px) {
+  .aud-stats-5-row {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .aud-row-charts {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 900px) {
+  .aud-mobile-toggle-btn {
+    display: flex;
+  }
+  .aud-sidebar {
+    position: fixed;
+    top: 0;
+    left: -260px;
+    width: 240px;
+    height: 100vh;
+    z-index: 200;
+    transition: left 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 6px 0 24px rgba(0, 0, 0, 0.4);
+  }
+  .aud-sidebar.mobile-open {
+    left: 0;
+  }
+  .aud-stats-5-row {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .aud-content {
+    padding: 12px;
+  }
+  .aud-page-title-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .aud-title-actions {
+    flex-wrap: wrap;
+    width: 100%;
+    justify-content: space-between;
+  }
+}
+
+@media (max-width: 600px) {
+  .aud-topbar {
+    padding: 0 10px;
+    height: 50px;
+  }
+  .aud-search-wrap {
+    max-width: none;
+  }
+  .aud-profile-role {
+    display: none;
+  }
+  .aud-profile-name {
+    max-width: 65px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .aud-stats-5-row {
+    grid-template-columns: 1fr;
+  }
+  .aud-card-header {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .aud-donut-body {
+    flex-direction: column;
+    align-items: center;
+  }
+  .aud-donut-legend {
+    width: 100%;
+  }
+}

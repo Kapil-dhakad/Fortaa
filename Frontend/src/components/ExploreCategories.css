@@ -345,7 +345,31 @@
 }
 
 @media (max-width: 580px) {
+  .figma-explore-container {
+    padding: 0 16px;
+  }
   .figma-categories-row {
     grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+  .figma-cat-card {
+    height: auto;
+    min-height: 250px;
+    padding: 12px 10px;
+  }
+  .figma-cat-title {
+    font-size: 17px;
+  }
+  .figma-cat-subtitle {
+    font-size: 14px;
+  }
+  .figma-cat-desc {
+    font-size: 11px;
+  }
+}
+
+@media (max-width: 380px) {
+  .figma-categories-row {
+    grid-template-columns: 1fr;
   }
 }

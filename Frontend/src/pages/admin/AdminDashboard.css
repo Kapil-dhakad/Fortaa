@@ -1041,3 +1041,120 @@
 .adm-btn-contact-support:hover {
   opacity: 0.95;
 }
+
+/* ───────────────── MOBILE SIDEBAR TOGGLE & BACKDROP ───────────────── */
+.adm-mobile-toggle-btn {
+  display: none;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 6px;
+  flex-direction: column;
+  gap: 4px;
+  margin-right: 10px;
+}
+
+.adm-mobile-toggle-btn span {
+  display: block;
+  width: 20px;
+  height: 2px;
+  background: #020633;
+  border-radius: 2px;
+}
+
+.adm-mobile-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(2, 6, 51, 0.65);
+  backdrop-filter: blur(2px);
+  z-index: 150;
+}
+
+/* ───────────────── RESPONSIVE BREAKPOINTS ───────────────── */
+@media (max-width: 1200px) {
+  .adm-dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+  .adm-col-side {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+  .adm-stats-row {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 900px) {
+  .adm-mobile-toggle-btn {
+    display: flex;
+  }
+  .adm-sidebar {
+    position: fixed;
+    top: 0;
+    left: -260px;
+    width: 240px;
+    height: 100vh;
+    z-index: 200;
+    transition: left 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 6px 0 24px rgba(0, 0, 0, 0.4);
+  }
+  .adm-sidebar.mobile-open {
+    left: 0;
+  }
+  .adm-tables-tri-grid {
+    grid-template-columns: 1fr;
+  }
+  .adm-col-side {
+    grid-template-columns: 1fr;
+  }
+  .adm-content {
+    padding: 12px;
+  }
+  .adm-page-title-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+}
+
+@media (max-width: 600px) {
+  .adm-topbar {
+    padding: 0 10px;
+    height: 50px;
+  }
+  .adm-search-wrap {
+    max-width: none;
+  }
+  .adm-profile-role {
+    display: none;
+  }
+  .adm-profile-name {
+    max-width: 65px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .adm-stats-row {
+    grid-template-columns: 1fr;
+  }
+  .adm-card-header {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .adm-pill-filters {
+    overflow-x: auto;
+    width: 100%;
+  }
+  .adm-ps-grid {
+    grid-template-columns: 1fr;
+  }
+  .adm-promo-banner {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .adm-promo-megaphone {
+    position: static;
+    margin-top: 10px;
+  }
+}

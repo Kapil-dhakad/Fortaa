@@ -1,7 +1,7 @@
 /* Auth Card Shared Styles */
 .auth-card-header {
   text-align: center;
-  margin-bottom: 24px;
+  margin-bottom: 12px;
 }
 
 .auth-card-header.text-left {
@@ -12,14 +12,14 @@
   font-size: 24px;
   font-weight: 800;
   color: #1A1A3A;
-  margin-bottom: 6px;
+  margin-bottom: 3px;
   letter-spacing: -0.3px;
 }
 
 .auth-card-subtitle {
   font-size: 13.5px;
   color: #6B7280;
-  line-height: 1.5;
+  line-height: 1.4;
 }
 
 /* Stepper Component */
@@ -27,7 +27,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 28px;
+  margin-bottom: 20px;
   position: relative;
   padding: 0 8px;
 }
@@ -38,18 +38,18 @@
   align-items: center;
   position: relative;
   z-index: 2;
-  gap: 6px;
+  gap: 4px;
   cursor: default;
 }
 
 .stepper-circle {
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
   background: #E2E8F0;
   color: #64748B;
@@ -57,9 +57,9 @@
 }
 
 .stepper-item.active .stepper-circle {
-  background: #5B21B6;
+  background: #5B1BD3;
   color: #FFFFFF;
-  box-shadow: 0 4px 12px rgba(91, 33, 182, 0.35);
+  box-shadow: 0 4px 10px rgba(91, 27, 211, 0.35);
   transform: scale(1.05);
 }
 
@@ -69,7 +69,7 @@
 }
 
 .stepper-label {
-  font-size: 11.5px;
+  font-size: 11px;
   font-weight: 600;
   color: #64748B;
   white-space: nowrap;
@@ -84,75 +84,207 @@
   flex: 1;
   height: 2px;
   background: #E2E8F0;
-  margin: 0 8px 18px;
+  margin: 0 8px 14px;
   position: relative;
   z-index: 1;
 }
 
 .stepper-line.active {
-  background: #5B21B6;
+  background: #5B1BD3;
 }
 
-/* Social Buttons */
-.auth-social-stack {
+/* Form Groups & Inputs (Fits viewport without scrolling) */
+.auth-form {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  margin-bottom: 20px;
-}
-
-.btn-social {
-  display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 12px;
-  height: 46px;
-  border-radius: 10px;
-  font-size: 14px;
-  font-weight: 600;
-  border: 1px solid transparent;
-  cursor: pointer;
-  transition: all 0.2s ease;
+  gap: 10px;
   width: 100%;
 }
 
-.btn-social:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  max-width: 398px;
+  margin: 0 auto;
 }
 
-.btn-social-google {
-  background: #581C87;
-  color: #FFFFFF;
-}
-.btn-social-google:hover {
-  background: #4C1D95;
+.form-label {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #232356;
 }
 
-.btn-social-facebook {
-  background: #1877F2;
-  color: #FFFFFF;
-}
-.btn-social-facebook:hover {
-  background: #166FE5;
+.input-with-icon {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  max-width: 398px;
 }
 
-.btn-social-linkedin {
+.input-icon-left {
+  position: absolute;
+  left: 12px;
+  color: #232356;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.form-input,
+.form-select {
+  width: 100%;
+  max-width: 398px;
+  height: 42px;
+  padding: 8px 14px 8px 38px;
+  border: 1px solid #232356;
+  border-radius: 10px;
+  font-size: 13.5px;
+  font-family: inherit;
+  color: #232356;
   background: #FFFFFF;
-  border: 1.5px solid #0077B5;
-  color: #0077B5;
-}
-.btn-social-linkedin:hover {
-  background: #F0F9FF;
+  transition: all 0.2s ease;
+  outline: none;
+  box-sizing: border-box;
 }
 
-/* Divider */
+.form-input.no-icon {
+  padding-left: 14px;
+}
+
+.form-input:focus,
+.form-select:focus {
+  border-color: #5B1BD3;
+  box-shadow: 0 0 0 3px rgba(91, 27, 211, 0.12);
+}
+
+.form-input::placeholder {
+  color: #64748B;
+  font-size: 13px;
+}
+
+.input-action-right {
+  position: absolute;
+  right: 12px;
+  background: none;
+  border: none;
+  color: #232356;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: color 0.2s;
+}
+
+.input-action-right:hover {
+  color: #5B1BD3;
+}
+
+/* Form Helper Row (Remember me & Forgot pass) */
+.form-helpers-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  max-width: 398px;
+  margin: 1px auto 0;
+  font-size: 12.5px;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: #232356;
+  cursor: pointer;
+  user-select: none;
+  font-size: 12.5px;
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: 15px;
+  height: 15px;
+  accent-color: #5B1BD3;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+/* Figma: Forgot Password? has vibrant pink/magenta color */
+.forgot-pass-link {
+  color: #D946EF;
+  font-weight: 500;
+  text-decoration: none;
+  font-size: 12.5px;
+  transition: color 0.2s;
+}
+
+.forgot-pass-link:hover {
+  color: #C026D3;
+  text-decoration: underline;
+}
+
+/* Primary Login Button */
+.btn-auth-submit {
+  width: 100%;
+  max-width: 398px;
+  height: 42px;
+  background: #5B1BD3;
+  color: #FFFFFF;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+  margin: 2px auto 0;
+  box-sizing: border-box;
+}
+
+.btn-auth-submit:hover {
+  background: #4C16B3;
+  transform: translateY(-1px);
+}
+
+.btn-auth-outline {
+  width: 100%;
+  max-width: 398px;
+  height: 42px;
+  background: #FFFFFF;
+  border: 1px solid #5B1BD3;
+  color: #5B1BD3;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+.btn-auth-outline:hover {
+  background: #F5F3FF;
+}
+
+/* Divider (Width 398px, OR) */
 .auth-divider {
   display: flex;
   align-items: center;
-  margin: 20px 0;
+  width: 100%;
+  max-width: 398px;
+  margin: 10px auto;
   color: #9CA3AF;
-  font-size: 12.5px;
+  font-size: 12px;
   font-weight: 600;
   letter-spacing: 1px;
 }
@@ -166,216 +298,77 @@
 }
 
 .auth-divider span {
-  padding: 0 14px;
+  padding: 0 12px;
   color: #6B7280;
 }
 
-/* Form Groups & Inputs */
-.auth-form {
+/* Social Buttons (Stack Width: 398px, Height: 40px, Radius: 10px) */
+.auth-social-stack {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-}
-
-.form-group {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  text-align: left;
-}
-
-.form-label {
-  font-size: 13px;
-  font-weight: 600;
-  color: #374151;
-}
-
-.input-with-icon {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-
-.input-icon-left {
-  position: absolute;
-  left: 14px;
-  color: #6B7280;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  pointer-events: none;
-}
-
-.form-input,
-.form-select {
-  width: 100%;
-  height: 46px;
-  padding: 10px 14px 10px 42px;
-  border: 1.5px solid #E2E8F0;
-  border-radius: 10px;
-  font-size: 14px;
-  font-family: inherit;
-  color: #1F2937;
-  background: #FFFFFF;
-  transition: all 0.2s ease;
-  outline: none;
-}
-
-.form-input.no-icon {
-  padding-left: 14px;
-}
-
-.form-input:focus,
-.form-select:focus {
-  border-color: #7C3AED;
-  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.12);
-}
-
-.form-input::placeholder {
-  color: #9CA3AF;
-}
-
-.input-action-right {
-  position: absolute;
-  right: 14px;
-  background: none;
-  border: none;
-  color: #6B7280;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-  transition: color 0.2s;
-}
-
-.input-action-right:hover {
-  color: #7C3AED;
-}
-
-/* Country Select with Flag */
-.country-select-wrapper {
-  display: flex;
-  align-items: center;
-  position: relative;
-}
-
-.country-flag-icon {
-  position: absolute;
-  left: 14px;
-  font-size: 18px;
-  display: flex;
-  align-items: center;
-  pointer-events: none;
-}
-
-.country-select {
-  padding-left: 44px;
-  appearance: none;
-  cursor: pointer;
-}
-
-.select-arrow {
-  position: absolute;
-  right: 14px;
-  pointer-events: none;
-  color: #6B7280;
-}
-
-/* Form Helper Row (Remember me & Forgot pass) */
-.form-helpers-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-size: 13px;
-  margin-top: 2px;
-}
-
-.checkbox-label {
-  display: flex;
-  align-items: center;
   gap: 8px;
-  color: #4B5563;
-  cursor: pointer;
-  user-select: none;
-}
-
-.checkbox-label input[type="checkbox"] {
-  width: 16px;
-  height: 16px;
-  accent-color: #5B21B6;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.forgot-pass-link {
-  color: #7C3AED;
-  font-weight: 600;
-  text-decoration: none;
-  transition: color 0.2s;
-}
-
-.forgot-pass-link:hover {
-  color: #5B21B6;
-  text-decoration: underline;
-}
-
-/* Primary Form Button */
-.btn-auth-submit {
   width: 100%;
-  height: 46px;
-  background: linear-gradient(135deg, #5B21B6 0%, #6D28D9 100%);
-  color: #FFFFFF;
-  font-size: 14.5px;
-  font-weight: 700;
-  border-radius: 10px;
-  border: none;
-  cursor: pointer;
+  max-width: 398px;
+  margin: 0 auto 10px;
+}
+
+.btn-social {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  box-shadow: 0 4px 14px rgba(91, 33, 182, 0.3);
+  gap: 10px;
+  width: 100%;
+  max-width: 398px;
+  height: 40px;
+  border-radius: 10px;
+  font-size: 13.5px;
+  font-weight: 600;
+  border: 1px solid transparent;
+  cursor: pointer;
   transition: all 0.2s ease;
-  margin-top: 6px;
+  box-sizing: border-box;
 }
 
-.btn-auth-submit:hover {
+.btn-social:hover {
   transform: translateY(-1px);
-  box-shadow: 0 6px 20px rgba(91, 33, 182, 0.4);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.06);
 }
 
-.btn-auth-outline {
-  width: 100%;
-  height: 46px;
+.btn-social-google {
+  background: #5B1BD3;
+  color: #FFFFFF;
+}
+.btn-social-google:hover {
+  background: #4C16B3;
+}
+
+.btn-social-facebook {
+  background: #1877F2;
+  color: #FFFFFF;
+}
+.btn-social-facebook:hover {
+  background: #166FE5;
+}
+
+.btn-social-linkedin {
   background: #FFFFFF;
-  border: 1.5px solid #6D28D9;
-  color: #6D28D9;
-  font-size: 14.5px;
-  font-weight: 700;
-  border-radius: 10px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  border: 1px solid #0077B5;
+  color: #0077B5;
 }
-
-.btn-auth-outline:hover {
-  background: #F5F3FF;
-  border-color: #5B21B6;
+.btn-social-linkedin:hover {
+  background: #F0F9FF;
 }
 
 /* Auth Footer Switch Link */
 .auth-switch-prompt {
   text-align: center;
-  font-size: 13.5px;
+  font-size: 13px;
   color: #6B7280;
-  margin-top: 18px;
+  margin-top: 6px;
 }
 
 .auth-switch-link {
-  color: #5B21B6;
+  color: #5B1BD3;
   font-weight: 700;
   text-decoration: none;
   margin-left: 4px;
@@ -383,26 +376,26 @@
 }
 
 .auth-switch-link:hover {
-  color: #4C1D95;
+  color: #4C16B3;
   text-decoration: underline;
 }
 
 .auth-back-step-btn {
   background: none;
   border: none;
-  color: #6D28D9;
-  font-size: 13px;
+  color: #5B1BD3;
+  font-size: 12.5px;
   font-weight: 600;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 6px 0;
+  padding: 4px 0;
   transition: color 0.2s;
 }
 
 .auth-back-step-btn:hover {
-  color: #4C1D95;
+  color: #4C16B3;
 }
 
 /* Success Card */
@@ -411,18 +404,18 @@
   flex-direction: column;
   align-items: center;
   text-align: center;
-  padding: 12px 6px;
-  gap: 16px;
+  padding: 10px 6px;
+  gap: 12px;
 }
 
 .success-badge-wrapper {
   position: relative;
-  width: 140px;
-  height: 140px;
+  width: 120px;
+  height: 120px;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 8px;
+  margin-bottom: 4px;
 }
 
 .success-badge-svg {
@@ -431,18 +424,18 @@
 }
 
 .success-title {
-  font-size: 22px;
+  font-size: 20px;
   font-weight: 800;
   color: #1A1A3A;
-  margin-bottom: 4px;
+  margin-bottom: 3px;
 }
 
 .success-description {
-  font-size: 14px;
+  font-size: 13.5px;
   color: #4B5563;
-  line-height: 1.55;
-  max-width: 380px;
-  margin-bottom: 8px;
+  line-height: 1.45;
+  max-width: 360px;
+  margin-bottom: 6px;
 }
 
 .btn-download-app {
@@ -451,11 +444,12 @@
   justify-content: center;
   gap: 8px;
   width: 100%;
-  height: 44px;
+  max-width: 398px;
+  height: 42px;
   background: #FFFFFF;
-  border: 1.5px solid #E2E8F0;
-  color: #374151;
-  font-size: 14px;
+  border: 1px solid #232356;
+  color: #232356;
+  font-size: 13.5px;
   font-weight: 600;
   border-radius: 10px;
   cursor: pointer;
@@ -465,5 +459,5 @@
 
 .btn-download-app:hover {
   background: #F8FAFC;
-  border-color: #CBD5E1;
+  border-color: #5B1BD3;
 }

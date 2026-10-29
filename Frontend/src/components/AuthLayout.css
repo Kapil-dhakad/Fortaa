@@ -1,20 +1,23 @@
 .auth-page {
   min-height: 100vh;
-  background: linear-gradient(145deg, #F0EEFE 0%, #E7E3FC 50%, #EFEAFF 100%);
+  /* Figma Login page (Initial view) Linear Gradient: #DAD7FD to #F7F6FE */
+  background: linear-gradient(135deg, #DAD7FD 0%, #F7F6FE 100%);
   display: flex;
   flex-direction: column;
-  padding: 24px 24px 40px;
+  justify-content: center;
+  padding: 16px 28px;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  color: var(--text-dark, #1A1A2E);
+  color: #1A1A2E;
+  box-sizing: border-box;
 }
 
 .auth-container {
-  max-width: 1240px;
+  max-width: 1360px;
   width: 100%;
   margin: 0 auto;
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 12px;
 }
 
 /* Header */
@@ -22,7 +25,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 0 16px;
+  padding: 2px 0 6px;
 }
 
 /* Common Logo Styles from Landing Page */
@@ -37,8 +40,8 @@
 }
 
 .figma-logo-icon {
-  width: 31px;
-  height: 25px;
+  width: 28px;
+  height: 23px;
   object-fit: contain;
   margin-top: 0px;
 }
@@ -50,8 +53,8 @@
 }
 
 .figma-logo-word {
-  width: 91px;
-  height: 23px;
+  width: 82px;
+  height: 21px;
   object-fit: contain;
   margin-top: 1px;
 }
@@ -59,7 +62,7 @@
 .figma-logo-tagline {
   font-family: 'Inter', sans-serif;
   font-weight: 400;
-  font-size: 16px;
+  font-size: 14.5px;
   line-height: 100%;
   letter-spacing: 0.02em;
   color: #232356;
@@ -68,76 +71,79 @@
 }
 
 .auth-back-link {
-  font-size: 13.5px;
+  font-size: 13px;
   font-weight: 600;
-  color: #7B2FBE;
+  color: #5B1BD3;
   text-decoration: none;
-  padding: 8px 16px;
+  padding: 6px 16px;
   border-radius: 50px;
-  background: rgba(123, 47, 190, 0.08);
+  background: rgba(91, 27, 211, 0.08);
   transition: all 0.2s ease;
 }
 
 .auth-back-link:hover {
-  background: #7B2FBE;
+  background: #5B1BD3;
   color: #FFFFFF;
 }
 
-/* 2-Column Content Grid */
+/* 2-Column Content Grid: Perfectly proportioned to fit in 1 viewport */
 .auth-content-grid {
   display: grid;
-  grid-template-columns: 1.15fr 0.95fr;
-  gap: 40px;
-  align-items: start;
+  grid-template-columns: minmax(0, 1.12fr) minmax(0, 0.88fr);
+  gap: 28px;
+  align-items: center;
+  justify-content: center;
 }
 
 /* Left Panel */
 .auth-left-panel {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 12px;
+  width: 100%;
 }
 
 .auth-hero-title {
-  font-size: 30px;
+  font-size: 26px;
   font-weight: 800;
   color: #1A1A3A;
-  margin-bottom: 8px;
-  letter-spacing: -0.5px;
+  margin-bottom: 4px;
+  letter-spacing: -0.4px;
 }
 
 .auth-hero-subtitle {
-  font-size: 14.5px;
+  font-size: 13.5px;
   color: #4B5563;
-  line-height: 1.55;
-  max-width: 480px;
+  line-height: 1.45;
+  max-width: 540px;
 }
 
-/* Illustration Container */
+/* Figma Frame 61: Radius 10px, Padding 10px, Linear Gradient #FFFFFF to #DAD7FD */
 .auth-illustration-card {
-  background: #EAE6FE;
-  border-radius: 24px;
-  padding: 24px;
+  background: linear-gradient(180deg, #FFFFFF 0%, #DAD7FD 100%);
+  border-radius: 10px;
+  padding: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 8px 24px rgba(123, 47, 190, 0.06);
-  border: 1px solid rgba(123, 47, 190, 0.08);
-  min-height: 380px;
+  width: 100%;
+  max-width: 733px;
+  height: 420px;
   position: relative;
   overflow: hidden;
+  box-sizing: border-box;
 }
 
 .auth-illustration-img {
   width: 100%;
-  max-height: 360px;
+  height: 100%;
+  max-height: 400px;
   object-fit: contain;
-  filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.05));
   transition: transform 0.3s ease;
 }
 
 .auth-illustration-img:hover {
-  transform: scale(1.02);
+  transform: scale(1.01);
 }
 
 /* Feature Pills Row */
@@ -146,7 +152,7 @@
   align-items: center;
   gap: 16px;
   flex-wrap: wrap;
-  padding-top: 6px;
+  padding-top: 2px;
 }
 
 .auth-feature-pill {
@@ -156,9 +162,9 @@
 }
 
 .pill-icon-box {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -168,7 +174,7 @@
 
 .pill-blue {
   background: #3B82F6;
-  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.35);
+  box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3);
 }
 
 .pill-label {
@@ -177,57 +183,69 @@
   color: #374151;
 }
 
-/* Right Panel: White Form Card */
+/* Right Panel: White Card (Frame 56) with auto height to fit without vertical scroll */
 .auth-right-panel {
   display: flex;
   justify-content: center;
+  width: 100%;
 }
 
 .auth-form-card {
   background: #FFFFFF;
-  border-radius: 24px;
-  box-shadow: 0 16px 48px rgba(123, 47, 190, 0.09), 0 2px 8px rgba(0, 0, 0, 0.04);
-  padding: 40px 36px;
+  border-radius: 10px;
+  box-shadow: 0 4px 24px rgba(35, 35, 86, 0.05);
+  padding: 28px 32px;
   width: 100%;
-  max-width: 480px;
-  border: 1px solid rgba(226, 232, 240, 0.8);
+  max-width: 540px;
   box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
-/* Responsive */
-@media (max-width: 1024px) {
+/* Responsive Styles */
+@media (max-width: 1100px) {
+  .auth-page {
+    justify-content: flex-start;
+    padding: 16px 20px 32px;
+  }
+
   .auth-content-grid {
     grid-template-columns: 1fr;
-    gap: 32px;
+    gap: 24px;
   }
 
   .auth-form-card {
     max-width: 540px;
     margin: 0 auto;
   }
+
+  .auth-illustration-card {
+    height: 340px;
+  }
 }
 
 @media (max-width: 640px) {
   .auth-page {
-    padding: 16px 16px 32px;
+    padding: 12px 14px 24px;
   }
 
   .auth-hero-title {
-    font-size: 24px;
+    font-size: 22px;
   }
 
   .auth-form-card {
-    padding: 28px 20px;
-    border-radius: 20px;
+    padding: 24px 18px;
+    border-radius: 10px;
   }
 
   .auth-feature-pills {
-    gap: 12px;
+    gap: 10px;
     justify-content: space-between;
   }
 
   .auth-illustration-card {
-    min-height: 260px;
-    padding: 16px;
+    height: 240px;
+    padding: 8px;
   }
 }

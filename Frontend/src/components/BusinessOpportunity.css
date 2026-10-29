@@ -587,6 +587,16 @@
   }
 }
 
+@media (max-width: 768px) {
+  .figma-two-col-container {
+    padding: 0 16px;
+    gap: 16px;
+  }
+  .figma-biz-box {
+    padding: 14px 14px;
+  }
+}
+
 @media (max-width: 640px) {
   .figma-opp-inner-card,
   .figma-leader-inner-card {
@@ -596,12 +606,33 @@
   .figma-opp-img-wrap,
   .figma-leader-avatar-wrap {
     width: 100%;
-    height: 160px;
+    height: 180px;
   }
   .figma-products-inner-card {
     grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
   }
   .figma-spotlight-cards-row {
     flex-direction: column;
+  }
+  .figma-box-title {
+    font-size: 19px;
+  }
+}
+
+@media (max-width: 440px) {
+  .figma-opp-checklist {
+    grid-template-columns: 1fr;
+  }
+  .figma-opp-action-row {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .figma-btn-purple {
+    width: 100%;
+    justify-content: center;
+  }
+  .figma-products-inner-card {
+    grid-template-columns: repeat(2, 1fr);
   }
 }

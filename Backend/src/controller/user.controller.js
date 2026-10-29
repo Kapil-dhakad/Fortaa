@@ -139,7 +139,7 @@ async function loginUser(req, res) {
     if (!user) {
       return res.status(404).json({
         success: false,
-        message: 'User not found with this email or mobile number',
+        message: 'User not found with this email',
       });
     }
 

@@ -512,8 +512,28 @@
 }
 
 @media (max-width: 740px) {
+  .figma-three-block-container {
+    padding: 0 16px;
+  }
   .figma-news-cards-row {
     grid-template-columns: 1fr;
     justify-items: center;
+  }
+  .figma-article-card {
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .figma-growth-testimonial-box {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .figma-growth-avatar-wrap {
+    width: 100%;
+    height: 160px;
+  }
+  .figma-growth-event-card {
+    padding: 6px 8px;
   }
 }

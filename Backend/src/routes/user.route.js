@@ -8,11 +8,14 @@ const {
   getAllUsers,
   getUserStats,
 } = require('../controller/user.controller');
+const { handleGoogleAuth } = require('../controller/googleAuth.controller');
+const { validateGoogleAuth, validateRegistration } = require('../validators/auth.validator');
 const authMiddleware = require('../middleware/auth.middleware');
 
 // Authentication routes
-router.post('/register', registerUser);
+router.post('/register', validateRegistration, registerUser);
 router.post('/login', loginUser);
+router.post('/google-login', validateGoogleAuth, handleGoogleAuth);
 router.get('/me', authMiddleware, getMe);
 router.post('/logout', logoutUser);
 

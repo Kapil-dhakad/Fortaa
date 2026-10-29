@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import { FaCheck, FaUsers, FaUserFriends, FaRegAddressCard, FaShieldAlt } from 'react-icons/fa';
 import './UserDashboard.css';
 
 // Brand & icons
@@ -17,12 +18,38 @@ import oppWellnessImg from '../../assets/dashboard/opp_wellness.png';
 import whatsappIconImg from '../../assets/dashboard/whatsaap-icon.png';
 import bellIconImg from '../../assets/dashboard/bell-icon.png';
 import messageIconImg from '../../assets/dashboard/message-icon.png';
+import searchIconPurple from '../../assets/dashboard/search_icon_purple.png';
 import unlockPotentialBg from '../../assets/dashboard/unlock_potential_bg.png';
+import qaCreatePostImg from '../../assets/dashboard/quick_action_create_post.png';
+import qaAddPhotoImg from '../../assets/dashboard/quick_action_add_photo.png';
+import qaMarketplaceImg from '../../assets/dashboard/quick_action_marketplace.png';
+import qaInviteTeamImg from '../../assets/dashboard/quick_action_invite_team.png';
+import qaJoinGroupImg from '../../assets/dashboard/quick_action_join_group.svg';
+import qaGoLiveImg from '../../assets/dashboard/quick_action_go_live.svg';
+
+// Sidebar Navigation Icons (25x25)
+import navHomeIcon from '../../assets/sidebar/nav_home.png';
+import navProfileIcon from '../../assets/sidebar/nav_profile.png';
+import navServicesIcon from '../../assets/sidebar/nav_services.png';
+import navTeamIcon from '../../assets/sidebar/nav_team.png';
+import navFollowingIcon from '../../assets/sidebar/nav_following.png';
+import navMarketplaceIcon from '../../assets/sidebar/nav_marketplace.png';
+import navCompaniesIcon from '../../assets/sidebar/nav_companies.png';
+import navProductsIcon from '../../assets/sidebar/nav_products.png';
+import navLeadersIcon from '../../assets/sidebar/nav_leaders.png';
+import navPromotionsIcon from '../../assets/sidebar/nav_promotions.png';
+import navEventsIcon from '../../assets/sidebar/nav_events.png';
+import navNewsIcon from '../../assets/sidebar/nav_news.png';
+import navMessagesIcon from '../../assets/sidebar/nav_messages.png';
+import navGroupsIcon from '../../assets/sidebar/nav_groups.png';
+import navResourcesIcon from '../../assets/sidebar/nav_resources.png';
+import navSettingsIcon from '../../assets/sidebar/nav_settings.png';
 
 export default function UserDashboard() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('Home');
   const [postText, setPostText] = useState('');
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Mock logged in user (or fetch from localStorage)
   const storedUser = JSON.parse(localStorage.getItem('fortaa_user') || '{}');
@@ -39,32 +66,32 @@ export default function UserDashboard() {
 
   // Navigation Items
   const navItems = [
-    { label: 'Home', icon: '🏠' },
-    { label: 'My Profile', icon: '👤' },
-    { label: 'Services', icon: '⚡' },
-    { label: 'My Team', icon: '👥' },
-    { label: 'Following', icon: '🌐' },
-    { label: 'Market Place', icon: '🛒' },
-    { label: 'Companies', icon: '🏢' },
-    { label: 'Products', icon: '📦' },
-    { label: 'Leaders', icon: '👔' },
-    { label: 'Promotions', icon: '🏷️' },
-    { label: 'Events', icon: '📅' },
-    { label: 'News & Updates', icon: '🔄' },
-    { label: 'Messages', icon: '💬' },
-    { label: 'Groups', icon: '👥' },
-    { label: 'Resources', icon: '📚' },
-    { label: 'Settings', icon: '⚙️' },
+    { label: 'Home', icon: navHomeIcon },
+    { label: 'My Profile', icon: navProfileIcon },
+    { label: 'Services', icon: navServicesIcon },
+    { label: 'My Team', icon: navTeamIcon },
+    { label: 'Following', icon: navFollowingIcon },
+    { label: 'Market Place', icon: navMarketplaceIcon },
+    { label: 'Companies', icon: navCompaniesIcon },
+    { label: 'Products', icon: navProductsIcon },
+    { label: 'Leaders', icon: navLeadersIcon },
+    { label: 'Promotions', icon: navPromotionsIcon },
+    { label: 'Events', icon: navEventsIcon },
+    { label: 'News & Updates', icon: navNewsIcon },
+    { label: 'Messages', icon: navMessagesIcon },
+    { label: 'Groups', icon: navGroupsIcon },
+    { label: 'Resources', icon: navResourcesIcon },
+    { label: 'Settings', icon: navSettingsIcon },
   ];
 
   // Quick Action Buttons
   const quickActions = [
-    { label: 'Create Post', icon: '✍️', color: '#E91E8C' },
-    { label: 'Add Photo', icon: '📷', color: '#D51CFD' },
-    { label: 'Share Market Place', icon: '🛍️', color: '#10B981' },
-    { label: 'Invite Team', icon: '👥', color: '#3B82F6' },
-    { label: 'Join Group', icon: '🤝', color: '#8B5CF6' },
-    { label: 'Go Live', icon: '📡', color: '#EF4444' },
+    { label: 'Create Post', icon: qaCreatePostImg, bgColor: '#FCE7F3' },
+    { label: 'Add Photo', icon: qaAddPhotoImg, bgColor: '#FAF5FF' },
+    { label: 'Share Market Place', icon: qaMarketplaceImg, bgColor: '#ECFDF5' },
+    { label: 'Invite Team', icon: qaInviteTeamImg, bgColor: '#EDE9FE' },
+    { label: 'Join Group', icon: qaJoinGroupImg, bgColor: '#FAE8FF' },
+    { label: 'Go Live', icon: qaGoLiveImg, bgColor: '#FFE4E6' },
   ];
 
   // Trainers
@@ -168,6 +195,16 @@ export default function UserDashboard() {
       {/* ───────────────── TOP NAVBAR ───────────────── */}
       <header className="ud-topbar">
         <div className="ud-topbar-left">
+          <button
+            type="button"
+            className="ud-mobile-toggle-btn"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            aria-label="Toggle Sidebar Navigation"
+          >
+            <span></span>
+            <span></span>
+            <span></span>
+          </button>
           <div className="ud-brand-logo-card">
             <Link to="/" className="ud-brand-logo">
               <img src={logoIconImg} alt="Fortaa" className="ud-logo-icon" />
@@ -179,9 +216,9 @@ export default function UserDashboard() {
           </div>
         </div>
 
-        {/* Global Search Bar */}
+        {/* Global Search Bar (Figma Frame: 741x35px, radius 10px, padding 10px, gap 10px) */}
         <div className="ud-search-wrapper">
-          <span className="ud-search-icon">🔍</span>
+          <img src={searchIconPurple} alt="" className="ud-search-icon-img" />
           <input
             type="text"
             className="ud-search-input"
@@ -202,14 +239,6 @@ export default function UserDashboard() {
             <img src={messageIconImg} alt="Messages" className="ud-header-action-icon" />
             <span className="ud-badge-count">3</span>
           </button>
-          {/* <button
-            className="ud-icon-circle-btn"
-            title="Log Out"
-            onClick={handleLogout}
-            style={{ fontSize: '14px', background: '#FEE2E2', borderColor: '#FECACA' }}
-          > */}
-            {/* 🚪 */}
-          {/* </button> */}
 
           {/* User Profile Mini Capsule */}
           <div className="ud-user-pill" title="Current User" onClick={() => navigate('/profile')} style={{ cursor: 'pointer' }}>
@@ -222,10 +251,18 @@ export default function UserDashboard() {
         </div>
       </header>
 
+      {/* Mobile Drawer Backdrop */}
+      {mobileMenuOpen && (
+        <div
+          className="ud-mobile-backdrop"
+          onClick={() => setMobileMenuOpen(false)}
+        />
+      )}
+
       {/* ───────────────── MAIN WRAPPER: PINNED SIDEBAR + SCROLLABLE RIGHT CONTENT ───────────────── */}
       <div className="ud-main-wrapper">
         {/* ── PANEL 1: LEFT SIDEBAR NAVIGATION (PINNED) ── */}
-        <aside className="ud-sidebar-left">
+        <aside className={`ud-sidebar-left ${mobileMenuOpen ? 'mobile-open' : ''}`}>
           <nav className="ud-nav-list">
             {navItems.map((item) => (
               <button
@@ -233,10 +270,13 @@ export default function UserDashboard() {
                 className={`ud-nav-link ${activeTab === item.label ? 'active' : ''}`}
                 onClick={() => {
                   setActiveTab(item.label);
+                  setMobileMenuOpen(false);
                   if (item.label === 'My Profile') navigate('/profile');
                 }}
               >
-                <span className="ud-nav-icon">{item.icon}</span>
+                <span className="ud-nav-icon">
+                  <img src={item.icon} alt={item.label} className="ud-nav-icon-img" />
+                </span>
                 <span className="ud-nav-label">{item.label}</span>
               </button>
             ))}
@@ -248,13 +288,45 @@ export default function UserDashboard() {
               <img src={sidebarMegaphoneImg} alt="Grow Together" className="ud-promo-megaphone" />
             </div>
             <p className="ud-promo-title">Grow Together</p>
-            <span className="ud-promo-dim">104 × 62</span>
+            <p className="ud-promo-desc">
+              Connect with like-minded professionals, build your team and achieve bigger goals.
+            </p>
+            <button className="ud-promo-btn">Invite People &gt;</button>
           </div>
 
-          {/* Sidebar Mini Brand Footer */}
-          <div className="ud-sidebar-bottom-brand">
-            <img src={logoIconImg} alt="" className="ud-sbb-icon" />
-            <span className="ud-sbb-name">FORTAA</span>
+          {/* Sidebar Bottom Brand (Exact same size as top logo: 152px × 42px) */}
+          <div className="ud-brand-logo-card ud-brand-logo-card-bottom">
+            <div className="ud-brand-logo">
+              <img src={logoIconImg} alt="Fortaa" className="ud-logo-icon" />
+              <div className="ud-logo-text-wrap">
+                <img src={logoTextImg} alt="FORTAA" className="ud-logo-word" />
+                <span className="ud-logo-tagline">Discover, easy and Grow</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Sidebar Social Icons (Figma: 20x20px circles, gradient #9E04C3 -> #5A2CE4, 10px icons, 10px gap) */}
+          <div className="ud-sidebar-socials">
+            <a href="#facebook" className="ud-social-circle-btn" title="Facebook" aria-label="Facebook">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+              </svg>
+            </a>
+            <a href="#instagram" className="ud-social-circle-btn" title="Instagram" aria-label="Instagram">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.441-1.44z"/>
+              </svg>
+            </a>
+            <a href="#youtube" className="ud-social-circle-btn" title="YouTube" aria-label="YouTube">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+              </svg>
+            </a>
+            <a href="#linkedin" className="ud-social-circle-btn" title="LinkedIn" aria-label="LinkedIn">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/>
+              </svg>
+            </a>
           </div>
         </aside>
 
@@ -265,45 +337,90 @@ export default function UserDashboard() {
             <main className="ud-feed-main">
           {/* User Hero Identity Banner */}
           <div className="ud-hero-banner">
-            <div className="ud-hero-left">
-              <div className="ud-hero-avatar-wrap">
-                <img src={userAvatarImg} alt={userName} className="ud-hero-avatar" />
-              </div>
-              <div className="ud-hero-meta">
-                <div className="ud-hero-name-row">
-                  <h2 className="ud-hero-name">{userName}</h2>
-                  <span className="ud-badge-pill ud-badge-gold">Index Technology</span>
-                  <span className="ud-badge-pill ud-badge-silver">{userRole}</span>
+            <div className="ud-hero-content">
+              {/* Top Row: Avatar + User Details Column (Name, Index Tech badge, View My Profile) */}
+              <div className="ud-hero-top-row">
+                <div className="ud-hero-avatar-wrap">
+                  <img src={userAvatarImg} alt={userName} className="ud-hero-avatar" />
+                  <span className="ud-hero-verified-badge" title="Verified Member">
+                    <FaCheck />
+                  </span>
                 </div>
-                <button className="ud-btn-view-profile" onClick={() => navigate('/profile')}>View My Profile</button>
-                <div className="ud-hero-stats-row">
-                  <div className="ud-stat-item">
-                    <span className="ud-stat-icon">👥</span>
-                    <div>
-                      <span className="ud-stat-val">248</span>
-                      <span className="ud-stat-label">Network</span>
-                    </div>
+
+                <div className="ud-hero-user-details">
+                  <h2 className="ud-hero-name">{userName}</h2>
+                  <div className="ud-hero-badge-capsule">
+                    <span className="ud-badge-shield-icon">
+                      <FaShieldAlt />
+                    </span>
+                    <span className="ud-badge-tech">Index Technology</span>
+                    <span className="ud-badge-sep">|</span>
+                    <span className="ud-badge-role">{userRole}</span>
                   </div>
-                  <div className="ud-stat-item">
-                    <span className="ud-stat-icon">👤</span>
-                    <div>
-                      <span className="ud-stat-val">12</span>
-                      <span className="ud-stat-label">Followers</span>
-                    </div>
+                  <button className="ud-btn-view-profile" onClick={() => navigate('/profile')}>
+                    View My Profile
+                  </button>
+                </div>
+              </div>
+
+              {/* Bottom Row: Horizontal Stats Row with react-icons */}
+              <div className="ud-hero-stats-row">
+                <div className="ud-stat-item ud-stat-frame">
+                  <div className="ud-stat-icon-wrap">
+                    <FaUsers />
                   </div>
-                  <div className="ud-stat-item">
-                    <span className="ud-stat-icon">🌐</span>
-                    <div>
-                      <span className="ud-stat-val">1,25,450</span>
-                      <span className="ud-stat-label">Following</span>
-                    </div>
+                  <div className="ud-stat-texts">
+                    <span className="ud-stat-label">Network</span>
+                    <span className="ud-stat-val">248</span>
                   </div>
-                  <div className="ud-stat-item">
-                    <span className="ud-stat-icon">📊</span>
-                    <div>
-                      <span className="ud-stat-val">85%</span>
-                      <span className="ud-stat-label">Total Post</span>
-                    </div>
+                </div>
+
+                <div className="ud-stat-item ud-stat-frame">
+                  <div className="ud-stat-icon-wrap">
+                    <FaUserFriends />
+                  </div>
+                  <div className="ud-stat-texts">
+                    <span className="ud-stat-label">Followers</span>
+                    <span className="ud-stat-val">12</span>
+                  </div>
+                </div>
+
+                <div className="ud-stat-item ud-stat-frame ud-stat-following">
+                  <div className="ud-stat-icon-wrap">
+                    <FaRegAddressCard />
+                  </div>
+                  <div className="ud-stat-texts">
+                    <span className="ud-stat-label">Following</span>
+                    <span className="ud-stat-val">1,25,450</span>
+                  </div>
+                </div>
+
+                <div className="ud-stat-item ud-stat-frame">
+                  <div className="ud-stat-icon-wrap">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                      <circle cx="12" cy="12" r="9" stroke="rgba(255, 255, 255, 0.15)" strokeWidth="2.8" />
+                      <circle
+                        cx="12"
+                        cy="12"
+                        r="9"
+                        stroke="url(#udDonutGrad)"
+                        strokeWidth="2.8"
+                        strokeDasharray="56.5"
+                        strokeDashoffset="8.5"
+                        strokeLinecap="round"
+                        transform="rotate(-90 12 12)"
+                      />
+                      <defs>
+                        <linearGradient id="udDonutGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                          <stop offset="0%" stopColor="#00E5FF" />
+                          <stop offset="100%" stopColor="#A855F7" />
+                        </linearGradient>
+                      </defs>
+                    </svg>
+                  </div>
+                  <div className="ud-stat-texts">
+                    <span className="ud-stat-label">Total Post</span>
+                    <span className="ud-stat-val">85%</span>
                   </div>
                 </div>
               </div>
@@ -314,7 +431,9 @@ export default function UserDashboard() {
           <div className="ud-quick-actions-bar">
             {quickActions.map((qa, i) => (
               <button key={i} className="ud-quick-btn">
-                <span className="ud-quick-icon">{qa.icon}</span>
+                <div className="ud-quick-icon-circle" style={{ backgroundColor: qa.bgColor }}>
+                  <img src={qa.icon} alt={qa.label} className="ud-quick-action-img" />
+                </div>
                 <span className="ud-quick-text">{qa.label}</span>
               </button>
             ))}
@@ -350,8 +469,8 @@ export default function UserDashboard() {
                 </div>
               </div>
 
-              {/* Sample Feed Post 1 */}
-              <div className="ud-post-card">
+              {/* Sample Feed Post 1 (Figma: 401x390px) */}
+              <div className="ud-post-card ud-post-1">
                 <div className="ud-post-header">
                   <img src={userAvatarImg} alt="" className="ud-post-avatar" />
                   <div className="ud-post-author-meta">
@@ -411,8 +530,8 @@ export default function UserDashboard() {
                 </div>
               </div>
 
-              {/* Sample Feed Post 2 */}
-              <div className="ud-post-card">
+              {/* Sample Feed Post 2 (Figma: 401x201px) */}
+              <div className="ud-post-card ud-post-2">
                 <div className="ud-post-header">
                   <div className="ud-post-avatar-placeholder" style={{ background: '#E91E8C' }}>SP</div>
                   <div className="ud-post-author-meta">
@@ -455,15 +574,17 @@ export default function UserDashboard() {
                     </div>
                   </div>
                 </div>
-                <button className="ud-btn-view-all-wide">View All →</button>
               </div>
+
+              {/* View All Button below Post 2 (Figma level with Leaders View All) */}
+              <button className="ud-btn-view-all-wide ud-feed-view-all">View All →</button>
             </div>
 
 
-            {/* Trainers & Leaders Column (Right of center) */}
+            {/* Trainers & Leaders Column (Middle Column: 423px) */}
             <div className="ud-trainers-column">
-              {/* Trainers Box */}
-              <div className="ud-side-card">
+              {/* Trainers Box (Figma Frame 230: 423x275px) */}
+              <div className="ud-side-card ud-trainers-card">
                 <div className="ud-side-card-header">
                   <h3 className="ud-side-card-title">Trainers</h3>
                   <a href="#trainers" className="ud-side-card-view-all">View All →</a>
@@ -484,10 +605,10 @@ export default function UserDashboard() {
                 </div>
               </div>
 
-              {/* Leaders Box */}
-              <div className="ud-side-card" style={{ marginTop: 14 }}>
+              {/* Leaders Box (Figma Frame 231: 423x510px) */}
+              <div className="ud-side-card ud-leaders-card">
                 <div className="ud-side-card-header">
-                  <h3 className="ud-side-card-title">⚡ Leaders</h3>
+                  <h3 className="ud-side-card-title"># Leaders</h3>
                   <a href="#leaders" className="ud-side-card-view-all">View All →</a>
                 </div>
                 <div className="ud-leaders-list">
@@ -507,7 +628,6 @@ export default function UserDashboard() {
                     </div>
                   ))}
                 </div>
-                <button className="ud-btn-view-all-wide">View All →</button>
               </div>
             </div>
           </div>
@@ -515,8 +635,8 @@ export default function UserDashboard() {
 
         {/* ── PANEL 3: RIGHT PANEL (SERVICES, EVENTS & GROUPS) ── */}
         <aside className="ud-sidebar-right">
-          {/* Services & Market place */}
-          <div className="ud-right-box">
+          {/* Services & Market place (Figma Frame 138: 403x605px) */}
+          <div className="ud-right-box ud-services-box">
             <div className="ud-side-card-header">
               <h3 className="ud-side-card-title">✨ Services &amp; Market place</h3>
               <a href="#services" className="ud-side-card-view-all">View All →</a>
@@ -544,8 +664,8 @@ export default function UserDashboard() {
             <button className="ud-btn-view-all-wide">View All →</button>
           </div>
 
-          {/* Upcoming Events */}
-          <div className="ud-right-box" style={{ marginTop: 14 }}>
+          {/* Upcoming Events (Figma Frame 44) */}
+          <div className="ud-right-box ud-events-box">
             <div className="ud-side-card-header">
               <h3 className="ud-side-card-title">Upcoming Events</h3>
               <a href="#events" className="ud-side-card-view-all">View All →</a>
@@ -567,8 +687,8 @@ export default function UserDashboard() {
             </div>
           </div>
 
-          {/* Popular Groups */}
-          <div className="ud-right-box" style={{ marginTop: 14 }}>
+          {/* Popular Groups (Figma Frame 136: 403x227px) */}
+          <div className="ud-right-box ud-groups-box">
             <div className="ud-side-card-header">
               <h3 className="ud-side-card-title">👥 Popular Groups</h3>
               <a href="#groups" className="ud-side-card-view-all">View All →</a>

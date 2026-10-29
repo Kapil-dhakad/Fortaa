@@ -19,6 +19,7 @@ import messageIconImg from '../../assets/dashboard/message-icon.png';
 export default function AdminDashboard() {
   const [activeMenu, setActiveMenu] = useState('Dashboard');
   const [trafficTimeframe, setTrafficTimeframe] = useState('Last 7 Days');
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Collapsible sidebar accordion states
   const [openSections, setOpenSections] = useState({
@@ -207,8 +208,16 @@ export default function AdminDashboard() {
 
   return (
     <div className="adm-page">
+      {/* Mobile Drawer Backdrop */}
+      {mobileMenuOpen && (
+        <div
+          className="adm-mobile-backdrop"
+          onClick={() => setMobileMenuOpen(false)}
+        />
+      )}
+
       {/* ───────────────── LEFT SIDEBAR ───────────────── */}
-      <aside className="adm-sidebar">
+      <aside className={`adm-sidebar ${mobileMenuOpen ? 'mobile-open' : ''}`}>
         {/* Brand Header */}
         <div className="adm-sidebar-brand">
           <Link to="/" className="adm-brand-link">
@@ -225,7 +234,10 @@ export default function AdminDashboard() {
           {/* Dashboard item */}
           <button
             className={`adm-nav-item ${activeMenu === 'Dashboard' ? 'active' : ''}`}
-            onClick={() => setActiveMenu('Dashboard')}
+            onClick={() => {
+              setActiveMenu('Dashboard');
+              setMobileMenuOpen(false);
+            }}
           >
             <span className="adm-nav-icon">🏠</span>
             <span className="adm-nav-label">Dashboard</span>
@@ -373,6 +385,16 @@ export default function AdminDashboard() {
       <div className="adm-main-wrap">
         {/* ── TOP HEADER / NAVBAR ── */}
         <header className="adm-topbar">
+          <button
+            type="button"
+            className="adm-mobile-toggle-btn"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            aria-label="Toggle Admin Sidebar"
+          >
+            <span></span>
+            <span></span>
+            <span></span>
+          </button>
           <div className="adm-search-wrap">
             <span className="adm-search-icon">🔍</span>
             <input
