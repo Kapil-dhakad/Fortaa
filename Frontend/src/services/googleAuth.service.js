@@ -67,13 +67,13 @@ export function decodeGoogleToken(credential) {
  */
 export function loadGoogleScript() {
   return new Promise((resolve, reject) => {
-    if (window.google?.accounts?.id) {
-      return resolve(window.google.accounts.id);
+    if (window.google?.accounts?.oauth2 || window.google?.accounts?.id) {
+      return resolve(window.google.accounts);
     }
 
     const existingScript = document.getElementById('google-gsi-script');
     if (existingScript) {
-      existingScript.onload = () => resolve(window.google.accounts.id);
+      existingScript.onload = () => resolve(window.google?.accounts);
       return;
     }
 
@@ -83,11 +83,7 @@ export function loadGoogleScript() {
     script.async = true;
     script.defer = true;
     script.onload = () => {
-      if (window.google?.accounts?.id) {
-        resolve(window.google.accounts.id);
-      } else {
-        reject(new Error('Google Identity Services script loaded but API not available'));
-      }
+      resolve(window.google?.accounts);
     };
     script.onerror = () => reject(new Error('Failed to load Google Identity Services script'));
     document.head.appendChild(script);

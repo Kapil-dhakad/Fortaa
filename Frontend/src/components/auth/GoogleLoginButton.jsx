@@ -114,37 +114,86 @@ export default function GoogleLoginButton({
     };
   }, [clientId, handleGoogleCredentialResponse]);
 
-  // Button Click Handler
-  const handleCustomButtonClick = () => {
+  // Button Click Handler using Google OAuth2 Token Client (Reliable Popup)
+  const handleCustomButtonClick = async () => {
     if (loading) return;
 
     if (!clientId) {
-      // Guide user that Client ID needs to be configured in .env
-      toast(
-        'Google Client ID abhi set nahi hai. Google Cloud Console se Client ID lekar VITE_GOOGLE_CLIENT_ID me daal dijiye.',
-        {
-          icon: 'ℹ️',
-          duration: 5000,
-        }
-      );
+      toast.error('Google Client ID is not configured.');
       return;
     }
 
-    if (window.google?.accounts?.id) {
-      // Trigger Google prompt or click hidden rendered button
-      if (hiddenBtnRef.current?.querySelector('div[role="button"]')) {
-        hiddenBtnRef.current.querySelector('div[role="button"]').click();
-      } else {
-        window.google.accounts.id.prompt((notification) => {
-          if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-            // If one-tap is suppressed, trigger hidden button
-            const btn = hiddenBtnRef.current?.querySelector('div[role="button"]');
-            if (btn) btn.click();
-          }
-        });
+    try {
+      await loadGoogleScript();
+
+      if (!window.google?.accounts?.oauth2) {
+        throw new Error('Google Identity Services not available');
       }
-    } else {
-      toast.error('Google service is still loading, please try again in a moment.');
+
+      const tokenClient = window.google.accounts.oauth2.initTokenClient({
+        client_id: clientId,
+        scope: 'openid email profile',
+        callback: async (tokenResponse) => {
+          if (tokenResponse.error) {
+            console.warn('[Google OAuth Popup Closed/Cancelled]:', tokenResponse);
+            return;
+          }
+
+          setLoading(true);
+          toast.loading('Signing in with Google...', { id: 'google-auth-toast' });
+
+          try {
+            // Fetch verified user profile directly from Google
+            const userInfoRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+              headers: { Authorization: `Bearer ${tokenResponse.access_token}` },
+            });
+            const profile = await userInfoRes.json();
+
+            if (!profile.email) {
+              throw new Error('Google did not return an email address');
+            }
+
+            // Authenticate with Fortaa backend
+            const result = await authenticateWithBackend(null, {
+              email: profile.email,
+              name: profile.name || profile.email.split('@')[0],
+              picture: profile.picture || null,
+              accountType,
+            });
+
+            if (result.token) {
+              localStorage.setItem('fortaa_token', result.token);
+            }
+            if (result.user) {
+              localStorage.setItem('fortaa_user', JSON.stringify(result.user));
+            }
+
+            if (onSuccess) {
+              onSuccess(result);
+            } else if (result.isNewUser) {
+              toast.success(`Google verified! Welcome, ${result.user?.name || profile.name}.`, {
+                id: 'google-auth-toast',
+              });
+              navigate('/complete-profile');
+            } else {
+              toast.success(`Welcome back, ${result.user?.name || profile.name}!`, {
+                id: 'google-auth-toast',
+              });
+              navigate('/dashboard');
+            }
+          } catch (err) {
+            console.error('[Google Login Error]:', err);
+            toast.error(err.message || 'Google authentication failed', { id: 'google-auth-toast' });
+          } finally {
+            setLoading(false);
+          }
+        },
+      });
+
+      tokenClient.requestAccessToken({ prompt: 'select_account' });
+    } catch (err) {
+      console.error('[Google Script Error]:', err);
+      toast.error('Google service could not be loaded. Please refresh and try again.');
     }
   };
 
