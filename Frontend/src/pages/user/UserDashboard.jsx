@@ -20,7 +20,14 @@ import {
   fetchGroups,
   fetchOpportunities,
 } from '../../services/dashboard.service';
-import { toggleFollowUser, fetchFollowingIds } from '../../services/follow.service';
+import {
+  toggleFollowUser,
+  sendFollowRequest,
+  cancelFollowRequest,
+  unfollowUser,
+  fetchFollowingIds,
+} from '../../services/follow.service';
+import { joinChat, subscribeToFollowEvents } from '../../services/socket.service';
 
 // Brand & icons
 import logoIconImg from '../../assets/figma/logo_icon_img.png';
@@ -94,6 +101,7 @@ export default function UserDashboard() {
 
   const [posts, setPosts] = useState([]);
   const [followingIds, setFollowingIds] = useState([]);
+  const [pendingIds, setPendingIds] = useState([]);
   const [trainersList, setTrainersList] = useState([]);
   const [leadersList, setLeadersList] = useState([]);
   const [servicesList, setServicesList] = useState([]);
@@ -140,9 +148,10 @@ export default function UserDashboard() {
         }
       }
 
-      // 2. Fetch following IDs for this user
-      const fIds = await fetchFollowingIds(currentId);
-      setFollowingIds(fIds);
+      // 2. Fetch following & pending IDs for this user
+      const fData = await fetchFollowingIds(currentId);
+      setFollowingIds(fData?.followingIds || []);
+      setPendingIds(fData?.pendingIds || []);
 
       // 3. Fetch Posts (Personalized feed for this user)
       const livePosts = await fetchPosts(currentId);
@@ -153,7 +162,7 @@ export default function UserDashboard() {
       // 4. Supporting widgets
       const [tData, lData, sData, eData, gData, oData] = await Promise.all([
         fetchTrainers(),
-        fetchLeaders(),
+        fetchLeaders(currentId),
         fetchServices(),
         fetchEvents(),
         fetchGroups(),
@@ -162,12 +171,12 @@ export default function UserDashboard() {
 
       if (tData?.length) setTrainersList(tData);
       
-      // Filter out initially followed users on page load so they disappear on page visit
-      const rawLeaders = (lData?.length ? lData : leaders);
-      const initialUnfollowed = rawLeaders.filter(
-        (lead) => !fIds.map(Number).includes(Number(lead.id)) && Number(lead.id) !== Number(currentId)
+      // Load real database users/leaders (excluding current user)
+      const rawLeaders = (lData && lData.length > 0 ? lData : leaders);
+      const visibleLeaders = rawLeaders.filter(
+        (lead) => Number(lead.id) !== Number(currentId)
       );
-      setLeadersList(initialUnfollowed);
+      setLeadersList(visibleLeaders.length > 0 ? visibleLeaders : rawLeaders);
 
       if (sData?.length) setServicesList(sData);
       if (eData?.length) setEventsList(eData);
@@ -176,6 +185,56 @@ export default function UserDashboard() {
     }
 
     loadDashboardData();
+
+    // Join personal Socket room for real-time alerts
+    const myId = storedUser.id || 13;
+    joinChat(myId);
+
+    // Subscribe to live follow events (when another user accepts your follow request)
+    const unsubFollow = subscribeToFollowEvents({
+      onFollowAccepted: ({ targetUserId, targetName }) => {
+        const numId = Number(targetUserId);
+        setPendingIds((prev) => prev.filter((id) => Number(id) !== numId));
+        setFollowingIds((prev) => [...new Set([...prev, numId])]);
+        setStats((prev) => ({ ...prev, following: (Number(prev.following) || 0) + 1 }));
+        toast.success(`${targetName || 'User'} accepted your follow request! 🎉`);
+      },
+      onFollowUpdated: () => {
+        fetchFollowingIds(myId).then((fData) => {
+          setFollowingIds((prev) => {
+            const demoIds = prev.filter((id) => Number(id) >= 100);
+            return [...new Set([...(fData?.followingIds || []), ...demoIds])];
+          });
+          setPendingIds((prev) => {
+            const demoIds = prev.filter((id) => Number(id) >= 100);
+            return [...new Set([...(fData?.pendingIds || []), ...demoIds])];
+          });
+        });
+      },
+    });
+
+    // 4-second background sync fallback to guarantee real-time state without page reload
+    const pollInterval = setInterval(() => {
+      fetchFollowingIds(myId).then((fData) => {
+        if (fData?.followingIds) {
+          setFollowingIds((prev) => {
+            const demoIds = prev.filter((id) => Number(id) >= 100);
+            return [...new Set([...(fData.followingIds || []), ...demoIds])];
+          });
+        }
+        if (fData?.pendingIds) {
+          setPendingIds((prev) => {
+            const demoIds = prev.filter((id) => Number(id) >= 100);
+            return [...new Set([...(fData.pendingIds || []), ...demoIds])];
+          });
+        }
+      });
+    }, 4000);
+
+    return () => {
+      unsubFollow?.();
+      clearInterval(pollInterval);
+    };
   }, []);
 
   // Handle Photo File Pick
@@ -227,34 +286,53 @@ export default function UserDashboard() {
     }
   };
 
-  // Handle Follow / Unfollow
+  // Handle Follow / Request / Unfollow
   const handleToggleFollow = async (targetUserId, targetName) => {
     if (!targetUserId) {
       toast('Followed demo leader!');
       return;
     }
-    if (targetUserId === profile.id) {
+    const numId = Number(targetUserId);
+    if (numId === Number(profile.id)) {
       toast.error('You cannot follow yourself');
       return;
     }
 
-    const res = await toggleFollowUser(targetUserId, profile.id);
-    if (res.success) {
-      if (res.isFollowing) {
-        setFollowingIds((prev) => [...prev, Number(targetUserId)]);
-        setStats((prev) => ({ ...prev, following: (Number(prev.following) || 0) + 1 }));
-        toast.success(`You are now following ${targetName}!`);
-      } else {
-        setFollowingIds((prev) => prev.filter((id) => Number(id) !== Number(targetUserId)));
-        setStats((prev) => ({ ...prev, following: Math.max(0, (Number(prev.following) || 0) - 1) }));
-        toast(`Unfollowed ${targetName}`);
-      }
+    const isPending = pendingIds.map(Number).includes(numId);
+    const isFollowed = followingIds.map(Number).includes(numId);
 
-      // Re-fetch feed so the newly followed/unfollowed user's posts update
-      const updatedPosts = await fetchPosts(profile.id);
-      setPosts(updatedPosts);
+    if (isPending) {
+      // Cancel request
+      setPendingIds((prev) => prev.filter((id) => Number(id) !== numId));
+      toast('Follow request cancelled', { icon: 'ℹ️' });
+      try {
+        await cancelFollowRequest(numId, profile.id);
+      } catch (err) {
+        console.warn('Cancel follow note:', err?.message || err);
+      }
+    } else if (isFollowed) {
+      // Unfollow
+      setFollowingIds((prev) => prev.filter((id) => Number(id) !== numId));
+      setStats((prev) => ({ ...prev, following: Math.max(0, (Number(prev.following) || 0) - 1) }));
+      toast(`Unfollowed ${targetName}`);
+      try {
+        await unfollowUser(numId, profile.id);
+      } catch (err) {
+        console.warn('Unfollow note:', err?.message || err);
+      }
     } else {
-      toast.error(res.message || 'Follow action failed');
+      // Send Follow Request
+      setPendingIds((prev) => [...prev, numId]);
+      toast.success(`Follow request sent to ${targetName}!`);
+      try {
+        const res = await sendFollowRequest(numId, profile.id);
+        if (res && res.status === 'accepted') {
+          setPendingIds((prev) => prev.filter((id) => Number(id) !== numId));
+          setFollowingIds((prev) => [...prev, numId]);
+        }
+      } catch (err) {
+        console.warn('Send follow request note:', err?.message || err);
+      }
     }
   };
 
@@ -318,12 +396,12 @@ export default function UserDashboard() {
 
   // Quick Action Buttons
   const quickActions = [
-    { label: 'Create Post', icon: qaCreatePostImg, bgColor: '#FCE7F3' },
-    { label: 'Add Photo', icon: qaAddPhotoImg, bgColor: '#FAF5FF' },
-    { label: 'Share Market Place', icon: qaMarketplaceImg, bgColor: '#ECFDF5' },
-    { label: 'Invite Team', icon: qaInviteTeamImg, bgColor: '#EDE9FE' },
-    { label: 'Join Group', icon: qaJoinGroupImg, bgColor: '#FAE8FF' },
-    { label: 'Go Live', icon: qaGoLiveImg, bgColor: '#FFE4E6' },
+    { label: 'Create Post', icon: qaCreatePostImg, bgColor: '#F6CEFF' },
+    { label: 'Add Photo', icon: qaAddPhotoImg, bgColor: '#F6CEFF' },
+    { label: 'Share Market Place', icon: qaMarketplaceImg, bgColor: '#E3FFF5' },
+    { label: 'Invite Team', icon: qaInviteTeamImg, bgColor: '#DFD4FF' },
+    { label: 'Join Group', icon: qaJoinGroupImg, bgColor: '#F6CEFF' },
+    { label: 'Go Live', icon: qaGoLiveImg, bgColor: '#FFE3E3' },
   ];
 
   // Trainers
@@ -671,109 +749,192 @@ export default function UserDashboard() {
                 </div>
               </div>
 
-              {/* Dynamic Feed Posts from Database - Dashboard pe sirf 3 dikhao */}
-              {posts.slice(0, 3).map((post, pIdx) => (
-                <div key={post.id || pIdx} className="ud-post-card">
-                  <div className="ud-post-header">
-                    <img src={post.author_avatar || userAvatarImg} alt="" className="ud-post-avatar" />
-                    <div className="ud-post-author-meta">
-                      <div className="ud-post-author-name-row">
-                        <span className="ud-post-author-name">{post.author_name}</span>
-                        <span className="ud-post-badge">{post.author_role || 'Gold Leader'}</span>
-                        <span className="ud-post-time">
-                          • {post.created_at ? new Date(post.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Just now'} • 🌐
-                        </span>
+              {/* ── POST SECTION (Figma: 420x688px, border 1px #D9D9D9, radius 10px) ── */}
+              <div className="ud-post-section">
+                {(posts.length > 0 ? posts.slice(0, 2) : [
+                  {
+                    id: 'mock-1',
+                    author_name: 'Rahul sharma',
+                    author_role: 'Gold Leader',
+                    author_avatar: userAvatarImg,
+                    time: '2hr ago',
+                    content: 'Grateful to be part of an amazing team! Fortaa has given me the right platform to grow, learn and achieve my goals. Together we grow bigger!',
+                    tags: '#FortaaMarketing #Teamwork #Success #Fortaa',
+                    image_url: postTogetherDreams,
+                    likes_count: 124,
+                    comments_count: 28,
+                    shares_count: 12,
+                    has_liked: false,
+                  },
+                  {
+                    id: 'mock-2',
+                    author_name: 'Sneha Patel',
+                    author_role: 'Platinum Leader',
+                    author_avatar: priyaSharmaImg,
+                    time: '4hr ago',
+                    content: 'Looking for motivated people who want to build their own business and create financial freedom. DM me for more details.',
+                    tags: '#Opportunity #FinancialFreedom #JoinNow',
+                    likes_count: 85,
+                    comments_count: 14,
+                    shares_count: 6,
+                    has_liked: false,
+                  },
+                ]).map((post, pIdx) => (
+                  <div key={post.id || pIdx} className={`ud-post-item ${pIdx === 0 ? 'ud-post-item-first' : 'ud-post-item-second'}`}>
+                    <div className="ud-post-header">
+                      <div className="ud-post-avatar-wrap">
+                        <img src={post.author_avatar || (pIdx === 0 ? userAvatarImg : priyaSharmaImg)} alt="" className="ud-post-avatar" />
+                        <span className="ud-post-online-dot"></span>
                       </div>
+                      <div className="ud-post-author-meta">
+                        <div className="ud-post-author-name-row">
+                          <span className="ud-post-author-name">{post.author_name}</span>
+                          <span className="ud-post-badge">{post.author_role || (pIdx === 0 ? 'Gold Leader' : 'Platinum Leader')}</span>
+                          <span className="ud-post-time">
+                            • {post.time || (post.created_at ? new Date(post.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : (pIdx === 0 ? '2hr ago' : '4hr ago'))} • 🌐
+                          </span>
+                        </div>
+                      </div>
+                      {(() => {
+                        const isSelf = post.user_id && Number(post.user_id) === Number(profile.id);
+                        if (isSelf) return null;
+                        const targetId = post.user_id ? Number(post.user_id) : (pIdx === 0 ? 21 : 22);
+                        const isFollowed = followingIds.map(Number).includes(targetId);
+                        const isPending = pendingIds.map(Number).includes(targetId);
+                        return (
+                          <button
+                            type="button"
+                            className={`ud-btn-follow-post ${isFollowed ? 'following-active' : isPending ? 'pending-active' : ''}`}
+                            onClick={() => handleToggleFollow(targetId, post.author_name || 'Leader')}
+                          >
+                            {isFollowed ? 'Following ✓' : isPending ? 'Pending' : 'Follow'}
+                          </button>
+                        );
+                      })()}
+                      <button className="ud-btn-post-menu" type="button">⋮</button>
                     </div>
-                    {post.user_id !== profile.id && (
-                      <button
-                        className={`ud-btn-follow-post ${post.user_id && followingIds.includes(post.user_id) ? 'following-active' : ''}`}
-                        onClick={() => handleToggleFollow(post.user_id, post.author_name)}
-                        style={{
-                          background: post.user_id && followingIds.includes(post.user_id) ? '#E0E7FF' : '#5A2CE4',
-                          color: post.user_id && followingIds.includes(post.user_id) ? '#3730A3' : '#FFFFFF',
-                          border: 'none',
-                          borderRadius: '20px',
-                          padding: '4px 14px',
-                          fontSize: '12px',
-                          fontWeight: '600',
-                          cursor: 'pointer',
-                        }}
-                      >
-                        {post.user_id && followingIds.includes(post.user_id) ? 'Following ✓' : 'Follow'}
-                      </button>
+
+                    <div className="ud-post-body">
+                      <p className="ud-post-text">{post.content}</p>
+                      {post.tags && <p className="ud-post-tags">{post.tags}</p>}
+
+                      {/* Post 1: Image banner with Fortaa logo badge */}
+                      {(post.image_url || pIdx === 0) && (
+                        <div className="ud-post-image-box">
+                          <img
+                            src={post.image_url || postTogetherDreams}
+                            alt="Dream Connect Achieve"
+                            className="ud-post-img"
+                          />
+                          <div className="ud-post-img-logo-badge">
+                            <img src={logoTextImg} alt="FORTAA" className="ud-post-logo-badge-img" />
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Post 2: Two Attached Mini Business Opportunity Cards */}
+                      {pIdx === 1 && (
+                        <div className="ud-attached-opps-list">
+                          <div className="ud-attached-opp-card">
+                            <div className="ud-attached-opp-left">
+                              <div className="ud-opp-mini-avatar-wrap">
+                                <img src={priyaSharmaImg} alt="" className="ud-attached-opp-icon" />
+                                <span className="ud-post-online-dot"></span>
+                              </div>
+                              <div className="ud-opp-mini-texts">
+                                <h5 className="ud-attached-opp-title">Business Opportunity</h5>
+                                <span className="ud-attached-opp-sub">Flexible Working | Live Support | Global Platform</span>
+                              </div>
+                            </div>
+                            <button type="button" className="ud-btn-learn-more" onClick={() => toast.success('Opportunity details opened!')}>
+                              Learn More
+                            </button>
+                          </div>
+
+                          <div className="ud-attached-opp-card">
+                            <div className="ud-attached-opp-left">
+                              <div className="ud-opp-mini-avatar-wrap">
+                                <img src={alexMorganImg} alt="" className="ud-attached-opp-icon" />
+                                <span className="ud-post-online-dot"></span>
+                              </div>
+                              <div className="ud-opp-mini-texts">
+                                <h5 className="ud-attached-opp-title">Business Opportunity</h5>
+                                <span className="ud-attached-opp-sub">Flexible Working | Live Support | Global Platform</span>
+                              </div>
+                            </div>
+                            <button type="button" className="ud-btn-learn-more" onClick={() => toast.success('Opportunity details opened!')}>
+                              Learn More
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Post 1 Reactions & Comments */}
+                    {pIdx === 0 && (
+                      <>
+                        <div className="ud-post-reactions-row">
+                          <div className="ud-post-reaction-icons">
+                            <span className="ud-react-pill-blue">👍</span>
+                            <span className="ud-react-pill-red">❤️</span>
+                            <span className="ud-react-count">124</span>
+                          </div>
+                          <div className="ud-post-comment-counts">
+                            <span>28 comments</span>
+                            <span>12 shares</span>
+                          </div>
+                        </div>
+
+                        <div className="ud-post-interact-bar">
+                          <button
+                            type="button"
+                            className={`ud-interact-btn ${post.has_liked ? 'liked-active' : ''}`}
+                            onClick={() => handleLike(post.id)}
+                          >
+                            👍 Like
+                          </button>
+                          <button type="button" className="ud-interact-btn" onClick={() => toast('Comment modal opened')}>
+                            💬 Comment
+                          </button>
+                          <button type="button" className="ud-interact-btn" onClick={() => toast.success('Link copied to clipboard!')}>
+                            ↗️ Share
+                          </button>
+                        </div>
+
+                        <div className="ud-post-comments-preview">
+                          <div className="ud-comment-item">
+                            <img src={userAvatarImg} alt="" className="ud-commenter-avatar" />
+                            <div className="ud-comment-content">
+                              <span className="ud-commenter-name">Amit Verma</span>
+                              <span className="ud-commenter-text">Great sharing keep insipiring!</span>
+                              <div className="ud-comment-actions">
+                                <span>Like</span>
+                                <span>Reply</span>
+                                <span>1h</span>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="ud-comment-input-box">
+                            <span className="ud-comment-user-dot"></span>
+                            <input type="text" placeholder="Write a Comment..." className="ud-comment-input" />
+                            <span className="ud-comment-icon-btn">😊</span>
+                            <span className="ud-comment-icon-btn">📷</span>
+                          </div>
+                        </div>
+                      </>
                     )}
-                    <button className="ud-btn-post-menu">⋮</button>
                   </div>
+                ))}
 
-                  <div className="ud-post-body">
-                    <p className="ud-post-text">{post.content}</p>
-                    {post.tags && <p className="ud-post-tags">{post.tags}</p>}
-
-                    {/* Post Image Box (from S3 if uploaded) */}
-                    {post.image_url ? (
-                      <div className="ud-post-image-box">
-                        <img
-                          src={post.image_url}
-                          alt="Post upload"
-                          className="ud-post-img"
-                          style={{ maxHeight: '280px', objectFit: 'cover' }}
-                        />
-                      </div>
-                    ) : null}
-                  </div>
-
-                  {/* Post Footer Reactions */}
-                  <div className="ud-post-reactions-row">
-                    <div className="ud-post-reaction-icons">
-                      <span>👍 ❤️ 👏 {post.likes_count || 0}</span>
-                    </div>
-                    <div className="ud-post-comment-counts">
-                      <span>{post.comments_count || 0} comments</span>
-                      <span>12 shares</span>
-                    </div>
-                  </div>
-
-                  <div className="ud-post-interact-bar">
-                    <button
-                      className={`ud-interact-btn ${post.has_liked ? 'liked-active' : ''}`}
-                      onClick={() => handleLike(post.id)}
-                      style={{
-                        color: post.has_liked ? '#5A2CE4' : 'inherit',
-                        fontWeight: post.has_liked ? '700' : '500',
-                      }}
-                    >
-                      {post.has_liked ? '👍 Liked' : '👍 Like'}
-                    </button>
-                    <button className="ud-interact-btn" onClick={() => toast('Comment modal opened')}>
-                      💬 Comment
-                    </button>
-                    <button className="ud-interact-btn" onClick={() => toast.success('Link copied to clipboard!')}>
-                      ↗️ Share
-                    </button>
-                  </div>
-
-                  {/* Sub comment preview */}
-                  <div className="ud-post-comments-preview">
-                    <div className="ud-comment-item">
-                      <span className="ud-commenter-name">Amit Verma</span>
-                      <span className="ud-commenter-text">Great sharing keep inspiring!</span>
-                    </div>
-                    <div className="ud-comment-input-box">
-                      <input type="text" placeholder="Write a comment..." className="ud-comment-input" />
-                      <button className="ud-comment-submit">➤</button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-
-              {/* View All Button - Click karne par /all-posts page par jaao */}
-              <button
-                className="ud-btn-view-all-wide ud-feed-view-all"
-                onClick={() => navigate('/all-posts')}
-              >
-                View All →
-              </button>
+                {/* View All Button inside the Post Section */}
+                <button
+                  type="button"
+                  className="ud-btn-view-all-wide ud-feed-view-all"
+                  onClick={() => navigate('/all-posts')}
+                >
+                  View All →
+                </button>
+              </div>
             </div>
 
 
@@ -823,6 +984,7 @@ export default function UserDashboard() {
                   ) : (
                     leadersList.map((lead, idx) => {
                       const isFollowed = followingIds.map(Number).includes(Number(lead.id));
+                      const isPending = pendingIds.map(Number).includes(Number(lead.id));
                       return (
                         <div key={lead.id || idx} className="ud-leader-item">
                           <div className="ud-leader-avatar">
@@ -840,10 +1002,10 @@ export default function UserDashboard() {
                               Message
                             </button>
                             <button
-                              className={`ud-btn-lead-conn ${isFollowed ? 'following-active' : ''}`}
+                              className={`ud-btn-lead-conn ${isFollowed ? 'following-active' : isPending ? 'pending-active' : ''}`}
                               onClick={() => handleToggleFollow(lead.id, lead.name)}
                             >
-                              {isFollowed ? 'Following ✓' : 'Follow'}
+                              {isFollowed ? 'Following ✓' : isPending ? 'Pending' : 'Connect'}
                             </button>
                           </div>
                         </div>
@@ -851,6 +1013,15 @@ export default function UserDashboard() {
                     })
                   )}
                 </div>
+
+                {/* Leaders View All Button (Figma Image 2) */}
+                <button
+                  type="button"
+                  className="ud-btn-view-all-wide"
+                  onClick={() => navigate('/leaders')}
+                >
+                  View All →
+                </button>
               </div>
             </div>
           </div>
@@ -947,7 +1118,7 @@ export default function UserDashboard() {
 
             <div className="ud-opp-cards-row">
               {(opportunitiesList.length ? opportunitiesList : opportunities).map((opp, idx) => (
-                <div key={opp.id || idx} className="ud-opp-card">
+                <div key={opp.id || idx} className={`ud-opp-card ${idx === 2 ? 'ud-opp-card-with-nav' : ''}`}>
                   <div className="ud-opp-img-wrap">
                     <img
                       src={opp.image || opp.image_url || (idx % 2 === 0 ? oppDigitalImg : oppLeadershipImg)}
@@ -955,6 +1126,16 @@ export default function UserDashboard() {
                       className="ud-opp-img"
                     />
                     {opp.is_new || opp.isNew ? <span className="ud-opp-badge-new">New</span> : null}
+                    {idx === 2 && (
+                      <button
+                        type="button"
+                        className="ud-opp-carousel-arrow"
+                        onClick={() => toast('Showing next opportunities...')}
+                        aria-label="Next opportunities"
+                      >
+                        ›
+                      </button>
+                    )}
                   </div>
                   <div className="ud-opp-card-body">
                     <h3 className="ud-opp-card-title">{opp.title}</h3>
@@ -1209,15 +1390,22 @@ export default function UserDashboard() {
                     </div>
 
                     <div className="ud-mob-post-header-right">
-                      {post.user_id && post.user_id !== profile.id && (
-                        <button
-                          type="button"
-                          className="ud-mob-btn-follow"
-                          onClick={() => handleToggleFollow(post.user_id, post.author_name)}
-                        >
-                          {followingIds.includes(Number(post.user_id)) ? 'Following' : 'Follow'}
-                        </button>
-                      )}
+                      {(() => {
+                        const isSelf = post.user_id && Number(post.user_id) === Number(profile.id);
+                        if (isSelf) return null;
+                        const targetId = post.user_id ? Number(post.user_id) : (pIdx === 0 ? 21 : 22);
+                        const isFollowed = followingIds.map(Number).includes(targetId);
+                        const isPending = pendingIds.map(Number).includes(targetId);
+                        return (
+                          <button
+                            type="button"
+                            className={`ud-mob-btn-follow ${isFollowed ? 'following-active' : isPending ? 'pending-active' : ''}`}
+                            onClick={() => handleToggleFollow(targetId, post.author_name || 'Leader')}
+                          >
+                            {isFollowed ? 'Following ✓' : isPending ? 'Pending' : 'Follow'}
+                          </button>
+                        );
+                      })()}
                       <button type="button" className="ud-mob-btn-menu" aria-label="More options">
                         ⋮
                       </button>
@@ -1303,9 +1491,20 @@ export default function UserDashboard() {
                     </div>
 
                     <div className="ud-mob-post-header-right">
-                      <button type="button" className="ud-mob-btn-follow" onClick={() => toast.success('Followed Rahul Sharma!')}>
-                        Follow
-                      </button>
+                      {(() => {
+                        const targetId = 21;
+                        const isFollowed = followingIds.map(Number).includes(targetId);
+                        const isPending = pendingIds.map(Number).includes(targetId);
+                        return (
+                          <button
+                            type="button"
+                            className={`ud-mob-btn-follow ${isFollowed ? 'following-active' : isPending ? 'pending-active' : ''}`}
+                            onClick={() => handleToggleFollow(targetId, 'Rahul sharma')}
+                          >
+                            {isFollowed ? 'Following ✓' : isPending ? 'Pending' : 'Follow'}
+                          </button>
+                        );
+                      })()}
                       <button type="button" className="ud-mob-btn-menu" aria-label="More options">
                         ⋮
                       </button>
@@ -1399,9 +1598,20 @@ export default function UserDashboard() {
                     </div>
 
                     <div className="ud-mob-post-header-right">
-                      <button type="button" className="ud-mob-btn-follow" onClick={() => toast.success('Followed Sneha Patel!')}>
-                        Follow
-                      </button>
+                      {(() => {
+                        const targetId = 22;
+                        const isFollowed = followingIds.map(Number).includes(targetId);
+                        const isPending = pendingIds.map(Number).includes(targetId);
+                        return (
+                          <button
+                            type="button"
+                            className={`ud-mob-btn-follow ${isFollowed ? 'following-active' : isPending ? 'pending-active' : ''}`}
+                            onClick={() => handleToggleFollow(targetId, 'Sneha Patel')}
+                          >
+                            {isFollowed ? 'Following ✓' : isPending ? 'Pending' : 'Follow'}
+                          </button>
+                        );
+                      })()}
                       <button type="button" className="ud-mob-btn-menu" aria-label="More options">
                         ⋮
                       </button>

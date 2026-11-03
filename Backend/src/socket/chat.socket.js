@@ -2,8 +2,10 @@ const db = require('../db/db');
 
 // In-memory tracking of active online users: userId -> Set of socketIds
 const onlineUsers = new Map();
+let ioInstance = null;
 
 function setupChatSocket(io) {
+  ioInstance = io;
   io.on('connection', (socket) => {
     let currentUserId = null;
 
@@ -119,4 +121,8 @@ function setupChatSocket(io) {
   });
 }
 
-module.exports = { setupChatSocket };
+function getIO() {
+  return ioInstance;
+}
+
+module.exports = { setupChatSocket, getIO };

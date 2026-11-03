@@ -123,12 +123,32 @@ CREATE TABLE IF NOT EXISTS follows (
   id SERIAL PRIMARY KEY,
   follower_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   following_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  status VARCHAR(20) DEFAULT 'accepted',
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
   UNIQUE(follower_id, following_id)
 );
 
+ALTER TABLE follows ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'accepted';
+
 CREATE INDEX IF NOT EXISTS idx_follows_follower ON follows(follower_id);
 CREATE INDEX IF NOT EXISTS idx_follows_following ON follows(following_id);
+
+-- Notifications Table (In-app notifications for follow requests, accepts, etc.)
+CREATE TABLE IF NOT EXISTS notifications (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  actor_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+  actor_name VARCHAR(150),
+  actor_avatar TEXT,
+  type VARCHAR(50) NOT NULL,
+  message TEXT,
+  is_read BOOLEAN DEFAULT FALSE,
+  ref_id INTEGER,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON notifications(user_id);
+CREATE INDEX IF NOT EXISTS idx_notifications_is_read ON notifications(is_read);
 
 -- Post Likes Table (Tracks which user liked which post)
 CREATE TABLE IF NOT EXISTS post_likes (

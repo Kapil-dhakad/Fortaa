@@ -219,25 +219,15 @@ async function getPosts(req, res) {
           ORDER BY p.created_at DESC
         `;
         params = [userId];
-      } else if (userId) {
-        // If following anyone or has own posts, prioritize personalized feed
-        const checkCount = await db.query(
-          `SELECT COUNT(*) FROM posts 
-           WHERE user_id = $1 
-              OR user_id IN (SELECT following_id FROM follows WHERE follower_id = $1)`,
-          [userId]
-        );
-        if (parseInt(checkCount.rows[0].count, 10) > 0) {
-          queryStr = `
-            SELECT p.*,
-                   COALESCE((SELECT TRUE FROM post_likes pl WHERE pl.post_id = p.id AND pl.user_id = $1 LIMIT 1), FALSE) AS has_liked
-            FROM posts p
-            WHERE p.user_id = $1 
-               OR p.user_id IN (SELECT following_id FROM follows WHERE follower_id = $1)
-            ORDER BY p.created_at DESC
-          `;
-          params = [userId];
-        }
+      } else {
+        // Main community feed: show all community posts so users can discover & follow leaders
+        queryStr = `
+          SELECT p.*,
+                 COALESCE((SELECT TRUE FROM post_likes pl WHERE pl.post_id = p.id AND pl.user_id = $1 LIMIT 1), FALSE) AS has_liked
+          FROM posts p
+          ORDER BY p.created_at DESC
+        `;
+        params = [activeUserId];
       }
 
       const result = await db.query(queryStr, params);
@@ -410,14 +400,26 @@ async function getTrainers(req, res) {
   }
 }
 
-// 6. Get Leaders
+// 6. Get Leaders (Real Database users/friends)
 async function getLeaders(req, res) {
   try {
+    const currentUserId = parseInt(req.query.userId || req.userId, 10);
     if (db.isDBConnected()) {
-      // Fetch users designated as leaders or general users
-      const usersRes = await db.query(
-        "SELECT id, name, COALESCE(designation, 'Leader') as role FROM users ORDER BY id DESC LIMIT 10"
-      );
+      let queryStr = `
+        SELECT id, name, email,
+               COALESCE(designation, 'Business Leader') as role,
+               avatar_url,
+               COALESCE(company_brand, 'Fortaa') as company_brand
+        FROM users
+      `;
+      const queryParams = [];
+      if (currentUserId && !isNaN(currentUserId)) {
+        queryStr += ' WHERE id != $1';
+        queryParams.push(currentUserId);
+      }
+      queryStr += ' ORDER BY id DESC LIMIT 20';
+
+      const usersRes = await db.query(queryStr, queryParams);
       if (usersRes.rows.length > 0) {
         return res.status(200).json({ success: true, leaders: usersRes.rows });
       }

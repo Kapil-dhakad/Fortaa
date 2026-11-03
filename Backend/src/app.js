@@ -8,6 +8,7 @@ const uploadRouter = require('./routes/upload.route');
 const dashboardRouter = require('./routes/dashboard.route');
 const followRouter = require('./routes/follow.route');
 const messageRouter = require('./routes/message.route');
+const notificationRouter = require('./routes/notification.route');
 
 const app = express();
 
@@ -27,6 +28,7 @@ app.use('/api/upload', uploadRouter);
 app.use('/api/dashboard', dashboardRouter);
 app.use('/api/follow', followRouter);
 app.use('/api/messages', messageRouter);
+app.use('/api/notifications', notificationRouter);
 
 // 2. Serve static frontend build files
 const buildPath = path.join(__dirname, 'build');

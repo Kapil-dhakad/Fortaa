@@ -31,7 +31,7 @@ const NAV_ITEMS = [
   { label: 'My Profile', icon: navProfileIcon, path: '/profile' },
   { label: 'Services', icon: navServicesIcon },
   { label: 'My Team', icon: navTeamIcon },
-  { label: 'Following', icon: navFollowingIcon },
+  { label: 'Following', icon: navFollowingIcon, path: '/following' },
   { label: 'Market Place', icon: navMarketplaceIcon },
   { label: 'Companies', icon: navCompaniesIcon },
   { label: 'Products', icon: navProductsIcon },

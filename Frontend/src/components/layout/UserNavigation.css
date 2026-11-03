@@ -55,48 +55,69 @@
   z-index: 150;
 }
 
-/* Brand Logo Capsule (Figma: 152x42px, radius 5px, border 1.5px solid #6B109F) */
+/* Brand Logo Capsule (Figma: 152x42px, radius 5px, background #FFFFFF) */
 .ud-brand-logo-card {
   background: #FFFFFF;
-  border: 1.5px solid #6B109F;
   border-radius: 5px;
   width: 152px;
   height: 42px;
-  padding: 0 8px;
+  min-width: 152px;
+  max-width: 152px;
+  min-height: 42px;
+  max-height: 42px;
+  padding: 0;
   box-sizing: border-box;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  flex-shrink: 0;
 }
 
 .ud-brand-logo {
-  display: flex;
-  align-items: center;
-  gap: 10px;
+  display: block;
+  width: 152px;
+  height: 42px;
+  position: relative;
   text-decoration: none;
 }
 
 .ud-logo-icon {
-  width: 26px;
-  height: 22px;
+  position: absolute;
+  width: 31px;
+  height: 25px;
+  left: 5px;
+  top: 2px;
   object-fit: contain;
+  display: block;
 }
 
 .ud-logo-text-wrap {
-  display: flex;
-  flex-direction: column;
+  position: static;
 }
 
 .ud-logo-word {
-  width: 76px;
-  height: auto;
+  position: absolute;
+  width: 91px;
+  height: 23px;
+  left: 31px;
+  top: 1px;
   object-fit: contain;
+  display: block;
 }
 
 .ud-logo-tagline {
-  font-size: 8px;
+  position: absolute;
+  width: 121px;
+  height: 11px;
+  left: 25px;
+  top: 22px;
+  font-family: 'Inter', sans-serif;
+  font-style: normal;
+  font-weight: 400;
+  font-size: 10px;
+  line-height: 12px;
   color: #232356;
   white-space: nowrap;
+  display: block;
 }
 
 /* ───────────────── SEARCH BAR ───────────────── */
@@ -217,7 +238,7 @@
   position: absolute;
   top: -3px;
   right: -3px;
-  background: #EF4444;
+  background: #F60808;
   color: #FFFFFF;
   font-size: 9px;
   font-weight: 700;
@@ -403,17 +424,20 @@
 }
 
 .ud-promo-title {
-  font-size: 11px;
-  font-weight: 700;
+  font-family: 'Inter', sans-serif;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 19px;
+  letter-spacing: 0.02em;
   color: #FFFFFF;
   margin: 0;
-  line-height: 1.1;
 }
 
 .ud-promo-desc {
-  font-size: 7.5px;
-  line-height: 1.25;
-  color: rgba(255, 255, 255, 0.85);
+  font-family: 'Inter', sans-serif;
+  font-size: 10px;
+  line-height: 12px;
+  color: #FFFFFF;
   margin: 0;
   text-align: center;
 }
@@ -423,17 +447,19 @@
   height: 20px;
   min-height: 20px;
   background: #FFFFFF;
-  color: #420191;
+  color: #232356;
   border: none;
   border-radius: 5px;
-  font-size: 9px;
-  font-weight: 700;
+  font-family: 'Inter', sans-serif;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 12px;
+  letter-spacing: 0.02em;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   transition: opacity 0.15s ease;
-  line-height: 1;
   padding: 0;
   margin: 0 auto;
 }
@@ -465,8 +491,8 @@
   height: 20px;
   min-width: 20px;
   min-height: 20px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #9E04C3 0%, #5A2CE4 100%);
+  border-radius: 50px;
+  background: linear-gradient(73.3deg, #9E04C3 46.54%, #5A2CE4 88.46%);
   display: flex;
   align-items: center;
   justify-content: center;

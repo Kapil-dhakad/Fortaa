@@ -1,0 +1,272 @@
+/* Following Page Styles - Matches Figma Reference Image */
+
+.fol-page-root {
+  min-height: 100vh;
+  background: #F5F8FF;
+  display: flex;
+  flex-direction: column;
+}
+
+.fol-main-layout {
+  display: flex;
+  flex: 1;
+  max-width: 1440px;
+  width: 100%;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
+.fol-content-container {
+  flex: 1;
+  padding: 24px 32px 60px;
+  max-width: 900px;
+  box-sizing: border-box;
+}
+
+/* Card Container */
+.fol-card-box {
+  background: #FFFFFF;
+  border: 1px solid #E8E5F5;
+  border-radius: 12px;
+  padding: 20px 24px 28px;
+  box-shadow: 0 4px 20px rgba(35, 35, 86, 0.04);
+}
+
+/* Header */
+.fol-header-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #F1EEF8;
+}
+
+.fol-header-icon {
+  font-size: 22px;
+  line-height: 1;
+}
+
+.fol-header-title {
+  font-family: 'Inter', sans-serif;
+  font-style: normal;
+  font-weight: 700;
+  font-size: 20px;
+  line-height: 24px;
+  color: #232356;
+  margin: 0;
+}
+
+.fol-header-count {
+  font-size: 13px;
+  color: #8C87A2;
+  font-weight: 500;
+}
+
+/* List */
+.fol-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Person Item Card */
+.fol-item-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 18px;
+  background: #FFFFFF;
+  border: 1px solid #D9D2EE;
+  border-radius: 10px;
+  transition: all 0.15s ease;
+  box-sizing: border-box;
+}
+
+.fol-item-card:hover {
+  border-color: #9D4EDD;
+  box-shadow: 0 4px 12px rgba(157, 78, 221, 0.08);
+  transform: translateY(-1px);
+}
+
+.fol-item-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+
+.fol-avatar-wrap {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: #ECE8F7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fol-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.fol-avatar-initials {
+  font-size: 16px;
+  font-weight: 700;
+  color: #6B109F;
+}
+
+.fol-meta-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.fol-name {
+  font-family: 'Inter', sans-serif;
+  font-style: normal;
+  font-weight: 600;
+  font-size: 15px;
+  line-height: 18px;
+  color: #232356;
+  margin: 0 0 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.fol-role {
+  font-family: 'Inter', sans-serif;
+  font-style: normal;
+  font-weight: 400;
+  font-size: 12px;
+  line-height: 14px;
+  color: #6B6B8A;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Actions */
+.fol-item-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.fol-btn-msg {
+  box-sizing: border-box;
+  background: #FFFFFF;
+  border: 1.5px solid #8B2CF5;
+  border-radius: 6px;
+  color: #8B2CF5;
+  font-family: 'Inter', sans-serif;
+  font-style: normal;
+  font-weight: 500;
+  font-size: 12px;
+  line-height: 15px;
+  padding: 6px 18px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.fol-btn-msg:hover {
+  background: #F8F3FF;
+}
+
+.fol-btn-status {
+  box-sizing: border-box;
+  border-radius: 6px;
+  font-family: 'Inter', sans-serif;
+  font-style: normal;
+  font-weight: 500;
+  font-size: 12px;
+  line-height: 15px;
+  padding: 6px 18px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  min-width: 88px;
+  text-align: center;
+}
+
+/* Following state button */
+.fol-btn-following {
+  background: #FFFFFF;
+  border: 1.5px solid #9D4EDD;
+  color: #9D4EDD;
+}
+
+.fol-btn-following:hover {
+  background: #FBF7FF;
+  border-color: #7B2CBF;
+  color: #7B2CBF;
+}
+
+/* Pending state button */
+.fol-btn-pending {
+  background: #FFFFFF;
+  border: 1.5px solid #9D4EDD;
+  color: #9D4EDD;
+}
+
+.fol-btn-pending:hover {
+  background: #FFF5F5;
+  border-color: #E63946;
+  color: #E63946;
+}
+
+/* Connect / Follow state button */
+.fol-btn-connect {
+  background: linear-gradient(90deg, #9A20FD 0%, #5B24FF 100%);
+  border: none;
+  color: #FFFFFF;
+  font-weight: 600;
+}
+
+.fol-btn-connect:hover {
+  opacity: 0.92;
+  transform: translateY(-1px);
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  .fol-content-container {
+    padding: 16px 12px 60px;
+  }
+
+  .fol-card-box {
+    padding: 16px 14px;
+    border-radius: 10px;
+  }
+
+  .fol-item-card {
+    padding: 10px 12px;
+    gap: 8px;
+  }
+
+  .fol-avatar-wrap {
+    width: 38px;
+    height: 38px;
+  }
+
+  .fol-name {
+    font-size: 13.5px;
+  }
+
+  .fol-role {
+    font-size: 11px;
+  }
+
+  .fol-btn-msg,
+  .fol-btn-status {
+    padding: 5px 12px;
+    font-size: 11px;
+    min-width: 72px;
+  }
+}

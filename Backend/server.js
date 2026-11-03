@@ -16,6 +16,7 @@ const io = new Server(server, {
   },
 });
 
+app.set('io', io);
 setupChatSocket(io);
 
 const PORT = process.env.PORT || 3000;

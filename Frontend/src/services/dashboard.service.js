@@ -70,9 +70,10 @@ export async function fetchTrainers() {
   }
 }
 
-export async function fetchLeaders() {
+export async function fetchLeaders(userId) {
   try {
-    const res = await fetch(`${BASE_URL}/leaders`);
+    const url = userId ? `${BASE_URL}/leaders?userId=${userId}` : `${BASE_URL}/leaders`;
+    const res = await fetch(url);
     const data = await res.json();
     return data.leaders || [];
   } catch (err) {

@@ -14,6 +14,8 @@ import {
   fetchFollowing,
   fetchUserSocialCounts,
   toggleFollowUser,
+  unfollowUser,
+  cancelFollowRequest,
 } from '../../services/follow.service';
 
 // Brand & icons
@@ -202,14 +204,34 @@ export default function ProfilePage() {
   }, [currentUserId]);
 
   const handleUnfollowFromProfile = async (targetId, targetName) => {
-    const res = await toggleFollowUser(targetId, currentUserId);
-    if (res.success && !res.isFollowing) {
-      setFollowingList((prev) => prev.filter((u) => u.id !== targetId));
-      setSocialCounts((prev) => ({
-        ...prev,
-        followingCount: Math.max(0, prev.followingCount - 1),
-      }));
-      toast.success(`Unfollowed ${targetName}`);
+    const confirm = window.confirm(`Are you sure you want to unfollow ${targetName}?`);
+    if (!confirm) return;
+
+    setFollowingList((prev) => prev.filter((u) => u.id !== targetId));
+    setSocialCounts((prev) => ({
+      ...prev,
+      followingCount: Math.max(0, prev.followingCount - 1),
+    }));
+    toast(`Unfollowed ${targetName}`);
+
+    try {
+      await unfollowUser(targetId, currentUserId);
+    } catch (err) {
+      console.error('Unfollow error:', err);
+    }
+  };
+
+  const handleCancelRequestFromProfile = async (targetId, targetName) => {
+    const confirm = window.confirm(`Cancel follow request to ${targetName}?`);
+    if (!confirm) return;
+
+    setFollowingList((prev) => prev.filter((u) => u.id !== targetId));
+    toast('Follow request cancelled', { icon: 'ℹ️' });
+
+    try {
+      await cancelFollowRequest(targetId, currentUserId);
+    } catch (err) {
+      console.error('Cancel request error:', err);
     }
   };
 
@@ -1413,52 +1435,99 @@ export default function ProfilePage() {
 
                     {followingList.length > 0 ? (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                        {followingList.map((user) => (
-                          <div
-                            key={user.id}
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'space-between',
-                              padding: '12px 16px',
-                              background: '#F9F8FD',
-                              borderRadius: '12px',
-                              border: '1px solid #ECE8F7',
-                            }}
-                          >
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                              <img
-                                src={userAvatarImg}
-                                alt={user.name}
-                                style={{ width: '42px', height: '42px', borderRadius: '50%' }}
-                              />
-                              <div>
-                                <div style={{ fontWeight: '700', fontSize: '15px', color: '#1F1735' }}>
-                                  {user.name}
-                                </div>
-                                <div style={{ fontSize: '12px', color: '#8E8A9F' }}>
-                                  {user.designation || 'Leader'} • {user.company_brand || 'Fortaa'}
-                                </div>
-                              </div>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => handleUnfollowFromProfile(user.id, user.name)}
+                        {followingList.map((user) => {
+                          const isPending = user.follow_status === 'pending';
+                          return (
+                            <div
+                              key={user.id}
                               style={{
-                                padding: '6px 14px',
-                                fontSize: '12px',
-                                background: '#FEE2E2',
-                                color: '#DC2626',
-                                border: '1px solid #FCA5A5',
-                                borderRadius: '20px',
-                                fontWeight: '600',
-                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                padding: '12px 18px',
+                                background: '#FFFFFF',
+                                borderRadius: '10px',
+                                border: '1px solid #D9D2EE',
+                                transition: 'all 0.15s ease',
                               }}
                             >
-                              Unfollow
-                            </button>
-                          </div>
-                        ))}
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                                <img
+                                  src={user.avatar_url || userAvatarImg}
+                                  alt={user.name}
+                                  style={{ width: '42px', height: '42px', borderRadius: '50%', objectFit: 'cover' }}
+                                />
+                                <div>
+                                  <div style={{ fontWeight: '600', fontSize: '15px', color: '#232356' }}>
+                                    {user.name}
+                                  </div>
+                                  <div style={{ fontSize: '12px', color: '#6B6B8A' }}>
+                                    {user.designation || 'Business Leader'}
+                                  </div>
+                                </div>
+                              </div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                <button
+                                  type="button"
+                                  onClick={() => navigate(`/messages?userId=${user.id}`)}
+                                  style={{
+                                    background: '#FFFFFF',
+                                    border: '1.5px solid #8B2CF5',
+                                    borderRadius: '6px',
+                                    color: '#8B2CF5',
+                                    fontWeight: '500',
+                                    fontSize: '12px',
+                                    padding: '6px 16px',
+                                    cursor: 'pointer',
+                                  }}
+                                >
+                                  Message
+                                </button>
+                                {isPending ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleCancelRequestFromProfile(user.id, user.name)}
+                                    title="Click to cancel request"
+                                    style={{
+                                      background: '#FFFFFF',
+                                      border: '1.5px solid #9D4EDD',
+                                      borderRadius: '6px',
+                                      color: '#9D4EDD',
+                                      fontWeight: '500',
+                                      fontSize: '12px',
+                                      padding: '6px 16px',
+                                      cursor: 'pointer',
+                                      minWidth: '85px',
+                                      textAlign: 'center',
+                                    }}
+                                  >
+                                    Pending
+                                  </button>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleUnfollowFromProfile(user.id, user.name)}
+                                    title="Click to unfollow"
+                                    style={{
+                                      background: '#FFFFFF',
+                                      border: '1.5px solid #9D4EDD',
+                                      borderRadius: '6px',
+                                      color: '#9D4EDD',
+                                      fontWeight: '500',
+                                      fontSize: '12px',
+                                      padding: '6px 16px',
+                                      cursor: 'pointer',
+                                      minWidth: '85px',
+                                      textAlign: 'center',
+                                    }}
+                                  >
+                                    Following
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
                     ) : (
                       <div style={{ textAlign: 'center', padding: '30px 10px', color: '#8E8A9F' }}>

@@ -1,6 +1,9 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import NotificationDropdown from '../notifications/NotificationDropdown';
+import { fetchUnreadCount } from '../../services/notification.service';
+import { joinChat, getSocket } from '../../services/socket.service';
 import './UserNavigation.css';
 
 // Brand & icons
@@ -37,6 +40,42 @@ export default function UserHeader({
   const displayName = user?.name || storedUser.name || 'User';
   const displayRole = user?.role || user?.userRole || storedUser.designation || storedUser.role || 'Leader';
   const displayAvatar = user?.avatarUrl || user?.avatarImg || storedUser.avatarUrl || userAvatarImg;
+  const currentUserId = user?.id || storedUser.id;
+
+  const [notifOpen, setNotifOpen] = useState(false);
+  const [realNotifCount, setRealNotifCount] = useState(0);
+
+  // Fetch real notification count from backend + live socket updates
+  useEffect(() => {
+    if (!currentUserId) return;
+    let isMounted = true;
+
+    const refreshCount = () => {
+      fetchUnreadCount(currentUserId)
+        .then((cnt) => {
+          if (isMounted) setRealNotifCount(cnt || 0);
+        })
+        .catch((err) => console.error('fetchUnreadCount error:', err));
+    };
+
+    refreshCount();
+
+    // Socket live listener
+    joinChat(currentUserId);
+    const s = getSocket();
+    s.on('new_notification', refreshCount);
+    s.on('follow_request_received', refreshCount);
+
+    // 5s background sync
+    const interval = setInterval(refreshCount, 5000);
+
+    return () => {
+      isMounted = false;
+      s.off('new_notification', refreshCount);
+      s.off('follow_request_received', refreshCount);
+      clearInterval(interval);
+    };
+  }, [currentUserId]);
 
   const handleProfileClick = () => {
     if (onProfileClick) {
@@ -111,15 +150,23 @@ export default function UserHeader({
             <img src={whatsappIconImg} alt="WhatsApp" className="ud-wa-img-icon" />
           </button>
 
-          <button
-            type="button"
-            className="ud-icon-circle-btn ud-notif-btn"
-            title="Notifications"
-            onClick={() => toast('No new notifications', { icon: '🔔' })}
-          >
-            <img src={bellIconImg} alt="Notifications" className="ud-header-action-icon" />
-            {notificationCount > 0 && <span className="ud-badge-count">{notificationCount}</span>}
-          </button>
+          <div style={{ position: 'relative' }}>
+            <button
+              type="button"
+              className="ud-icon-circle-btn ud-notif-btn"
+              title="Notifications"
+              onClick={() => setNotifOpen((prev) => !prev)}
+            >
+              <img src={bellIconImg} alt="Notifications" className="ud-header-action-icon" />
+              {realNotifCount > 0 && <span className="ud-badge-count">{realNotifCount}</span>}
+            </button>
+            <NotificationDropdown
+              isOpen={notifOpen}
+              onClose={() => setNotifOpen(false)}
+              currentUserId={currentUserId}
+              onNotificationCountChange={setRealNotifCount}
+            />
+          </div>
 
           <button
             type="button"
@@ -177,10 +224,10 @@ export default function UserHeader({
               type="button"
               className="ud-mob-icon-btn badge-btn"
               title="Notifications"
-              onClick={() => toast('No new notifications', { icon: '🔔' })}
+              onClick={() => setNotifOpen((prev) => !prev)}
             >
               <img src={bellIconImg} alt="Notifications" className="ud-mob-action-img" />
-              {notificationCount > 0 && <span className="ud-mob-red-badge">{notificationCount}</span>}
+              {realNotifCount > 0 && <span className="ud-mob-red-badge">{realNotifCount}</span>}
             </button>
 
             <button

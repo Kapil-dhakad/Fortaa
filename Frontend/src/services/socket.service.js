@@ -114,6 +114,23 @@ export function subscribeToMessagesRead(callback) {
 }
 
 /**
+ * Subscribe to real-time follow events (accept, request received, update)
+ */
+export function subscribeToFollowEvents({ onFollowAccepted, onFollowRequestReceived, onFollowUpdated }) {
+  const s = getSocket();
+
+  if (onFollowAccepted) s.on('follow_accepted', onFollowAccepted);
+  if (onFollowRequestReceived) s.on('follow_request_received', onFollowRequestReceived);
+  if (onFollowUpdated) s.on('follow_updated', onFollowUpdated);
+
+  return () => {
+    if (onFollowAccepted) s.off('follow_accepted', onFollowAccepted);
+    if (onFollowRequestReceived) s.off('follow_request_received', onFollowRequestReceived);
+    if (onFollowUpdated) s.off('follow_updated', onFollowUpdated);
+  };
+}
+
+/**
  * Disconnect socket cleanly
  */
 export function disconnectSocket() {

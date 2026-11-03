@@ -3,7 +3,92 @@
 const BASE_URL = '/api/follow';
 
 /**
- * Follow or Unfollow a user (Toggle)
+ * Send Follow Request (Status: pending)
+ */
+export async function sendFollowRequest(targetUserId, currentUserId) {
+  try {
+    const res = await fetch(`${BASE_URL}/request/${targetUserId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ currentUserId }),
+    });
+    return await res.json();
+  } catch (err) {
+    console.error('sendFollowRequest error:', err);
+    return { success: false, message: 'Network error sending follow request' };
+  }
+}
+
+/**
+ * Accept incoming Follow Request
+ */
+export async function acceptFollowRequest(requesterId, currentUserId) {
+  try {
+    const res = await fetch(`${BASE_URL}/accept/${requesterId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ currentUserId }),
+    });
+    return await res.json();
+  } catch (err) {
+    console.error('acceptFollowRequest error:', err);
+    return { success: false, message: 'Network error accepting follow request' };
+  }
+}
+
+/**
+ * Reject / Decline incoming Follow Request
+ */
+export async function rejectFollowRequest(requesterId, currentUserId) {
+  try {
+    const res = await fetch(`${BASE_URL}/reject/${requesterId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ currentUserId }),
+    });
+    return await res.json();
+  } catch (err) {
+    console.error('rejectFollowRequest error:', err);
+    return { success: false, message: 'Network error declining follow request' };
+  }
+}
+
+/**
+ * Cancel outgoing pending Follow Request
+ */
+export async function cancelFollowRequest(targetUserId, currentUserId) {
+  try {
+    const res = await fetch(`${BASE_URL}/cancel/${targetUserId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ currentUserId }),
+    });
+    return await res.json();
+  } catch (err) {
+    console.error('cancelFollowRequest error:', err);
+    return { success: false, message: 'Network error cancelling follow request' };
+  }
+}
+
+/**
+ * Unfollow a user
+ */
+export async function unfollowUser(targetUserId, currentUserId) {
+  try {
+    const res = await fetch(`${BASE_URL}/unfollow/${targetUserId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ currentUserId }),
+    });
+    return await res.json();
+  } catch (err) {
+    console.error('unfollowUser error:', err);
+    return { success: false, message: 'Network error unfollowing user' };
+  }
+}
+
+/**
+ * Toggle Follow or Unfollow (Legacy fallback)
  */
 export async function toggleFollowUser(targetUserId, currentUserId) {
   try {
@@ -20,7 +105,21 @@ export async function toggleFollowUser(targetUserId, currentUserId) {
 }
 
 /**
- * Get followers of a user
+ * Get pending incoming follow requests
+ */
+export async function fetchPendingRequests(userId) {
+  try {
+    const res = await fetch(`${BASE_URL}/requests/pending/${userId}`);
+    const data = await res.json();
+    return data.requests || [];
+  } catch (err) {
+    console.error('fetchPendingRequests error:', err);
+    return [];
+  }
+}
+
+/**
+ * Get followers of a user (Accepted)
  */
 export async function fetchFollowers(userId) {
   try {
@@ -34,7 +133,7 @@ export async function fetchFollowers(userId) {
 }
 
 /**
- * Get list of users followed by a user
+ * Get list of users followed by a user (includes 'follow_status': 'accepted' | 'pending')
  */
 export async function fetchFollowing(userId) {
   try {
@@ -48,16 +147,20 @@ export async function fetchFollowing(userId) {
 }
 
 /**
- * Get array of IDs that current user is following (e.g. [2, 5, 8])
+ * Get array of IDs that current user is following and pending
+ * Returns { followingIds: number[], pendingIds: number[] }
  */
 export async function fetchFollowingIds(userId) {
   try {
     const res = await fetch(`${BASE_URL}/following-ids/${userId}`);
     const data = await res.json();
-    return data.followingIds || [];
+    return {
+      followingIds: data.followingIds || [],
+      pendingIds: data.pendingIds || [],
+    };
   } catch (err) {
     console.error('fetchFollowingIds error:', err);
-    return [];
+    return { followingIds: [], pendingIds: [] };
   }
 }
 
