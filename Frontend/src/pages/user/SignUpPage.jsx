@@ -680,33 +680,6 @@ export default function SignUpPage() {
                   </Link>
                 </div>
               </div>
-
-              <div className="desktop-google-signup" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    width: '100%',
-                    maxWidth: '433px',
-                    margin: '16px 0',
-                    color: '#9CA3AF',
-                    fontSize: '12px',
-                    fontWeight: '600',
-                    textTransform: 'uppercase',
-                  }}
-                >
-                  <div style={{ flex: 1, height: '1px', background: '#E5E7EB' }} />
-                  <span style={{ padding: '0 12px' }}>Or continue with</span>
-                  <div style={{ flex: 1, height: '1px', background: '#E5E7EB' }} />
-                </div>
-
-                <div style={{ width: '100%', maxWidth: '433px' }}>
-                  <GoogleLoginButton
-                    buttonText="Sign up with Google"
-                    accountType={formData.accountType}
-                  />
-                </div>
-              </div>
             </div>
           )}
 

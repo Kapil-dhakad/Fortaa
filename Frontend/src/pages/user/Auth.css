@@ -496,6 +496,7 @@
 
 /* Figma Frame 58: Continue with Google (#0A7AF7) */
 .btn-social-google-blue {
+  position: relative;
   width: 100%;
   max-width: 328px;
   height: 44px;
@@ -512,21 +513,25 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
   cursor: pointer;
   transition: background 0.2s ease;
+  box-sizing: border-box;
 }
 
 .btn-social-google-blue:hover {
   background: #0968d4;
 }
 
-.btn-social-icon-circle {
+.btn-social-google-blue .btn-social-icon-circle {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
   width: 24px;
   height: 24px;
   border-radius: 50%;
   background: #FFFFFF;
-  display: inline-flex;
+  display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
@@ -933,9 +938,11 @@
   background: #4A13B0;
 }
 
-.btn-social-icon-circle {
+.btn-desk-google-purple .btn-social-icon-circle {
   position: absolute;
   left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
   width: 26px;
   height: 26px;
   background: #FFFFFF;
@@ -958,6 +965,8 @@
 .btn-social-icon-box {
   position: absolute;
   left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
   display: flex;
   align-items: center;
   justify-content: center;
