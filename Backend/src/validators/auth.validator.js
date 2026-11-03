@@ -16,9 +16,13 @@ function validateRegistration(req, res, next) {
 
   const resolvedName = (name || fullName || '').trim();
   const resolvedEmail = (email || '').trim().toLowerCase();
-  const resolvedMobile = (mobileNumber || '').trim();
-  const resolvedWhatsApp = (whatsappNumber || '').trim();
+  const resolvedMobile = (mobileNumber || '').replace(/[\s\-\+\(\)]/g, '').replace(/^91(?=\d{10})/, '').trim();
+  const resolvedWhatsApp = (whatsappNumber || '').replace(/[\s\-\+\(\)]/g, '').replace(/^91(?=\d{10})/, '').trim();
   const resolvedPassword = password || '';
+
+  // Store sanitized values back on request body
+  req.body.mobileNumber = resolvedMobile;
+  req.body.whatsappNumber = resolvedWhatsApp;
 
   // 1. Name Validation
   if (!resolvedName) {

@@ -136,9 +136,10 @@ async function loginUser(req, res) {
     }
 
    
-    let user = await userModel.findOne({ email: loginIdentifier });
+    let user = await userModel.findOne({ email: loginIdentifier.toLowerCase() });
     if (!user) {
-      user = await userModel.findOne({ mobileNumber: loginIdentifier });
+      const cleanPhone = loginIdentifier.replace(/[\s\-\+\(\)]/g, '').replace(/^91(?=\d{10})/, '').trim();
+      user = await userModel.findOne({ mobileNumber: cleanPhone });
     }
 
     if (!user) {

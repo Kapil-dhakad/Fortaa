@@ -517,12 +517,9 @@ export default function SignUpPage() {
       setStep(5); // Show Success Screen
     } catch (err) {
       console.error('Registration API error:', err);
-      // In case server is offline or returned error, provide simulated fallback for immediate review
-      setRegisteredUser({
-        name: formData.name || 'Rahul Sharma',
-        memberId: 'NS' + Math.floor(100000 + Math.random() * 900000),
-      });
-      setStep(5);
+      const errMsg = err.message || 'Registration failed. Please check your details.';
+      setErrorMessage(errMsg);
+      toast.error(errMsg);
     } finally {
       setLoading(false);
     }
