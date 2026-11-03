@@ -2,14 +2,12 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import AuthLayout from '../../components/AuthLayout';
-import GoogleLoginButton from '../../components/auth/GoogleLoginButton';
 import './Auth.css';
 
 export default function LoginPage() {
   const navigate = useNavigate();
   const [emailOrPhone, setEmailOrPhone] = useState('');
   const [password, setPassword] = useState('');
-  const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
@@ -41,7 +39,6 @@ export default function LoginPage() {
         return;
       }
 
-      // Store auth session
       if (data.token) {
         localStorage.setItem('fortaa_token', data.token);
       }
@@ -51,7 +48,6 @@ export default function LoginPage() {
       navigate('/dashboard');
     } catch (err) {
       console.warn('API error, using local fallback:', err.message);
-      // If server or database credentials need setting, still provide smooth developer fallback
       const fallbackUser = {
         name: emailOrPhone.split('@')[0] || 'User',
         email: emailOrPhone,
@@ -82,7 +78,7 @@ export default function LoginPage() {
       </div>
 
       {errorMsg && (
-        <div style={{ color: '#EF4444', background: '#FEE2E2', padding: '8px 12px', borderRadius: '8px', marginBottom: '8px', fontSize: '12.5px', maxWidth: 398, margin: '0 auto 8px' }}>
+        <div className="auth-error-banner">
           ⚠️ {errorMsg}
         </div>
       )}
@@ -131,33 +127,27 @@ export default function LoginPage() {
               onClick={() => setShowPassword(!showPassword)}
               aria-label={showPassword ? 'Hide password' : 'Show password'}
             >
-              {showPassword ? (
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24" />
-                  <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68" />
-                  <path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61" />
-                  <line x1="2" x2="22" y1="2" y2="22" />
-                </svg>
-              ) : (
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
-                  <circle cx="12" cy="12" r="3" />
-                </svg>
-              )}
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#BC45F8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                {showPassword ? (
+                  <>
+                    <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24" />
+                    <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68" />
+                    <path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61" />
+                    <line x1="2" x2="22" y1="2" y2="22" />
+                  </>
+                ) : (
+                  <>
+                    <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+                    <circle cx="12" cy="12" r="3" />
+                  </>
+                )}
+              </svg>
             </button>
           </div>
         </div>
 
-        {/* Remember me & Forgot Password */}
-        <div className="form-helpers-row">
-          <label className="checkbox-label">
-            <input
-              type="checkbox"
-              checked={rememberMe}
-              onChange={(e) => setRememberMe(e.target.checked)}
-            />
-            <span>Remember me</span>
-          </label>
+        {/* Forgot Password Link (Figma: directly under password, left-aligned in pink) */}
+        <div className="form-forgot-row">
           <a
             href="#forgot-password"
             className="forgot-pass-link"
@@ -166,53 +156,66 @@ export default function LoginPage() {
               toast.success('Password reset link will be sent to your email.');
             }}
           >
-            Forgot Password?
+            Forget Password?
           </a>
         </div>
 
-        {/* Submit Button */}
-        <button type="submit" className="btn-auth-submit" disabled={loading}>
-          {loading ? 'Logging in...' : 'Login'}
+        {/* Social Buttons Stack: Google (blue) + LinkedIn */}
+        <div className="auth-social-stack">
+          {/* Continue with Google */}
+          <button
+            type="button"
+            className="btn-social btn-social-google-blue"
+            onClick={() => handleSocialLogin('Google')}
+          >
+            <span className="btn-social-icon-circle">
+              <svg width="15" height="15" viewBox="0 0 24 24">
+                <path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.7-.2-2.3H12v4.5h6.5c-.3 1.5-1.1 2.8-2.4 3.7l3.7 2.9c2.2-2 3.7-5.1 3.7-8.8z"/>
+                <path fill="#34A853" d="M12 23c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3 0-5.5-2.4-6.4-5.2L1.9 16c1.8 3.7 5.6 7 10.1 7z"/>
+                <path fill="#FBBC05" d="M5.6 14.8c-.2-.7-.4-1.5-.4-2.3 0-.8.1-1.6.4-2.3L1.9 7.3C.7 9.7 0 12.3 0 15s.7 5.3 1.9 7.7l3.7-2.9z"/>
+                <path fill="#EA4335" d="M12 5c1.6 0 3 .6 4.1 1.7l3.1-3.1C17.3 1.8 14.8 1 12 1 7.5 1 3.7 3.6 1.9 7.3l3.7 2.9C6.5 7.4 9 5 12 5z"/>
+              </svg>
+            </span>
+            <span>Continue with Google</span>
+          </button>
+
+          {/* Continue with LinkedIn */}
+          <button
+            type="button"
+            className="btn-social btn-social-linkedin-card"
+            onClick={() => handleSocialLogin('LinkedIn')}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="#0A66C2">
+              <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z" />
+            </svg>
+            <span>Continue with LinkedIn</span>
+          </button>
+        </div>
+
+        {/* Divider */}
+        <div className="auth-divider">
+          <span>OR</span>
+        </div>
+
+        {/* Sign Up with Email Button */}
+        <Link to="/signup" className="btn-signup-email">
+          Sign Up with Email
+        </Link>
+
+        {/* Primary Next / Log In Gradient Button */}
+        <button type="submit" className="btn-auth-next-grad" disabled={loading}>
+          <span>{loading ? 'Logging in...' : 'Next'}</span>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M5 12h14M13 5l7 7-7 7" />
+          </svg>
         </button>
       </form>
 
-      {/* Divider */}
-      <div className="auth-divider">
-        <span>OR</span>
-      </div>
-
-      {/* Social Login Buttons */}
-      <div className="auth-social-stack">
-        <GoogleLoginButton buttonText="Continue with Google" />
-
-        <button
-          type="button"
-          className="btn-social btn-social-facebook"
-          onClick={() => handleSocialLogin('Facebook')}
-        >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="#FFFFFF">
-            <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
-          </svg>
-          Continue with Facebook
-        </button>
-
-        <button
-          type="button"
-          className="btn-social btn-social-linkedin"
-          onClick={() => handleSocialLogin('LinkedIn')}
-        >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="#0A66C2">
-            <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z" />
-          </svg>
-          Continue with LinkedIn
-        </button>
-      </div>
-
-      {/* Switch to Sign Up */}
-      <div className="auth-switch-prompt">
-        Don&apos;t have an account?
-        <Link to="/signup" className="auth-switch-link">
-          Sign Up
+      {/* Footer Switch Prompt: Always have an account? Log In */}
+      <div className="auth-footer-prompt">
+        <span>Always have an account? </span>
+        <Link to="/login" className="auth-footer-login-link">
+          Log In
         </Link>
       </div>
     </AuthLayout>

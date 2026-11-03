@@ -1,6 +1,7 @@
 const userModel = require('../model/user.model');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const db = require('../db/db');
 
 /**
  * Register User with 4-step onboarding data
@@ -26,11 +27,14 @@ async function registerUser(req, res) {
       websiteSocial,
       mobileVerified,
       emailVerified,
+      govtIdUrl,
+      businessDocUrl,
+      catalogUrl,
     } = req.body;
 
     const resolvedName = (name || fullName || '').trim();
     const resolvedEmail = (email || '').trim().toLowerCase();
-    const resolvedPassword = password || 'Fortaa@12345'; // Default secure password if not provided
+    const resolvedPassword = password || 'Fortaa@12345'; 
 
     if (!resolvedName || !resolvedEmail) {
       return res.status(400).json({
@@ -39,7 +43,6 @@ async function registerUser(req, res) {
       });
     }
 
-    // Check if user already exists
     const userAlreadyExists = await userModel.findOne({ email: resolvedEmail });
     if (userAlreadyExists) {
       return res.status(409).json({
@@ -48,10 +51,10 @@ async function registerUser(req, res) {
       });
     }
 
-    // Hash password
+
     const hash = await bcrypt.hash(resolvedPassword, 10);
 
-    // Save user
+
     const user = await userModel.create({
       accountType: accountType || 'Individual / Professional',
       name: resolvedName,
@@ -70,9 +73,12 @@ async function registerUser(req, res) {
       websiteSocial: websiteSocial || null,
       mobileVerified: mobileVerified ?? true,
       emailVerified: emailVerified ?? true,
+      govtIdUrl: govtIdUrl || null,
+      businessDocUrl: businessDocUrl || null,
+      catalogUrl: catalogUrl || null,
     });
 
-    // Generate JWT token
+   
     const token = jwt.sign(
       { id: user._id, memberId: user.member_id },
       process.env.JWT_SECRET || 'fortaa_super_secret_jwt_key_2026',
@@ -103,6 +109,7 @@ async function registerUser(req, res) {
         businessCategory: user.business_category,
         designation: user.designation,
         experience: user.experience,
+        govtIdUrl: user.govt_id_url,
       },
     });
   } catch (error) {
@@ -115,9 +122,7 @@ async function registerUser(req, res) {
   }
 }
 
-/**
- * Login User by Email or Mobile
- */
+
 async function loginUser(req, res) {
   try {
     const { email, emailOrMobile, password } = req.body;
@@ -130,7 +135,7 @@ async function loginUser(req, res) {
       });
     }
 
-    // Try finding by email first, then mobile
+   
     let user = await userModel.findOne({ email: loginIdentifier });
     if (!user) {
       user = await userModel.findOne({ mobileNumber: loginIdentifier });
@@ -216,6 +221,7 @@ async function getMe(req, res) {
         businessCategory: user.business_category,
         designation: user.designation,
         experience: user.experience,
+        govtIdUrl: user.govt_id_url,
       },
     });
   } catch (error) {
@@ -288,6 +294,183 @@ async function getUserStats(req, res) {
   }
 }
 
+/**
+ * Check if Email already exists in Database
+ */
+async function checkEmail(req, res) {
+  try {
+    const email = (req.query.email || req.body.email || '').trim().toLowerCase();
+
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email address is required',
+      });
+    }
+
+    const existingUser = await userModel.findOne({ email });
+
+    if (existingUser) {
+      return res.status(200).json({
+        success: true,
+        exists: true,
+        message: 'An account with this email address already exists. Please log in.',
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      exists: false,
+      message: 'Email is available',
+    });
+  } catch (error) {
+    console.error('[CheckEmail Error]:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to check email',
+      error: error.message,
+    });
+  }
+}
+
+/**
+ * Get User Profile by ID
+ */
+async function getUserProfile(req, res) {
+  try {
+    const userId = parseInt(req.params.id || req.userId || req.query.id, 10);
+    if (!userId || isNaN(userId)) {
+      return res.status(400).json({ success: false, message: 'Invalid user ID' });
+    }
+
+    if (db.isDBConnected()) {
+      const result = await db.query(
+        `SELECT id, member_id, account_type, name, username, email, mobile_number, dob, gender,
+                location, skills, experience, bio, designation, company_brand, business_name, avatar_url
+         FROM users WHERE id = $1`,
+        [userId]
+      );
+      if (result.rows.length === 0) {
+        return res.status(404).json({ success: false, message: 'User not found' });
+      }
+      return res.status(200).json({ success: true, profile: result.rows[0] });
+    }
+
+    return res.status(200).json({
+      success: true,
+      profile: {
+        id: userId,
+        name: 'Kapil Dhakad',
+        username: 'kapil',
+        email: 'dhakadkapil350@gmail.com',
+        designation: 'Senior Leader',
+        company_brand: 'Forever Living',
+      },
+    });
+  } catch (error) {
+    console.error('[getUserProfile Error]:', error);
+    return res.status(500).json({ success: false, message: 'Server error fetching profile' });
+  }
+}
+
+/**
+ * Update User Profile
+ */
+async function updateUserProfile(req, res) {
+  try {
+    const userId = parseInt(req.params.id || req.userId || req.body.id, 10);
+    if (!userId || isNaN(userId)) {
+      return res.status(400).json({ success: false, message: 'Invalid user ID' });
+    }
+
+    const {
+      name,
+      username,
+      dob,
+      gender,
+      location,
+      skills,
+      experience,
+      bio,
+      mobileNumber,
+      avatarUrl,
+      businessName,
+      companyBrand,
+      businessCategory,
+      designation,
+      whatsappNumber,
+      referralId,
+      govtIdUrl,
+    } = req.body;
+
+    if (db.isDBConnected()) {
+      const updateRes = await db.query(
+        `UPDATE users 
+         SET name = COALESCE($1, name),
+             username = COALESCE($2, username),
+             dob = COALESCE($3, dob),
+             gender = COALESCE($4, gender),
+             location = COALESCE($5, location),
+             skills = COALESCE($6, skills),
+             experience = COALESCE($7, experience),
+             bio = COALESCE($8, bio),
+             mobile_number = COALESCE($9, mobile_number),
+             avatar_url = COALESCE($10, avatar_url),
+             business_name = COALESCE($11, business_name),
+             company_brand = COALESCE($12, company_brand),
+             business_category = COALESCE($13, business_category),
+             designation = COALESCE($14, designation),
+             whatsapp_number = COALESCE($15, whatsapp_number),
+             referral_id = COALESCE($16, referral_id),
+             govt_id_url = COALESCE($17, govt_id_url)
+         WHERE id = $18
+         RETURNING id, member_id, account_type, name, username, email, mobile_number, whatsapp_number, dob, gender,
+                   location, skills, experience, bio, designation, company_brand, business_name, business_category,
+                   referral_id, govt_id_url, avatar_url`,
+        [
+          name || null,
+          username || null,
+          dob || null,
+          gender || null,
+          location || null,
+          skills || null,
+          experience || null,
+          bio || null,
+          mobileNumber || null,
+          avatarUrl || null,
+          businessName || null,
+          companyBrand || null,
+          businessCategory || null,
+          designation || null,
+          whatsappNumber || null,
+          referralId || null,
+          govtIdUrl || null,
+          userId,
+        ]
+      );
+
+      if (updateRes.rows.length === 0) {
+        return res.status(404).json({ success: false, message: 'User not found' });
+      }
+
+      return res.status(200).json({
+        success: true,
+        message: 'Profile updated successfully',
+        profile: updateRes.rows[0],
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'Profile updated successfully (offline)',
+      profile: req.body,
+    });
+  } catch (error) {
+    console.error('[updateUserProfile Error]:', error);
+    return res.status(500).json({ success: false, message: 'Server error updating profile' });
+  }
+}
+
 module.exports = {
   registerUser,
   loginUser,
@@ -295,4 +478,7 @@ module.exports = {
   logoutUser,
   getAllUsers,
   getUserStats,
+  checkEmail,
+  getUserProfile,
+  updateUserProfile,
 };

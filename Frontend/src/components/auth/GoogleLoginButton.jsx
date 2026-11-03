@@ -41,17 +41,29 @@ export default function GoogleLoginButton({
           accountType,
         });
 
-        toast.success(
-          result.isNewUser
-            ? `Welcome to Fortaa, ${result.user?.name || userName}!`
-            : `Welcome back, ${result.user?.name || userName}!`,
-          { id: 'google-auth-toast' }
-        );
+        if (result.token) {
+          localStorage.setItem('fortaa_token', result.token);
+        }
+        if (result.user) {
+          localStorage.setItem('fortaa_user', JSON.stringify(result.user));
+        }
 
         if (onSuccess) {
-          onSuccess(result.user);
+          onSuccess(result);
         } else {
-          navigate('/dashboard');
+          // Naya user (pehle se registered nahi hai) -> Complete Profile page par redirect
+          if (result.isNewUser) {
+            toast.success(`Google verified! Welcome to Fortaa, complete your details, ${result.user?.name || userName}.`, {
+              id: 'google-auth-toast',
+            });
+            navigate('/complete-profile');
+          } else {
+            // User pehle se register hai -> Seedhe User Dashboard par redirect
+            toast.success(`Welcome back, ${result.user?.name || userName}!`, {
+              id: 'google-auth-toast',
+            });
+            navigate('/dashboard');
+          }
         }
       } catch (err) {
         console.error('[Google Login Error]:', err);

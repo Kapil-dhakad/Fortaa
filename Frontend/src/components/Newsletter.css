@@ -187,27 +187,113 @@
   }
 }
 
-@media (max-width: 600px) {
+@media (max-width: 768px) {
+  .figma-newsletter-section {
+    padding: 0 6px !important;
+    max-width: 412px !important;
+    width: 100% !important;
+    margin: 0 auto 8px auto !important;
+    background: transparent !important;
+    box-sizing: border-box !important;
+  }
+
+  .figma-newsletter-container {
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    padding: 8px 12px !important;
+    border-radius: 8px !important;
+    gap: 8px !important;
+    min-height: auto !important;
+    background: #ffffff !important;
+    border: 1px solid #7B1FA2 !important;
+  }
+
   .figma-nl-left {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 12px;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 6px !important;
+    flex: 1 !important;
+    max-width: 55% !important;
   }
+
+  .figma-nl-icon-wrap {
+    width: 22px !important;
+    height: 22px !important;
+  }
+
+  .figma-nl-email-img {
+    width: 20px !important;
+    height: 20px !important;
+  }
+
+  .figma-nl-text-wrap {
+    gap: 1px !important;
+  }
+
+  .figma-nl-title {
+    font-size: 8.5px !important;
+    line-height: 1.15 !important;
+    color: #D31BFF !important;
+  }
+
+  .figma-nl-desc {
+    font-size: 5.5px !important;
+    line-height: 1.25 !important;
+    color: #555555 !important;
+    display: -webkit-box !important;
+    -webkit-line-clamp: 2 !important;
+    -webkit-box-orient: vertical !important;
+    overflow: hidden !important;
+  }
+
+  .figma-nl-right {
+    align-items: flex-end !important;
+    width: auto !important;
+    gap: 2px !important;
+    flex: 0 0 auto !important;
+  }
+
   .figma-nl-form-capsule {
-    flex-direction: column;
-    height: auto;
-    border-radius: 8px;
-    padding: 6px;
-    gap: 8px;
+    flex-direction: row !important;
+    width: 165px !important;
+    height: 24px !important;
+    border-radius: 6px !important;
+    border: 1px solid #E5E7EB !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    background: #FAFAFA !important;
+    overflow: hidden !important;
   }
+
   .figma-nl-input {
-    width: 100%;
-    height: 36px;
+    font-size: 6px !important;
+    padding: 0 6px !important;
+    height: 100% !important;
   }
+
+  /* Button Frame 45: width 79px, height 22px, radius 10px, border 1px solid #FFE1EB, background #6B109F */
   .figma-nl-btn-submit {
-    width: 100%;
-    height: 36px;
-    border-radius: 6px;
-    justify-content: center;
+    width: 79px !important;
+    height: 100% !important;
+    font-size: 7px !important;
+    font-weight: 600 !important;
+    padding: 0 6px !important;
+    background: #6B109F !important;
+    color: #ffffff !important;
+    border: 1px solid #FFE1EB !important;
+    border-radius: 6px !important;
+    gap: 3px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    box-sizing: border-box !important;
   }
-}
+
+  .figma-nl-privacy {
+    font-size: 5px !important;
+    text-align: right !important;
+    color: #7B1FA2 !important;
+    padding-right: 2px !important;
+  }
+}

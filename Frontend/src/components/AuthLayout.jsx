@@ -21,21 +21,35 @@ export default function AuthLayout({
               <span className="figma-logo-tagline">Discover, easy and Grow</span>
             </div>
           </Link>
-          <Link to="/" className="auth-back-link">
-            ← Back to Home
-          </Link>
+
+          <div className="auth-header-right">
+            {/* Language Selector Pill (Figma: EN v) */}
+            <div className="auth-lang-pill" title="Language: English">
+              <span>EN</span>
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M6 9l6 6 6-6" />
+              </svg>
+            </div>
+
+            <Link to="/" className="auth-back-link">
+              ← Back to Home
+            </Link>
+          </div>
         </header>
 
-        {/* Main 2-Column Content */}
+        {/* Main Content Grid */}
         <div className="auth-content-grid">
           {/* Left Column: Visuals & Highlights */}
           <div className="auth-left-panel">
             <div className="auth-left-text">
-              <h1 className="auth-hero-title">{title}</h1>
+              <h1 className="auth-hero-title">
+                Join the<br />
+                <span className="auth-brand-purple">Fortaa</span> Community
+              </h1>
               <p className="auth-hero-subtitle">{subtitle}</p>
             </div>
 
-            {/* Illustration Card */}
+            {/* Illustration Card (hidden on mobile per Figma) */}
             <div className="auth-illustration-card">
               <img
                 src={authIllustration}
@@ -44,7 +58,7 @@ export default function AuthLayout({
               />
             </div>
 
-            {/* Bottom 4 Feature Pills */}
+            {/* Bottom 4 Feature Pills (hidden on mobile per Figma) */}
             <div className="auth-feature-pills">
               <div className="auth-feature-pill">
                 <span className="pill-icon-box pill-blue">
@@ -52,14 +66,6 @@ export default function AuthLayout({
                     <rect x="4" y="2" width="16" height="20" rx="2" ry="2" />
                     <line x1="9" y1="22" x2="9" y2="22.01" />
                     <line x1="15" y1="22" x2="15" y2="22.01" />
-                    <line x1="9" y1="6" x2="9" y2="6.01" />
-                    <line x1="15" y1="6" x2="15" y2="6.01" />
-                    <line x1="9" y1="10" x2="9" y2="10.01" />
-                    <line x1="15" y1="10" x2="15" y2="10.01" />
-                    <line x1="9" y1="14" x2="9" y2="14.01" />
-                    <line x1="15" y1="14" x2="15" y2="14.01" />
-                    <line x1="9" y1="18" x2="9" y2="18.01" />
-                    <line x1="15" y1="18" x2="15" y2="18.01" />
                   </svg>
                 </span>
                 <span className="pill-label">Companies</span>
@@ -79,8 +85,6 @@ export default function AuthLayout({
                 <span className="pill-icon-box pill-blue">
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" />
-                    <path d="m3.3 7 8.7 5 8.7-5" />
-                    <path d="M12 22V12" />
                   </svg>
                 </span>
                 <span className="pill-label">Products</span>
@@ -90,8 +94,6 @@ export default function AuthLayout({
                 <span className="pill-icon-box pill-blue">
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                     <circle cx="12" cy="12" r="10" />
-                    <circle cx="12" cy="12" r="6" />
-                    <circle cx="12" cy="12" r="2" />
                   </svg>
                 </span>
                 <span className="pill-label">Opportunities</span>

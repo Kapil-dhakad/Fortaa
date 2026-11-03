@@ -198,13 +198,64 @@
 }
 
 @media (max-width: 600px) {
+  .figma-footer-wrapper {
+    padding: 16px 12px 12px !important;
+  }
+
+  .figma-footer-main-row {
+    flex-direction: column !important;
+    gap: 16px !important;
+  }
+
+  .figma-footer-brand-col {
+    max-width: 100% !important;
+    gap: 8px !important;
+  }
+
+  .figma-footer-logo-wrap {
+    gap: 6px !important;
+  }
+
+  .figma-logo-icon {
+    width: 22px !important;
+    height: 22px !important;
+  }
+
+  .figma-logo-text {
+    height: 14px !important;
+  }
+
+  .figma-footer-tagline {
+    font-size: 9px !important;
+    line-height: 1.3 !important;
+  }
+
   .figma-footer-nav-grid {
-    grid-template-columns: 1fr;
-    gap: 20px;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 14px 10px !important;
   }
+
+  .figma-footer-col {
+    gap: 6px !important;
+  }
+
+  .figma-footer-col-title {
+    font-size: 11px !important;
+  }
+
+  .figma-footer-links-list {
+    gap: 4px !important;
+  }
+
+  .figma-footer-link-item {
+    font-size: 9px !important;
+  }
+
   .figma-footer-bottom-row {
-    flex-direction: column;
-    gap: 8px;
-    text-align: center;
+    flex-direction: column !important;
+    gap: 6px !important;
+    padding-top: 10px !important;
+    text-align: center !important;
+    font-size: 9px !important;
   }
-}
+}

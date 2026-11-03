@@ -8,17 +8,17 @@ const newsArticles = [
   {
     category: 'Industry Insights',
     title: 'Understanding the changing direct-selling landscape',
-    date: '12 Nov 2026 - 5 min read',
+    date: '12 Nov 2026',
   },
   {
     category: 'Business Trends',
     title: 'Emerging trends shaping modern network marketing',
-    date: '03 Nov 2026 - 4 min read',
+    date: '03 Nov 2026',
   },
   {
     category: 'Product Updates',
     title: 'New product launches and industry developments',
-    date: '05 Nov 2026 - 3 min read',
+    date: '05 Nov 2026',
   },
 ];
 
@@ -112,6 +112,13 @@ export default function LatestNews() {
               <span>Read Success Story</span>
               <img src={iconRightArrow} alt="" />
             </a>
+
+            <div className="figma-growth-dots">
+              <span className="growth-dot active" />
+              <span className="growth-dot" />
+              <span className="growth-dot" />
+              <span className="growth-dot" />
+            </div>
           </div>
         </div>
 

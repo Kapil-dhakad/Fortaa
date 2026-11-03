@@ -228,12 +228,17 @@
   }
 }
 
+.figma-mobile-drawer-actions {
+  display: none;
+}
+
 @media (max-width: 900px) {
   .figma-navbar {
     height: 50px;
   }
   .figma-navbar-inner {
     height: 50px;
+    padding: 0 16px;
   }
   .figma-nav-links {
     display: none;
@@ -243,20 +248,36 @@
     right: 0;
     background: #ffffff;
     flex-direction: column;
-    padding: 16px 24px;
+    padding: 16px 20px 24px;
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12);
     z-index: 999;
-    gap: 14px;
-    border-bottom: 2px solid #9e04c3;
+    gap: 12px;
+    border-bottom: 3px solid #6326AE;
   }
   .figma-nav-links.open {
     display: flex;
   }
   .figma-nav-item {
-    padding: 8px 0;
+    padding: 10px 0;
     font-size: 15px;
     border-bottom: 1px solid #f1f1f5;
     width: 100%;
+  }
+  .figma-mobile-drawer-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 10px;
+    width: 100%;
+  }
+  .mobile-drawer-btn {
+    width: 100% !important;
+    text-align: center;
+    justify-content: center;
+    height: 38px !important;
+    display: flex !important;
+    align-items: center;
+    font-size: 14px !important;
   }
   .figma-hamburger {
     display: flex;
@@ -264,42 +285,37 @@
   .figma-logo {
     width: auto;
   }
-}
-
-@media (max-width: 600px) {
-  .figma-navbar-inner {
-    padding: 0 12px;
-  }
   .figma-logo-tagline {
-    display: none;
+    display: block;
+    font-size: 8.5px;
+    color: #232356;
+    margin-top: 0;
   }
-  .figma-nav-actions {
-    gap: 8px;
+  .figma-logo-word {
+    width: 76px;
+    height: auto;
   }
-  .figma-btn-login {
-    width: auto;
-    padding: 6px 12px;
-    font-size: 11px;
-    height: 28px;
-  }
-  .figma-btn-list-business {
-    width: auto;
-    padding: 6px 10px;
-    font-size: 11px;
-    height: 28px;
-  }
-  .figma-search-btn {
-    width: 28px;
-    height: 28px;
-  }
-  .figma-search-btn img {
-    width: 22px;
+  .figma-logo-icon {
+    width: 26px;
     height: 22px;
   }
 }
 
-@media (max-width: 400px) {
-  .figma-btn-list-business {
-    display: none;
+/* Mobile View (Figma specs: exactly clean logo on left, hamburger on right) */
+@media (max-width: 768px) {
+  .figma-navbar {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+  .figma-nav-actions .figma-search-btn,
+  .figma-nav-actions .figma-btn-login,
+  .figma-nav-actions .figma-btn-list-business {
+    display: none !important;
+  }
+  .figma-navbar-inner {
+    padding: 0 10px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
   }
 }

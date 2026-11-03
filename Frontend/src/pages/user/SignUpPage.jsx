@@ -1,10 +1,12 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import { uploadSingleImage, uploadDocument } from '../../services/upload.service';
 import logoIconImg from '../../assets/figma/logo_icon_img.png';
 import logoTextImg from '../../assets/figma/logo_text_img.png';
 import registrationSuccessImg from '../../assets/figma/registration_success.png';
 import priyaSharmaImg from '../../assets/figma/priya_sharma.png';
+import GoogleLoginButton from '../../components/auth/GoogleLoginButton';
 import './SignUpPage.css';
 
 export default function SignUpPage() {
@@ -15,6 +17,24 @@ export default function SignUpPage() {
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+
+  // Email OTP state
+  const [showEmailOtpInput, setShowEmailOtpInput] = useState(false);
+  const [emailOtp, setEmailOtp] = useState('');
+  const [sendingOtp, setSendingOtp] = useState(false);
+  const [verifyingOtp, setVerifyingOtp] = useState(false);
+  const [resendTimer, setResendTimer] = useState(0);
+
+  // Resend Countdown Timer
+  useEffect(() => {
+    let interval = null;
+    if (resendTimer > 0) {
+      interval = setInterval(() => {
+        setResendTimer((prev) => prev - 1);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [resendTimer]);
 
   // Field-level error messages
   const [fieldErrors, setFieldErrors] = useState({
@@ -50,7 +70,7 @@ export default function SignUpPage() {
     mobileNumber: '',
     whatsappNumber: '',
     dob: '',
-    gender: '',
+    gender: 'Male',
     referralId: '',
     agreeTerms: true,
     businessName: '',
@@ -61,7 +81,120 @@ export default function SignUpPage() {
     websiteSocial: '',
     mobileVerified: false,
     emailVerified: false,
+    businessDocUrl: '',
+    businessDocName: '',
+    catalogUrl: '',
+    catalogName: '',
+    govtIdUrl: '',
+    govtIdName: '',
   });
+
+  const businessDocInputRef = useRef(null);
+  const catalogInputRef = useRef(null);
+  const govtIdInputRef = useRef(null);
+  const dateInputRef = useRef(null);
+
+  const [uploadingField, setUploadingField] = useState(null);
+
+  const handleFileUpload = async (e, type, folder = 'documents') => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 20 * 1024 * 1024) {
+      toast.error('File exceeds 20MB limit. Please choose a smaller file.');
+      return;
+    }
+
+    setUploadingField(type);
+    try {
+      const isImage = file.type.startsWith('image/');
+      const uploadedUrl = isImage
+        ? await uploadSingleImage(file, folder)
+        : await uploadDocument(file, folder);
+
+      if (uploadedUrl) {
+        if (type === 'businessDoc') {
+          setFormData((prev) => ({
+            ...prev,
+            businessDocUrl: uploadedUrl,
+            businessDocName: file.name,
+          }));
+        } else if (type === 'catalog') {
+          setFormData((prev) => ({
+            ...prev,
+            catalogUrl: uploadedUrl,
+            catalogName: file.name,
+          }));
+        } else if (type === 'govtId') {
+          setFormData((prev) => ({
+            ...prev,
+            govtIdUrl: uploadedUrl,
+            govtIdName: file.name,
+          }));
+        }
+      }
+    } catch (err) {
+      console.error('Upload error:', err);
+      toast.error('File upload failed. Please try again.');
+    } finally {
+      setUploadingField(null);
+    }
+  };
+
+  // Send Email OTP
+  const handleSendEmailOtp = async () => {
+    if (!formData.email) {
+      toast.error('Please enter an email address in Personal Details.');
+      return;
+    }
+    setSendingOtp(true);
+    try {
+      const res = await fetch('/api/users/send-email-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: formData.email }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.message || 'Failed to send OTP');
+      }
+      setShowEmailOtpInput(true);
+      setResendTimer(30);
+      toast.success(data.message || 'Verification code sent to your email!');
+    } catch (err) {
+      toast.error(err.message || 'Error sending OTP');
+    } finally {
+      setSendingOtp(false);
+    }
+  };
+
+  // Verify Email OTP
+  const handleVerifyEmailOtp = async () => {
+    if (!emailOtp.trim() || emailOtp.trim().length < 6) {
+      toast.error('Please enter the complete 6-digit OTP code');
+      return;
+    }
+    setVerifyingOtp(true);
+    try {
+      const res = await fetch('/api/users/verify-email-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: formData.email, otp: emailOtp.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.message || 'Invalid code');
+      }
+      handleChange('emailVerified', true);
+      setShowEmailOtpInput(false);
+      setEmailOtp('');
+      toast.success('Email verified successfully! ✓');
+    } catch (err) {
+      toast.error(err.message || 'Verification failed');
+    } finally {
+      setVerifyingOtp(false);
+    }
+  };
 
   const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
   const INDIAN_PHONE_REGEX = /^[6-9]\d{9}$/;
@@ -248,7 +381,7 @@ export default function SignUpPage() {
   ];
 
   // Step 2 Submission Validation
-  const handleStep2Submit = (e) => {
+  const handleStep2Submit = async (e) => {
     e.preventDefault();
     setErrorMessage('');
 
@@ -288,7 +421,30 @@ export default function SignUpPage() {
       return;
     }
 
-    setStep(3);
+    // Check if email already exists in Database
+    setLoading(true);
+    try {
+      const response = await fetch(`/api/users/check-email?email=${encodeURIComponent(formData.email.trim())}`);
+      const data = await response.json();
+
+      if (data.exists) {
+        setFieldErrors((prev) => ({
+          ...prev,
+          email: 'An account with this email address already exists. Please log in.',
+        }));
+        setErrorMessage('An account with this email address already exists. Please log in.');
+        toast.error('An account with this email address already exists. Please log in.');
+        return;
+      }
+
+      setStep(3);
+    } catch (err) {
+      console.warn('Check email error:', err);
+      // Fallback: allow to proceed if check fails
+      setStep(3);
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Step 3 Submission
@@ -300,6 +456,18 @@ export default function SignUpPage() {
 
   // Step 4: Final Complete Registration API Call
   const handleCompleteRegistration = async () => {
+    // 1. Enforce Mobile Verification
+    if (!formData.mobileVerified) {
+      toast.error('Please verify your mobile number to complete registration.');
+      return;
+    }
+
+    // 2. Enforce Email Verification
+    if (!formData.emailVerified) {
+      toast.error('Please verify your email address to complete registration.');
+      return;
+    }
+
     setLoading(true);
     setErrorMessage('');
 
@@ -327,6 +495,9 @@ export default function SignUpPage() {
           websiteSocial: formData.websiteSocial,
           mobileVerified: formData.mobileVerified,
           emailVerified: formData.emailVerified,
+          businessDocUrl: formData.businessDocUrl,
+          catalogUrl: formData.catalogUrl,
+          govtIdUrl: formData.govtIdUrl,
         }),
       });
 
@@ -364,6 +535,17 @@ export default function SignUpPage() {
         <div className={`onboarding-card ${step === 5 ? 'step-success' : ''}`}>
           {/* Card Top Brand Header (Matching Figma 248x42 Logo at top: 25px, left: 48px) */}
           <div className="card-brand-header">
+            <button
+              type="button"
+              className="auth-mobile-back-btn"
+              onClick={() => (step > 1 ? setStep(step - 1) : navigate('/login'))}
+              aria-label="Back"
+            >
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#232356" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M19 12H5M12 19l-7-7 7-7" />
+              </svg>
+            </button>
+
             <Link to="/" className="figma-logo" title="Back to Home">
               <img src={logoIconImg} alt="Fortaa F" className="figma-logo-icon" />
               <div className="figma-logo-text-wrap">
@@ -424,44 +606,84 @@ export default function SignUpPage() {
             </div>
           )}
 
-          {errorMessage && (
-            <div style={{ color: '#EF4444', background: '#FEE2E2', padding: '10px 14px', borderRadius: '8px', marginBottom: '16px', fontSize: '13.5px' }}>
-              ⚠️ {errorMessage}
-            </div>
-          )}
-
           {/* STEP 1: ACCOUNT TYPE */}
           {step === 1 && (
             <div>
-              <h2 className="step-heading">What type of account would you like to create?</h2>
-              <p className="step-subheading">Select the option that best describes you.</p>
+              <h2 className="step-heading">Create your Account</h2>
+              <p className="step-subheading">Choose your account type to get started with FORTAA.</p>
 
               <div className="account-type-grid">
-                {accountTypes.map((item) => (
-                  <div
-                    key={item.title}
-                    className={`account-type-card ${formData.accountType === item.title ? 'selected' : ''}`}
-                    onClick={() => handleChange('accountType', item.title)}
-                  >
-                    <div className="card-icon-box">{item.icon}</div>
-                    <div className="card-content">
-                      <h3 className="card-title">{item.title}</h3>
-                      <p className="card-desc">{item.desc}</p>
+                {accountTypes.map((item) => {
+                  const isSelected = formData.accountType === item.title;
+                  return (
+                    <div
+                      key={item.title}
+                      className={`account-type-card ${isSelected ? 'selected' : ''}`}
+                      onClick={() => handleChange('accountType', item.title)}
+                    >
+                      <div className="card-top-row">
+                        <div className="card-icon-box">{item.icon}</div>
+                        <div className="card-top-arrow-btn">
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={isSelected ? "#6226EA" : "#232356"} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M5 12h14M13 5l7 7-7 7" />
+                          </svg>
+                        </div>
+                      </div>
+                      <div className="card-content">
+                        <h3 className="card-title">{item.title}</h3>
+                        <p className="card-desc">{item.desc}</p>
+                      </div>
+                      <div className="card-arrow">→</div>
                     </div>
-                    <div className="card-arrow">→</div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'center', marginTop: '16px' }}>
+              <div className="step1-action-stack">
                 <button
                   type="button"
-                  className="btn-step-next"
-                  style={{ width: '100%', maxWidth: '433px', height: '46px', background: '#5A2CE4', justifyContent: 'center' }}
+                  className="btn-auth-next-grad"
                   onClick={() => setStep(2)}
                 >
-                  Next →
+                  <span>Next</span>
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M5 12h14M13 5l7 7-7 7" />
+                  </svg>
                 </button>
+
+                <div className="auth-footer-prompt">
+                  <span>Always have an account? </span>
+                  <Link to="/login" className="auth-footer-login-link">
+                    Log In
+                  </Link>
+                </div>
+
+                <div className="desktop-google-signup" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      width: '100%',
+                      maxWidth: '433px',
+                      margin: '16px 0',
+                      color: '#9CA3AF',
+                      fontSize: '12px',
+                      fontWeight: '600',
+                      textTransform: 'uppercase',
+                    }}
+                  >
+                    <div style={{ flex: 1, height: '1px', background: '#E5E7EB' }} />
+                    <span style={{ padding: '0 12px' }}>Or continue with</span>
+                    <div style={{ flex: 1, height: '1px', background: '#E5E7EB' }} />
+                  </div>
+
+                  <div style={{ width: '100%', maxWidth: '433px' }}>
+                    <GoogleLoginButton
+                      buttonText="Sign up with Google"
+                      accountType={formData.accountType}
+                    />
+                  </div>
+                </div>
               </div>
             </div>
           )}
@@ -586,7 +808,19 @@ export default function SignUpPage() {
                   <label className="form-label">
                     Date of Birth<span className="required">*</span>
                   </label>
-                  <div className="field-input-box">
+                  <div
+                    className="field-input-box"
+                    style={{ cursor: 'pointer' }}
+                    onClick={() => {
+                      if (dateInputRef.current) {
+                        try {
+                          dateInputRef.current.showPicker();
+                        } catch {
+                          dateInputRef.current.focus();
+                        }
+                      }
+                    }}
+                  >
                     <span className="field-icon">
                       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
@@ -596,12 +830,21 @@ export default function SignUpPage() {
                       </svg>
                     </span>
                     <input
+                      ref={dateInputRef}
                       type="date"
                       className={`field-input custom-date-input ${touched.dob && fieldErrors.dob ? 'has-error' : ''}`}
                       placeholder="DD/MM/YYYY"
                       value={formData.dob}
                       onChange={(e) => handleFieldChange('dob', e.target.value)}
+                      onClick={(e) => {
+                        try {
+                          e.target.showPicker();
+                        } catch {
+                          // fallback
+                        }
+                      }}
                       onBlur={() => handleBlur('dob')}
+                      style={{ cursor: 'pointer' }}
                       required
                     />
                   </div>
@@ -621,7 +864,6 @@ export default function SignUpPage() {
                       onBlur={() => handleBlur('gender')}
                       required
                     >
-                      <option value="">Select Gender</option>
                       <option value="Male">Male</option>
                       <option value="Female">Female</option>
                       <option value="Other">Other</option>
@@ -635,9 +877,8 @@ export default function SignUpPage() {
                   {touched.gender && fieldErrors.gender && <span className="field-error-text">⚠️ {fieldErrors.gender}</span>}
                 </div>
 
-                {/* Row 4: Password & Referral ID */}
-                {/* Password field (Preserved) */}
-                <div className="form-field">
+                {/* Row 4: Password field (Full width) */}
+                <div className="form-field form-group-full">
                   <label className="form-label">
                     Password<span className="required">*</span>
                   </label>
@@ -679,26 +920,6 @@ export default function SignUpPage() {
                     </button>
                   </div>
                   {touched.password && fieldErrors.password && <span className="field-error-text">⚠️ {fieldErrors.password}</span>}
-                </div>
-
-                {/* Referral ID */}
-                <div className="form-field">
-                  <label className="form-label">Referral ID (Optional)</label>
-                  <div className="field-input-box">
-                    <span className="field-icon">
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                        <circle cx="12" cy="7" r="4" />
-                      </svg>
-                    </span>
-                    <input
-                      type="text"
-                      className="field-input"
-                      placeholder="Enter referral ID"
-                      value={formData.referralId}
-                      onChange={(e) => handleChange('referralId', e.target.value)}
-                    />
-                  </div>
                 </div>
 
                 {/* Password Criteria Checklist (Spans nicely under password) */}
@@ -754,8 +975,9 @@ export default function SignUpPage() {
                   type="submit"
                   className="btn-step-next"
                   style={{ width: '100%', maxWidth: '433px', height: '46px', background: '#5A2CE4', justifyContent: 'center' }}
+                  disabled={loading}
                 >
-                  Next →
+                  {loading ? 'Checking...' : 'Next →'}
                 </button>
                 <button
                   type="button"
@@ -917,34 +1139,6 @@ export default function SignUpPage() {
                     />
                   </div>
                 </div>
-
-                {/* Upload Documents Tiles */}
-                <div className="form-group-full">
-                  <label className="form-label">Upload Documents (Optional)</label>
-                  <div className="upload-tiles-grid">
-                    <div
-                      className="upload-tile"
-                      onClick={() => toast('Document upload selector opened. Supported formats: PDF, PNG, JPG', { icon: '📄' })}
-                    >
-                      <div className="upload-tile-icon">📄</div>
-                      <div className="upload-tile-text">
-                        <h5>Business Documents</h5>
-                        <p>(PDF / Image)</p>
-                      </div>
-                    </div>
-
-                    <div
-                      className="upload-tile"
-                      onClick={() => toast('Product catalog upload selector opened. Supported formats: PDF, PNG, JPG', { icon: '📁' })}
-                    >
-                      <div className="upload-tile-icon">📁</div>
-                      <div className="upload-tile-text">
-                        <h5>Product Catalog</h5>
-                        <p>(PDF / Image)</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
               </div>
 
               <div className="step-actions-row">
@@ -966,7 +1160,7 @@ export default function SignUpPage() {
 
               <div className="verification-list">
                 {/* Mobile Verification */}
-                <div className="verify-item-card">
+                <div className={`verify-item-card ${formData.mobileVerified ? 'verified-card' : ''}`}>
                   <div className="verify-left">
                     <div className="verify-icon-box">
                       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -976,7 +1170,7 @@ export default function SignUpPage() {
                     </div>
                     <div className="verify-info">
                       <h4>Mobile Verification</h4>
-                      <p>We will send an OTP to your mobile number</p>
+                      <p>{formData.mobileVerified ? 'Your mobile number is verified ✓' : 'Click verify to confirm your mobile number'}</p>
                       <div className="verify-val">+91 {formData.mobileNumber || '9076543520'}</div>
                     </div>
                   </div>
@@ -984,8 +1178,10 @@ export default function SignUpPage() {
                     type="button"
                     className={`btn-verify-action ${formData.mobileVerified ? 'verified' : ''}`}
                     onClick={() => {
-                      handleChange('mobileVerified', true);
-                      toast.success('Mobile OTP verified successfully! ✓');
+                      if (!formData.mobileVerified) {
+                        handleChange('mobileVerified', true);
+                        toast.success('Mobile number verified successfully! ✓');
+                      }
                     }}
                   >
                     {formData.mobileVerified ? 'Verified ✓' : 'Verify'}
@@ -993,34 +1189,85 @@ export default function SignUpPage() {
                 </div>
 
                 {/* Email Verification */}
-                <div className="verify-item-card">
-                  <div className="verify-left">
-                    <div className="verify-icon-box">
-                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <rect width="20" height="16" x="2" y="4" rx="2" />
-                        <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
-                      </svg>
+                <div className={`verify-item-card ${formData.emailVerified ? 'verified-card' : ''}`}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: 16, flexWrap: 'wrap' }}>
+                    <div className="verify-left">
+                      <div className="verify-icon-box">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <rect width="20" height="16" x="2" y="4" rx="2" />
+                          <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
+                        </svg>
+                      </div>
+                      <div className="verify-info">
+                        <h4>Email Verification</h4>
+                        <p>{formData.emailVerified ? 'Your email address is verified ✓' : 'We will send a 6-digit verification code to your email'}</p>
+                        <div className="verify-val">{formData.email || 'example@gmail.com'}</div>
+                      </div>
                     </div>
-                    <div className="verify-info">
-                      <h4>Email Verification</h4>
-                      <p>We will send a verification link to your email</p>
-                      <div className="verify-val">{formData.email || 'example@gmail.com'}</div>
-                    </div>
+                    
+                    {!formData.emailVerified ? (
+                      <button
+                        type="button"
+                        className="btn-verify-action"
+                        onClick={handleSendEmailOtp}
+                        disabled={sendingOtp}
+                      >
+                        {sendingOtp ? 'Sending...' : showEmailOtpInput ? 'Resend' : 'Verify'}
+                      </button>
+                    ) : (
+                      <button type="button" className="btn-verify-action verified">
+                        Verified ✓
+                      </button>
+                    )}
                   </div>
-                  <button
-                    type="button"
-                    className={`btn-verify-action ${formData.emailVerified ? 'verified' : ''}`}
-                    onClick={() => {
-                      handleChange('emailVerified', true);
-                      toast.success('Email verification completed! ✓');
-                    }}
-                  >
-                    {formData.emailVerified ? 'Verified ✓' : 'Verify'}
-                  </button>
+
+                  {/* Inline OTP Input Box */}
+                  {showEmailOtpInput && !formData.emailVerified && (
+                    <div className="email-otp-drawer">
+                      <div style={{ fontSize: '13px', fontWeight: 600, color: '#4B5563', marginBottom: 8 }}>
+                        Enter the 6-digit code sent to <span style={{ color: '#5B21B6' }}>{formData.email}</span>:
+                      </div>
+                      <div className="email-otp-row">
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          maxLength={6}
+                          placeholder="••••••"
+                          className="email-otp-input"
+                          value={emailOtp}
+                          onChange={(e) => setEmailOtp(e.target.value.replace(/\D/g, ''))}
+                          autoFocus
+                        />
+                        <button
+                          type="button"
+                          className="btn-otp-submit"
+                          onClick={handleVerifyEmailOtp}
+                          disabled={verifyingOtp || emailOtp.length !== 6}
+                        >
+                          {verifyingOtp ? 'Verifying...' : 'Verify Code'}
+                        </button>
+                        <button
+                          type="button"
+                          className="btn-otp-resend"
+                          onClick={handleSendEmailOtp}
+                          disabled={resendTimer > 0 || sendingOtp}
+                        >
+                          {resendTimer > 0 ? `Resend in ${resendTimer}s` : 'Resend Code'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setShowEmailOtpInput(false)}
+                          style={{ background: 'none', border: 'none', color: '#9CA3AF', fontSize: '12px', cursor: 'pointer', marginLeft: 'auto' }}
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* ID Verification */}
-                <div className="verify-item-card">
+                <div className={`verify-item-card ${formData.govtIdUrl ? 'verified-card' : ''}`}>
                   <div className="verify-left">
                     <div className="verify-icon-box">
                       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -1033,15 +1280,28 @@ export default function SignUpPage() {
                     </div>
                     <div className="verify-info">
                       <h4>ID Verification (Optional)</h4>
-                      <p>Upload your government ID for added security (Aadhar / PAN / Passport)</p>
+                      <p>{formData.govtIdName ? `Selected: ${formData.govtIdName}` : 'Upload your Aadhar, PAN card or Govt ID'}</p>
+                      {formData.govtIdUrl && (
+                        <div style={{ fontSize: '11px', color: '#059669', marginTop: '2px', fontWeight: 600 }}>
+                          ✓ Uploaded to S3 &amp; will be saved with profile
+                        </div>
+                      )}
                     </div>
                   </div>
+                  
+                  <input
+                    type="file"
+                    ref={govtIdInputRef}
+                    style={{ display: 'none' }}
+                    accept=".pdf,.jpg,.jpeg,.png,.webp"
+                    onChange={(e) => handleFileUpload(e, 'govtId', 'kyc_docs')}
+                  />
                   <button
                     type="button"
-                    className="btn-verify-upload"
-                    onClick={() => toast('Government ID upload modal opened.', { icon: '🪪' })}
+                    className={`btn-verify-upload ${formData.govtIdUrl ? 'verified' : ''}`}
+                    onClick={() => govtIdInputRef.current?.click()}
                   >
-                    Upload
+                    {uploadingField === 'govtId' ? 'Uploading to S3...' : formData.govtIdUrl ? 'Uploaded ✓' : 'Upload'}
                   </button>
                 </div>
               </div>

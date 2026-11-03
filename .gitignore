@@ -29,3 +29,8 @@ Frontend/dist-ssr/
 
 # Ensure Backend/src/build is NOT ignored (needed for AWS EC2 direct deployment)
 !Backend/src/build/
+
+# Developer test scripts
+test-*.js
+Backend/test-*.js
+Backend/test*.js

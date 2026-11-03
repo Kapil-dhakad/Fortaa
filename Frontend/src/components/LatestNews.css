@@ -511,29 +511,332 @@
   }
 }
 
-@media (max-width: 740px) {
-  .figma-three-block-container {
-    padding: 0 16px;
+@media (max-width: 768px) {
+  .figma-three-block-section {
+    padding: 8px 0 14px !important;
+    width: 100% !important;
+    overflow: hidden !important;
   }
-  .figma-news-cards-row {
-    grid-template-columns: 1fr;
-    justify-items: center;
-  }
-  .figma-article-card {
-    max-width: 100%;
-  }
-}
 
-@media (max-width: 480px) {
+  /* 2-column layout matching Figma: News left, Success Stories right */
+  .figma-three-block-container {
+    display: flex !important;
+    flex-direction: row !important;
+    justify-content: center !important;
+    align-items: stretch !important;
+    gap: 6px !important;
+    padding: 0 6px !important;
+    max-width: 412px !important;
+    width: 100% !important;
+    margin: 0 auto 10px auto !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Column 1 (News) & Column 2 (Success Stories): 197px x 250px */
+  .figma-col-news,
+  .figma-col-success {
+    width: 197px !important;
+    max-width: 197px !important;
+    min-width: 0 !important;
+    flex: 1 1 190px !important;
+    height: 250px !important;
+    min-height: 250px !important;
+    max-height: 250px !important;
+    border-radius: 10px !important;
+    border: 1px solid #E8E9FE !important;
+    background: #FFFFFF !important;
+    padding: 5px 6px 8px 6px !important;
+    box-sizing: border-box !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+    overflow: hidden !important;
+    box-shadow: none !important;
+  }
+
+  /* Column 1 Header */
+  .figma-news-header {
+    margin-bottom: 2px !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+
+  .figma-news-tag {
+    font-size: 7.5px !important;
+    font-weight: 700 !important;
+    color: #D31BFF !important;
+    letter-spacing: 0.02em !important;
+    text-transform: uppercase !important;
+  }
+
+  .figma-news-title {
+    font-size: 9.5px !important;
+    line-height: 12px !important;
+    margin: 2px 0 0 0 !important;
+    font-weight: 700 !important;
+    color: #0F123F !important;
+  }
+
+  .figma-news-subtitle {
+    display: none !important;
+  }
+
+  /* News List Container: 186px x 194px */
+  .figma-news-cards-row {
+    width: 100% !important;
+    height: 194px !important;
+    border-radius: 10px !important;
+    background: #FFFFFF !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+    gap: 4px !important;
+    padding: 0 !important;
+  }
+
+  .figma-article-card {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 6px !important;
+    width: 100% !important;
+    height: 59px !important;
+    min-height: 59px !important;
+    max-height: 59px !important;
+    border-radius: 6px !important;
+    padding: 3px 0 !important;
+    box-sizing: border-box !important;
+    border: none !important;
+    background: transparent !important;
+  }
+
+  .figma-article-thumb-box {
+    width: 60px !important;
+    height: 33px !important;
+    border-radius: 2px !important;
+    flex-shrink: 0 !important;
+    overflow: hidden !important;
+  }
+
+  .figma-article-img {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+  }
+
+  .figma-article-body {
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: center !important;
+    gap: 1.5px !important;
+    flex: 1 !important;
+    min-width: 0 !important;
+    padding: 0 !important;
+  }
+
+  .figma-article-title {
+    order: 1 !important;
+    font-size: 6.5px !important;
+    font-weight: 600 !important;
+    line-height: 1.2 !important;
+    color: #000000 !important;
+    margin: 0 !important;
+    display: -webkit-box !important;
+    -webkit-line-clamp: 2 !important;
+    -webkit-box-orient: vertical !important;
+    overflow: hidden !important;
+  }
+
+  .figma-article-date {
+    order: 2 !important;
+    font-size: 5.5px !important;
+    color: #666666 !important;
+    margin: 0 !important;
+    line-height: 1 !important;
+  }
+
+  .figma-article-badge {
+    order: 3 !important;
+    font-size: 5px !important;
+    padding: 1px 4px !important;
+    border-radius: 4px !important;
+    border: 1px solid #D31BFF !important;
+    background: transparent !important;
+    color: #750192 !important;
+    align-self: flex-start !important;
+    line-height: 1.1 !important;
+    margin-top: 1px !important;
+  }
+
+  .figma-article-read-btn {
+    display: none !important;
+  }
+
+  /* Column 2: Success Stories */
+  .figma-col-success {
+    position: relative !important;
+  }
+
+  .figma-subcol-header {
+    margin-bottom: 2px !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+
+  .figma-subcol-tag {
+    display: flex !important;
+    align-items: center !important;
+    gap: 4px !important;
+  }
+
+  .figma-tag-network-icon {
+    width: 12px !important;
+    height: 12px !important;
+    object-fit: contain !important;
+  }
+
+  .figma-subcol-tag span {
+    font-size: 7.5px !important;
+    font-weight: 700 !important;
+    color: #D31BFF !important;
+    letter-spacing: 0.02em !important;
+    text-transform: uppercase !important;
+  }
+
+  .figma-growth-main-title {
+    font-size: 9.5px !important;
+    line-height: 12px !important;
+    margin: 2px 0 0 0 !important;
+    font-weight: 700 !important;
+    color: #0F123F !important;
+  }
+
+  .figma-growth-sub-desc {
+    display: none !important;
+  }
+
+  .figma-growth-card-container {
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+    flex: 1 !important;
+    padding-top: 4px !important;
+  }
+
   .figma-growth-testimonial-box {
-    flex-direction: column;
-    align-items: flex-start;
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: flex-start !important;
+    gap: 6px !important;
+    padding: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    border: none !important;
   }
+
+  /* Photo Rectangle 28: 100px x 108px */
   .figma-growth-avatar-wrap {
-    width: 100%;
-    height: 160px;
+    width: 92px !important;
+    height: 108px !important;
+    border-radius: 12px !important;
+    overflow: hidden !important;
+    flex-shrink: 0 !important;
   }
-  .figma-growth-event-card {
-    padding: 6px 8px;
+
+  .figma-growth-avatar-wrap img {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+  }
+
+  .figma-growth-quote-info {
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: flex-start !important;
+    gap: 3px !important;
+    flex: 1 !important;
+    min-width: 0 !important;
+  }
+
+  .figma-growth-quote {
+    font-family: 'Inter', sans-serif !important;
+    font-size: 6.5px !important;
+    line-height: 1.25 !important;
+    margin: 0 !important;
+    color: #000000 !important;
+    font-style: normal !important;
+  }
+
+  .figma-growth-author-name {
+    font-family: 'Inter', sans-serif !important;
+    font-size: 8px !important;
+    font-weight: 700 !important;
+    color: #750192 !important;
+    margin: 3px 0 0 0 !important;
+    line-height: 1.1 !important;
+  }
+
+  .figma-growth-author-role {
+    font-family: 'Inter', sans-serif !important;
+    font-size: 6px !important;
+    color: #555555 !important;
+    line-height: 1 !important;
+  }
+
+  /* Button exact Figma CSS provided by user:
+     width: 115; height: 23; border-radius: 10px; border-width: 1px; gap: 10px; padding: 10px; background: #6B109F; */
+  .figma-btn-success-story {
+    width: 115px !important;
+    height: 23px !important;
+    border-radius: 10px !important;
+    border: 1px solid #ffffff !important;
+    background: #6B109F !important;
+    color: #ffffff !important;
+    font-family: 'Inter', sans-serif !important;
+    font-size: 7.5px !important;
+    font-weight: 500 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 5px !important;
+    padding: 0 10px !important;
+    box-sizing: border-box !important;
+    text-decoration: none !important;
+    white-space: nowrap !important;
+    align-self: flex-start !important;
+    margin-top: 6px !important;
+  }
+
+  .figma-btn-success-story img {
+    width: 7px !important;
+    height: 7px !important;
+    object-fit: contain !important;
+  }
+
+  .figma-growth-dots {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 4px !important;
+    width: 100% !important;
+    margin-top: 6px !important;
+  }
+
+  .growth-dot {
+    width: 5px !important;
+    height: 5px !important;
+    border-radius: 50% !important;
+    background: #D9D9D9 !important;
+  }
+
+  .growth-dot.active {
+    background: #D51CFD !important;
+    width: 12px !important;
+    border-radius: 4px !important;
+  }
+
+  /* Column 3: Upcoming Events hidden on mobile */
+  .figma-col-events {
+    display: none !important;
   }
 }

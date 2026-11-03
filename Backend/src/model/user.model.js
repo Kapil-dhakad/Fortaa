@@ -32,6 +32,9 @@ class UserInstance {
     this.website_social = data.website_social || data.websiteSocial || null;
     this.mobile_verified = data.mobile_verified ?? true;
     this.email_verified = data.email_verified ?? true;
+    this.govt_id_url = data.govt_id_url || data.govtIdUrl || null;
+    this.business_doc_url = data.business_doc_url || data.businessDocUrl || null;
+    this.catalog_url = data.catalog_url || data.catalogUrl || null;
     this.created_at = data.created_at || new Date().toISOString();
   }
 
@@ -103,9 +106,10 @@ const userModel = {
           mobile_number, whatsapp_number, dob, gender, referral_id,
           business_name, company_brand, business_category,
           designation, experience, website_social,
-          mobile_verified, email_verified
+          mobile_verified, email_verified,
+          govt_id_url, business_doc_url, catalog_url, avatar_url
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22)
         RETURNING *;
       `;
       const values = [
@@ -127,6 +131,10 @@ const userModel = {
         data.websiteSocial || null,
         data.mobileVerified ?? true,
         data.emailVerified ?? true,
+        data.govtIdUrl || data.govt_id_url || null,
+        data.businessDocUrl || data.business_doc_url || null,
+        data.catalogUrl || data.catalog_url || null,
+        data.avatarUrl || data.avatar_url || null,
       ];
 
       const result = await db.query(queryText, values);
@@ -187,7 +195,7 @@ const userModel = {
     if (db.isConnected()) {
       try {
         const result = await db.query(
-          'SELECT id, member_id, account_type, name, email, mobile_number, whatsapp_number, designation, experience, company_brand, business_category, created_at FROM users ORDER BY id DESC LIMIT $1',
+          'SELECT id, member_id, account_type, name, email, mobile_number, whatsapp_number, designation, experience, company_brand, business_category, govt_id_url, created_at FROM users ORDER BY id DESC LIMIT $1',
           [limit]
         );
         return result.rows.map((row) => ({
@@ -198,6 +206,7 @@ const userModel = {
           email: row.email,
           phone: row.mobile_number || row.whatsapp_number || '-',
           type: row.designation || row.account_type || 'Leader',
+          govtIdUrl: row.govt_id_url,
           status: 'Approved',
           registeredOn: row.created_at
             ? new Date(row.created_at).toLocaleString('en-GB', {

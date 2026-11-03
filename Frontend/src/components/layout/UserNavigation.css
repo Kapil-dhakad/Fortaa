@@ -1,0 +1,739 @@
+/* =========================================================
+   FORTAA USER NAVIGATION STYLESHEET (SHARED HEADER & SIDEBAR)
+   Used across UserDashboard, ProfilePage, AllPostsPage, Messages, etc.
+   ========================================================= */
+
+/* ───────────────── TOPBAR ───────────────── */
+.ud-topbar {
+  background: #020633;
+  height: 51px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px 0 10px;
+  position: relative;
+  z-index: 100;
+  box-sizing: border-box;
+  flex-shrink: 0;
+  width: 100%;
+}
+
+.ud-topbar-left {
+  display: flex;
+  align-items: center;
+  width: 175px;
+  min-width: 175px;
+  max-width: 175px;
+  flex-shrink: 0;
+}
+
+.ud-mobile-toggle-btn {
+  display: none;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 6px;
+  flex-direction: column;
+  gap: 4px;
+  margin-right: 8px;
+}
+
+.ud-mobile-toggle-btn span {
+  display: block;
+  width: 20px;
+  height: 2px;
+  background: #FFFFFF;
+  border-radius: 2px;
+}
+
+.ud-mobile-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(2, 6, 51, 0.65);
+  backdrop-filter: blur(2px);
+  z-index: 150;
+}
+
+/* Brand Logo Capsule (Figma: 152x42px, radius 5px, border 1.5px solid #6B109F) */
+.ud-brand-logo-card {
+  background: #FFFFFF;
+  border: 1.5px solid #6B109F;
+  border-radius: 5px;
+  width: 152px;
+  height: 42px;
+  padding: 0 8px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ud-brand-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+}
+
+.ud-logo-icon {
+  width: 26px;
+  height: 22px;
+  object-fit: contain;
+}
+
+.ud-logo-text-wrap {
+  display: flex;
+  flex-direction: column;
+}
+
+.ud-logo-word {
+  width: 76px;
+  height: auto;
+  object-fit: contain;
+}
+
+.ud-logo-tagline {
+  font-size: 8px;
+  color: #232356;
+  white-space: nowrap;
+}
+
+/* ───────────────── SEARCH BAR ───────────────── */
+.ud-search-wrapper {
+  flex: 1;
+  max-width: 820px;
+  min-width: 220px;
+  height: 35px;
+  min-height: 35px;
+  max-height: 35px;
+  background: #FFFFFF;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 12px;
+  box-sizing: border-box;
+  margin-left: 16px;
+  margin-right: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease;
+}
+
+.ud-search-wrapper:focus-within {
+  box-shadow: 0 0 0 2px rgba(90, 44, 228, 0.35);
+}
+
+.ud-search-icon-img {
+  width: 26px;
+  height: 26px;
+  min-width: 26px;
+  min-height: 26px;
+  object-fit: contain;
+  flex-shrink: 0;
+  display: block;
+  user-select: none;
+  pointer-events: none;
+}
+
+.ud-search-input {
+  flex: 1;
+  height: 100%;
+  background: transparent;
+  border: none;
+  outline: none;
+  padding: 0;
+  font-size: 12px;
+  color: #1E1B4B;
+  font-family: inherit;
+}
+
+.ud-search-input::placeholder {
+  color: #94A3B8;
+  font-size: 11.5px;
+}
+
+/* ───────────────── TOPBAR RIGHT ACTIONS ───────────────── */
+.ud-topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.ud-icon-circle-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  position: relative;
+  font-size: 14px;
+  color: #FFFFFF;
+  transition: all 0.2s ease;
+}
+
+.ud-icon-circle-btn:hover {
+  background: rgba(255, 255, 255, 0.18);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.ud-wa-btn {
+  background: transparent;
+  border: none;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.ud-wa-btn:hover {
+  background: transparent;
+  transform: scale(1.08);
+}
+
+.ud-wa-img-icon {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+  border-radius: 50%;
+  display: block;
+}
+
+.ud-header-action-icon {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+  display: block;
+  opacity: 0.95;
+}
+
+.ud-badge-count {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  background: #EF4444;
+  color: #FFFFFF;
+  font-size: 9px;
+  font-weight: 700;
+  border-radius: 50%;
+  width: 15px;
+  height: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid #020633;
+}
+
+.ud-user-pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 10px 3px 3px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #FFFFFF;
+  border-radius: 50px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.ud-user-pill:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.ud-user-pill-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.ud-user-pill-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.ud-user-pill-name {
+  font-size: 11.5px;
+  font-weight: 700;
+  line-height: 1.1;
+  color: #FFFFFF;
+}
+
+.ud-user-pill-role {
+  font-size: 8.5px;
+  color: #CBD5E1;
+}
+
+/* ───────────────── LEFT SIDEBAR ───────────────── */
+.ud-sidebar-left {
+  background: #020633;
+  width: 175px;
+  min-width: 175px;
+  max-width: 175px;
+  height: 100%;
+  overflow-y: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  padding: 8px 10px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  color: #FFFFFF;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  border-right: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.ud-sidebar-left::-webkit-scrollbar {
+  display: none;
+}
+
+.ud-nav-list {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  width: 100%;
+  align-items: center;
+  margin-top: 6px;
+}
+
+.ud-nav-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.75);
+  width: 155px;
+  height: 45px;
+  min-height: 45px;
+  box-sizing: border-box;
+  padding: 8px 10px 7px 10px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-family: inherit;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.ud-nav-link:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #FFFFFF;
+}
+
+.ud-nav-link.active {
+  background: rgba(99, 38, 174, 0.71);
+  color: #FFFFFF;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(99, 38, 174, 0.35);
+}
+
+.ud-nav-icon {
+  width: 25px;
+  height: 25px;
+  min-width: 25px;
+  min-height: 25px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.ud-nav-icon-img {
+  width: 25px;
+  height: 25px;
+  object-fit: contain;
+  opacity: 1;
+  transform: rotate(0deg);
+  display: block;
+}
+
+.ud-nav-label {
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  font-size: 13px;
+  line-height: 100%;
+  letter-spacing: 0.02em;
+  color: #FFFFFF;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Sidebar Promo Card: Grow Together (Figma: 134x154px, radius 10px, border 1px solid #1E0241, gradient #6326AE 71% to #420191) */
+.ud-sidebar-promo-card {
+  width: 134px;
+  height: 154px;
+  min-height: 154px;
+  box-sizing: border-box;
+  margin-top: 14px;
+  background: linear-gradient(180deg, rgba(99, 38, 174, 0.71) 0%, #420191 100%);
+  border-radius: 10px;
+  border: 1px solid #1E0241;
+  padding: 8px 6px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.ud-promo-img-wrap {
+  width: 100%;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ud-promo-megaphone {
+  max-width: 54px;
+  max-height: 38px;
+  object-fit: contain;
+}
+
+.ud-promo-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: #FFFFFF;
+  margin: 0;
+  line-height: 1.1;
+}
+
+.ud-promo-desc {
+  font-size: 7.5px;
+  line-height: 1.25;
+  color: rgba(255, 255, 255, 0.85);
+  margin: 0;
+  text-align: center;
+}
+
+.ud-promo-btn {
+  width: 113px;
+  height: 20px;
+  min-height: 20px;
+  background: #FFFFFF;
+  color: #420191;
+  border: none;
+  border-radius: 5px;
+  font-size: 9px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+  line-height: 1;
+  padding: 0;
+  margin: 0 auto;
+}
+
+.ud-promo-btn:hover {
+  opacity: 0.9;
+}
+
+/* Sidebar Bottom Brand Footer (Same size as top logo: 152x42px, radius 5px, border 1.5px solid #6B109F) */
+.ud-brand-logo-card-bottom {
+  margin-top: 10px;
+  flex-shrink: 0;
+}
+
+/* Sidebar Social Icons (Figma: 20x20px circles, gradient #9E04C3 -> #5A2CE4, 10px icons, 10px gap) */
+.ud-sidebar-socials {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 10px;
+  margin-bottom: 10px;
+  width: 100%;
+  flex-shrink: 0;
+}
+
+.ud-social-circle-btn {
+  width: 20px;
+  height: 20px;
+  min-width: 20px;
+  min-height: 20px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #9E04C3 0%, #5A2CE4 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #FFFFFF;
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  transition: transform 0.15s ease, opacity 0.15s ease;
+}
+
+.ud-social-circle-btn:hover {
+  transform: scale(1.15);
+  opacity: 0.95;
+}
+
+.ud-social-circle-btn svg {
+  width: 10px;
+  height: 10px;
+  display: block;
+}
+
+/* ───────────────── MOBILE HEADER (#3A23D5) & RESPONSIVE RULES ───────────────── */
+.ud-mob-header {
+  display: none !important;
+}
+
+@media (max-width: 900px) {
+  .ud-mobile-toggle-btn {
+    display: flex;
+  }
+  .ud-topbar-left {
+    width: auto;
+  }
+  .ud-sidebar-left {
+    position: fixed;
+    top: 51px;
+    left: -260px;
+    width: 230px;
+    min-width: 230px;
+    max-width: 230px;
+    height: calc(100vh - 51px);
+    z-index: 200;
+    transition: left 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 6px 0 24px rgba(0, 0, 0, 0.3);
+    display: flex;
+  }
+  .ud-sidebar-left.mobile-open {
+    left: 0;
+  }
+}
+
+@media (max-width: 768px) {
+  /* Hide 1-line Desktop Topbar completely on mobile */
+  .ud-topbar-desktop,
+  .ud-topbar {
+    display: none !important;
+  }
+
+  /* Show 2-Row Royal Blue Mobile Header matching User Dashboard */
+  .ud-mob-header {
+    display: flex !important;
+    background: #3A23D5 !important;
+    padding: 10px 12px 10px !important;
+    flex-direction: column !important;
+    gap: 8px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    position: relative !important;
+    z-index: 100 !important;
+  }
+
+  /* Navigation row: Logo pill left, actions right */
+  .ud-mob-nav-row {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 8px !important;
+    width: 100% !important;
+  }
+
+  .ud-mob-logo-pill {
+    background: #FFFFFF !important;
+    border-radius: 5px !important;
+    height: 32px !important;
+    padding: 2px 8px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    text-decoration: none !important;
+    flex-shrink: 0 !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
+  }
+
+  .ud-mob-logo-icon {
+    width: 22px !important;
+    height: 20px !important;
+    object-fit: contain !important;
+  }
+
+  .ud-mob-logo-text {
+    display: flex !important;
+    flex-direction: column !important;
+    line-height: 1 !important;
+  }
+
+  .ud-mob-logo-word {
+    width: 60px !important;
+    height: 15px !important;
+    object-fit: contain !important;
+  }
+
+  .ud-mob-logo-tagline {
+    font-family: 'Inter', sans-serif !important;
+    font-size: 8px !important;
+    line-height: 9px !important;
+    color: #232356 !important;
+    white-space: nowrap !important;
+  }
+
+  .ud-mob-header-actions {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+  }
+
+  .ud-mob-icon-btn {
+    position: relative !important;
+    background: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+    width: 25px !important;
+    height: 25px !important;
+    cursor: pointer !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  .ud-mob-action-img {
+    width: 24px !important;
+    height: 24px !important;
+    object-fit: contain !important;
+  }
+
+  .ud-mob-red-badge {
+    position: absolute !important;
+    top: -4px !important;
+    right: -4px !important;
+    background: #F60808 !important;
+    color: #FFFFFF !important;
+    border-radius: 50% !important;
+    font-size: 9px !important;
+    font-weight: 700 !important;
+    width: 15px !important;
+    height: 15px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    line-height: 1 !important;
+    border: 1px solid #3A23D5 !important;
+  }
+
+  .ud-mob-avatar-btn {
+    width: 30px !important;
+    height: 30px !important;
+    border-radius: 50% !important;
+    overflow: hidden !important;
+    cursor: pointer !important;
+    border: 1.5px solid #FFFFFF !important;
+    flex-shrink: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  .ud-mob-avatar-img {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+  }
+
+  /* Full-width Search Bar */
+  .ud-mob-search-wrap {
+    width: 100% !important;
+    height: 30px !important;
+    background: #FFFFFF !important;
+    border: 1px solid #D9D9D9 !important;
+    border-radius: 6px !important;
+    display: flex !important;
+    align-items: center !important;
+    padding: 0 10px !important;
+    gap: 8px !important;
+    box-sizing: border-box !important;
+  }
+
+  .ud-mob-search-icon {
+    flex-shrink: 0 !important;
+    stroke: #232356 !important;
+  }
+
+  .ud-mob-search-input {
+    width: 100% !important;
+    height: 100% !important;
+    border: none !important;
+    outline: none !important;
+    background: transparent !important;
+    font-family: 'Inter', sans-serif !important;
+    font-size: 11px !important;
+    color: #232356 !important;
+  }
+
+  .ud-mob-search-input::placeholder {
+    color: #94A3B8 !important;
+  }
+
+  /* Bottom Navbar */
+  .ud-mob-bottom-navbar {
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    height: 67px !important;
+    background: #FFFFFF !important;
+    border-radius: 5px 5px 0px 0px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-around !important;
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.08) !important;
+    z-index: 1000 !important;
+    max-width: 412px !important;
+    margin: 0 auto !important;
+  }
+
+  .ud-mob-bnav-item {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 3px !important;
+    background: none !important;
+    border: none !important;
+    padding: 4px !important;
+    color: #232356 !important;
+    cursor: pointer !important;
+    font-family: 'Inter', sans-serif !important;
+    font-size: 11px !important;
+    font-weight: 500 !important;
+  }
+
+  .ud-mob-bnav-item.active {
+    color: #3A23D5 !important;
+  }
+
+  .ud-mob-bnav-fab {
+    width: 46px !important;
+    height: 46px !important;
+    border-radius: 50% !important;
+    background: #5A2CE4 !important;
+    color: #FFFFFF !important;
+    font-size: 26px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border: none !important;
+    box-shadow: 0 4px 12px rgba(90, 44, 228, 0.45) !important;
+    cursor: pointer !important;
+    margin-top: -16px !important;
+    line-height: 1 !important;
+  }
+}

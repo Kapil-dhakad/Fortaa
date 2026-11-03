@@ -1,12 +1,15 @@
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { useEffect } from 'react';
-import { Toaster } from 'react-hot-toast';
+import toast, { Toaster, ToastBar } from 'react-hot-toast';
 import './index.css';
 import LandingPage from './pages/landing/LandingPage';
 import LoginPage from './pages/user/LoginPage';
 import SignUpPage from './pages/user/SignUpPage';
 import UserDashboard from './pages/user/UserDashboard';
 import ProfilePage from './pages/user/ProfilePage';
+import CompleteProfilePage from './pages/user/CompleteProfilePage';
+import AllPostsPage from './pages/user/AllPostsPage';
+import MessagesPage from './pages/user/MessagesPage';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminUserDashboard from './pages/admin/AdminUserDashboard';
 
@@ -32,7 +35,7 @@ export default function App() {
             background: '#ffffff',
             color: '#1f2937',
             borderRadius: '12px',
-            padding: '12px 18px',
+            padding: '10px 14px',
             boxShadow: '0 10px 25px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1)',
             border: '1px solid #E5E7EB',
             fontSize: '14px',
@@ -51,11 +54,53 @@ export default function App() {
             },
           },
         }}
-      />
+      >
+        {(t) => (
+          <ToastBar toast={t}>
+            {({ icon, message }) => (
+              <>
+                {icon}
+                {message}
+                {t.type !== 'loading' && (
+                  <button
+                    type="button"
+                    onClick={() => toast.dismiss(t.id)}
+                    style={{
+                      border: 'none',
+                      background: 'transparent',
+                      cursor: 'pointer',
+                      padding: '2px 4px 2px 8px',
+                      marginLeft: '10px',
+                      color: '#9CA3AF',
+                      fontSize: '15px',
+                      fontWeight: '700',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      borderRadius: '4px',
+                      lineHeight: 1,
+                      transition: 'color 0.15s ease',
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.color = '#111827')}
+                    onMouseLeave={(e) => (e.currentTarget.style.color = '#9CA3AF')}
+                    title="Dismiss"
+                    aria-label="Close notification"
+                  >
+                    ✕
+                  </button>
+                )}
+              </>
+            )}
+          </ToastBar>
+        )}
+      </Toaster>
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignUpPage />} />
+        <Route path="/complete-profile" element={<CompleteProfilePage />} />
+        <Route path="/all-posts" element={<AllPostsPage />} />
+        <Route path="/messages" element={<MessagesPage />} />
         <Route path="/dashboard" element={<UserDashboard />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/dashboard/profile" element={<ProfilePage />} />

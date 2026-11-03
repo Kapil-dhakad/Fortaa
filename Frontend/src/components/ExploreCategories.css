@@ -344,32 +344,214 @@
   }
 }
 
-@media (max-width: 580px) {
+@media (max-width: 768px) {
+  .figma-explore-section {
+    padding: 10px 0 14px !important;
+    width: 100% !important;
+    overflow: hidden !important;
+  }
   .figma-explore-container {
-    padding: 0 16px;
+    padding: 8px 8px 12px 8px !important;
+    max-width: 415px !important;
+    width: 100% !important;
+    margin: 0 auto !important;
+    background: #ffffff !important;
+    border-radius: 10px !important;
+    box-sizing: border-box !important;
+  }
+  .figma-explore-header {
+    flex-direction: row !important;
+    align-items: flex-end !important;
+    justify-content: space-between !important;
+    margin-bottom: 8px !important;
+    gap: 8px !important;
+  }
+  .figma-explore-header-left {
+    gap: 2px !important;
+  }
+  .figma-explore-tag {
+    gap: 4px !important;
+  }
+  .figma-explore-tag-icon {
+    width: 14px !important;
+    height: 14px !important;
+  }
+  .figma-explore-tag span {
+    font-size: 8px !important;
+    font-weight: 700 !important;
+    color: #D31BFF !important;
+  }
+  .figma-explore-heading {
+    font-size: clamp(10px, 3.2vw, 13px) !important;
+    margin-left: 0 !important;
+    line-height: 1.2 !important;
+    margin-top: 1px !important;
+    font-weight: 700 !important;
+  }
+  .figma-explore-view-all {
+    font-size: 8.5px !important;
+    gap: 3px !important;
+    white-space: nowrap !important;
+    color: #3B52C4 !important;
+  }
+  .figma-explore-view-all svg {
+    width: 10px !important;
+    height: 10px !important;
+    stroke: #3B52C4 !important;
   }
   .figma-categories-row {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 10px;
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 6px !important;
+    width: 100% !important;
   }
-  .figma-cat-card {
-    height: auto;
-    min-height: 250px;
-    padding: 12px 10px;
-  }
-  .figma-cat-title {
-    font-size: 17px;
-  }
-  .figma-cat-subtitle {
-    font-size: 14px;
-  }
-  .figma-cat-desc {
-    font-size: 11px;
-  }
-}
 
-@media (max-width: 380px) {
-  .figma-categories-row {
-    grid-template-columns: 1fr;
+  /* Ordering on mobile:
+     Row 1: Companies (Left), Leaders (Right)
+     Row 2: Products (Left), Promotion (Right)
+     Row 3: Industry News (Left), Opportunities (Right) */
+  .cat-card-companies { order: 1 !important; }
+  .cat-card-leaders { order: 2 !important; }
+  .cat-card-products { order: 3 !important; }
+  .cat-card-promotions { order: 4 !important; }
+  .cat-card-news { order: 5 !important; }
+  .cat-card-opportunities { order: 6 !important; }
+
+  .figma-cat-card {
+    height: 67px !important;
+    min-height: 67px !important;
+    max-height: 67px !important;
+    padding: 6px 8px !important;
+    border-radius: 10px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+    position: relative !important;
+    box-sizing: border-box !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    text-align: left !important;
+    overflow: hidden !important;
+  }
+
+  /* Exact Card Radial Gradients provided from Figma */
+  .cat-card-companies {
+    background: radial-gradient(67.89% 67.89% at 29.36% 22.32%, #411B92 0%, #771DBA 100%) !important;
+  }
+  .cat-card-leaders {
+    background: radial-gradient(67.89% 67.89% at 29.36% 22.32%, #6923B2 0%, #9A2DD6 100%) !important;
+  }
+  .cat-card-products {
+    background: radial-gradient(67.89% 67.89% at 29.36% 22.32%, #E45B63 0%, #FB8146 100%) !important;
+  }
+  .cat-card-promotions {
+    background: radial-gradient(67.89% 67.89% at 29.36% 22.32%, #0E6EEE 0%, #468DFA 100%) !important;
+  }
+  .cat-card-news {
+    background: radial-gradient(67.89% 67.89% at 29.36% 22.32%, #0F859F 0%, #21A0AB 100%) !important;
+  }
+  .cat-card-opportunities {
+    background: radial-gradient(67.89% 67.89% at 29.36% 22.32%, #5730C1 0%, #8348DB 100%) !important;
+  }
+
+  .figma-cat-top {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 7px !important;
+    margin: 0 !important;
+    padding-right: 18px !important;
+  }
+
+  /* Exact Icon Boxes from Figma */
+  .figma-cat-icon-box {
+    width: 26px !important;
+    height: 26px !important;
+    min-width: 26px !important;
+    min-height: 26px !important;
+    border-radius: 8px !important;
+    padding: 3px !important;
+    border: 1px solid rgba(255, 255, 255, 0.45) !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex-shrink: 0 !important;
+  }
+
+  .cat-icon-companies {
+    background: linear-gradient(135.43deg, #6436F9 0%, #3C1F7A 83.13%) !important;
+  }
+  .cat-icon-leaders {
+    background: linear-gradient(135.43deg, #D22BE6 0%, #E528F2 83.13%) !important;
+  }
+  .cat-icon-products {
+    background: linear-gradient(135.43deg, #FE8D3E 0%, #FA933A 83.13%) !important;
+  }
+  .cat-icon-promotions {
+    background: linear-gradient(135.43deg, #498DED 0%, #4B9AFD 83.13%) !important;
+  }
+  .cat-icon-news {
+    background: linear-gradient(135.43deg, #094DDE 0%, #0EBDFF 83.13%) !important;
+  }
+  .cat-icon-opportunities {
+    background: linear-gradient(135.43deg, #8249E0 0%, #8B4CEE 83.13%) !important;
+  }
+
+  .figma-cat-icon-box img {
+    width: 16px !important;
+    height: 16px !important;
+  }
+
+  .figma-cat-title {
+    font-size: 10.5px !important;
+    font-weight: 700 !important;
+    margin: 0 !important;
+    color: #ffffff !important;
+    line-height: 1.1 !important;
+  }
+
+  .figma-cat-cta {
+    position: absolute !important;
+    top: 7px !important;
+    right: 7px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: auto !important;
+  }
+
+  .figma-cat-cta span {
+    display: none !important;
+  }
+
+  .figma-cat-cta svg {
+    width: 11px !important;
+    height: 11px !important;
+    stroke: #ffffff !important;
+    display: block !important;
+  }
+
+  .figma-cat-body {
+    margin-top: 2px !important;
+  }
+
+  .figma-cat-subtitle {
+    font-size: 6.5px !important;
+    line-height: 1.2 !important;
+    color: rgba(255, 255, 255, 0.95) !important;
+    margin: 0 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    font-weight: 400 !important;
+  }
+
+  .figma-cat-desc,
+  .figma-cat-corner-wedge,
+  .figma-cat-glow-1,
+  .figma-cat-glow-2 {
+    display: none !important;
   }
 }

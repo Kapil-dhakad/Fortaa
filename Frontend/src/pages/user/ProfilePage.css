@@ -68,18 +68,20 @@
 .prof-brand-logo-card {
   background: #FFFFFF;
   border: 1.5px solid #6B109F;
-  border-radius: 6px;
-  padding: 4px 8px;
-  width: 100%;
+  border-radius: 5px;
+  width: 152px;
+  height: 42px;
+  padding: 0 8px;
   box-sizing: border-box;
   display: flex;
   align-items: center;
+  justify-content: center;
 }
 
 .prof-brand-logo {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   text-decoration: none;
 }
 
@@ -1029,7 +1031,7 @@
   .prof-content-scroll-container {
     height: auto;
     overflow: visible;
-    padding: 12px;
+    padding: 12px 12px 85px 12px;
   }
   .prof-sidebar-left {
     display: none;
@@ -1738,7 +1740,7 @@
   .prof-content-scroll-container {
     height: auto;
     overflow: visible;
-    padding: 12px;
+    padding: 12px 12px 85px 12px;
   }
   .prof-stats-grid {
     grid-template-columns: repeat(2, 1fr);

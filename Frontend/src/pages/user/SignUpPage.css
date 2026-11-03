@@ -359,12 +359,19 @@
 /* Custom styling for date input */
 .custom-date-input {
   cursor: pointer;
+  position: relative;
 }
 
 .custom-date-input::-webkit-calendar-picker-indicator {
   cursor: pointer;
-  opacity: 0.6;
+  opacity: 0.7;
   transition: opacity 0.2s ease;
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 20px;
+  height: 20px;
 }
 
 .custom-date-input::-webkit-calendar-picker-indicator:hover {
@@ -450,6 +457,33 @@
   margin: 0;
 }
 
+.upload-tile.upload-tile-success {
+  border-color: #10B981 !important;
+  background: #F0FDF4 !important;
+}
+
+.upload-tile.upload-tile-success .upload-tile-icon {
+  background: #DCFCE7 !important;
+  color: #16A34A !important;
+  font-weight: bold;
+}
+
+.upload-tile.upload-tile-success .upload-tile-text h5 {
+  color: #166534 !important;
+}
+
+.upload-tile.upload-tile-success .upload-tile-text p {
+  color: #15803D !important;
+  font-weight: 600;
+}
+
+.btn-verify-upload.verified {
+  background: #DCFCE7 !important;
+  color: #16A34A !important;
+  border-color: #86EFAC !important;
+  font-weight: 700;
+}
+
 /* Step 4: Verification Cards (Matching Figma) */
 .verification-list {
   display: flex;
@@ -533,6 +567,97 @@
 .btn-verify-action.verified {
   background: #10B981;
   cursor: default;
+}
+
+/* Inline Email OTP Box */
+.verify-item-card.verified-card {
+  border-color: #86EFAC !important;
+  background: #F0FDF4 !important;
+}
+
+.verify-item-card.verified-card .verify-icon-box {
+  background: #DCFCE7 !important;
+  color: #16A34A !important;
+}
+
+.email-otp-drawer {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1.5px dashed #E2E8F0;
+  width: 100%;
+}
+
+.email-otp-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.email-otp-input {
+  width: 150px;
+  height: 42px;
+  border: 1.5px solid #CBD5E1;
+  border-radius: 8px;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 5px;
+  text-align: center;
+  color: #5B21B6;
+  outline: none;
+  background: #F8FAFC;
+  transition: all 0.2s ease;
+}
+
+.email-otp-input:focus {
+  border-color: #7C3AED;
+  background: #FFFFFF;
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.15);
+}
+
+.btn-otp-submit {
+  height: 42px;
+  padding: 0 20px;
+  background: linear-gradient(135deg, #6D28D9 0%, #5B21B6 100%);
+  color: #FFFFFF;
+  border: none;
+  border-radius: 8px;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-otp-submit:hover:not(:disabled) {
+  opacity: 0.95;
+  transform: translateY(-1px);
+}
+
+.btn-otp-submit:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-otp-resend {
+  background: none;
+  border: none;
+  color: #7C3AED;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 6px 10px;
+  transition: color 0.2s;
+}
+
+.btn-otp-resend:hover:not(:disabled) {
+  color: #5B21B6;
+  text-decoration: underline;
+}
+
+.btn-otp-resend:disabled {
+  color: #9CA3AF;
+  cursor: not-allowed;
+  text-decoration: none;
 }
 
 .btn-verify-upload {
@@ -815,26 +940,342 @@
   color: #34285B;
 }
 
-/* Responsive */
+.auth-mobile-back-btn {
+  display: none;
+}
+
+.card-top-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.card-top-arrow-btn {
+  display: none;
+}
+
+/* =========================================================
+   FIGMA EXACT MOBILE RESPONSIVE (Frame 109 - Step 1 Sign Up)
+   Matches media_1793633642705_c082862f.png
+   ========================================================= */
 @media (max-width: 768px) {
+  .onboarding-page {
+    background: #FFFFFF !important;
+    position: relative !important;
+    overflow-x: hidden !important;
+    padding: 12px 10px 32px !important;
+    min-height: 100vh !important;
+  }
+
+  /* Ellipse 16 - 24 blur background glow */
+  .onboarding-page::before {
+    content: '' !important;
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    pointer-events: none !important;
+    background: 
+      radial-gradient(ellipse 262px 285px at -15% 35%, rgba(228, 223, 253, 0.55) 0%, transparent 70%),
+      radial-gradient(ellipse 262px 285px at 10% 12%, rgba(228, 223, 253, 0.5) 0%, transparent 70%),
+      radial-gradient(ellipse 262px 285px at 90% 15%, rgba(228, 223, 253, 0.5) 0%, transparent 70%),
+      radial-gradient(ellipse 262px 285px at 45% 45%, rgba(228, 223, 253, 0.45) 0%, transparent 70%),
+      radial-gradient(ellipse 262px 285px at -5% 65%, rgba(228, 223, 253, 0.5) 0%, transparent 70%),
+      radial-gradient(ellipse 262px 285px at 70% 85%, rgba(228, 223, 253, 0.45) 0%, transparent 70%) !important;
+    filter: blur(10px) !important;
+    z-index: 0 !important;
+  }
+
+  .onboarding-container {
+    max-width: 402px !important;
+    margin: 0 auto !important;
+    position: relative !important;
+    z-index: 1 !important;
+    width: 100% !important;
+  }
+
   .onboarding-card {
-    padding: 28px 20px;
+    background: transparent !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    border-radius: 10px !important;
   }
 
-  .account-type-grid,
-  .form-grid-2,
-  .upload-tiles-grid {
-    grid-template-columns: 1fr;
+  /* Top Bar with back arrow & center logo */
+  .card-brand-header {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    position: relative !important;
+    padding: 4px 0 10px !important;
+    margin-bottom: 4px !important;
   }
 
-  .stepper-text {
-    font-size: 10.5px;
+  .auth-mobile-back-btn {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    position: absolute !important;
+    left: 4px !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    background: none !important;
+    border: none !important;
+    color: #232356 !important;
+    cursor: pointer !important;
+    padding: 6px !important;
+    z-index: 2 !important;
+  }
+
+  .card-login-prompt {
+    display: none !important;
+  }
+
+  /* Figma: Detail card (width 392px, height 69px, background #FFFFFF, radius 10px) */
+  .onboarding-stepper {
+    background: #FFFFFF !important;
+    border-radius: 10px !important;
+    height: 69px !important;
+    padding: 8px 6px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04) !important;
+    margin-bottom: 16px !important;
+    max-width: 392px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .stepper-bar {
+    display: none !important;
+  }
+
+  .stepper-node {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 4px !important;
+    flex: 1 1 0 !important;
+    cursor: pointer !important;
   }
 
   .stepper-num {
-    width: 28px;
-    height: 28px;
-    font-size: 12px;
+    width: 20px !important;
+    height: 20px !important;
+    border-radius: 30px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 11px !important;
+    font-weight: 400 !important;
+    background: #D9D9D9 !important;
+    color: #3C1F7A !important;
+    box-shadow: none !important;
+    transform: none !important;
+  }
+
+  .stepper-node.active .stepper-num {
+    background: #6114D6 !important;
+    color: #FFFFFF !important;
+  }
+
+  .stepper-text {
+    font-family: 'Inter', sans-serif !important;
+    font-size: 10px !important;
+    font-weight: 600 !important;
+    line-height: 12px !important;
+    letter-spacing: 0.02em !important;
+    color: #34285B !important;
+    text-align: center !important;
+    white-space: normal !important;
+  }
+
+  /* Titles */
+  .step-heading {
+    font-family: 'Inter', sans-serif !important;
+    font-style: normal !important;
+    font-weight: 600 !important;
+    font-size: 24px !important;
+    line-height: 29px !important;
+    letter-spacing: 0.02em !important;
+    color: #232356 !important;
+    margin: 0 0 4px 6px !important;
+    text-align: left !important;
+  }
+
+  .step-subheading {
+    font-family: 'Inter', sans-serif !important;
+    font-style: normal !important;
+    font-weight: 400 !important;
+    font-size: 12px !important;
+    line-height: 15px !important;
+    color: #232356 !important;
+    margin: 0 0 16px 6px !important;
+    text-align: left !important;
+    max-width: 250px !important;
+  }
+
+  /* 2x2 Account Cards Grid */
+  .account-type-grid {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px !important;
+    margin-bottom: 20px !important;
+    width: 100% !important;
+  }
+
+  .account-type-card {
+    border-radius: 10px !important;
+    min-height: 217px !important;
+    height: auto !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: flex-start !important;
+    padding: 12px 10px 14px 10px !important;
+    border: none !important;
+    box-sizing: border-box !important;
+    background: #D9D9D9 !important;
+    cursor: pointer !important;
+    position: relative !important;
+    transition: all 0.2s ease !important;
+  }
+
+  .account-type-card.selected {
+    background: linear-gradient(180deg, #CF62F5 0%, #6226EA 71.39%) !important;
+    box-shadow: 0 6px 18px rgba(98, 38, 234, 0.25) !important;
+  }
+
+  .card-top-row {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    width: 100% !important;
+    margin-bottom: 10px !important;
+  }
+
+  .card-icon-box {
+    width: 52px !important;
+    height: 52px !important;
+    border-radius: 50px !important;
+    background: linear-gradient(270deg, #BE84FC 0%, #6420D6 100%) !important;
+    color: #FFFFFF !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex-shrink: 0 !important;
+  }
+
+  .card-top-arrow-btn {
+    width: 35px !important;
+    height: 34px !important;
+    border-radius: 20px !important;
+    background: #FFFFFF !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08) !important;
+    flex-shrink: 0 !important;
+  }
+
+  .card-arrow {
+    display: none !important;
+  }
+
+  .card-content {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 6px !important;
+  }
+
+  .card-title {
+    font-family: 'Inter', sans-serif !important;
+    font-style: normal !important;
+    font-weight: 600 !important;
+    font-size: 15px !important;
+    line-height: 18px !important;
+    color: #232356 !important;
+    margin: 0 !important;
+  }
+
+  .account-type-card.selected .card-title {
+    color: #FFFFFF !important;
+  }
+
+  .card-desc {
+    font-family: 'Inter', sans-serif !important;
+    font-style: normal !important;
+    font-weight: 400 !important;
+    font-size: 12px !important;
+    line-height: 15px !important;
+    color: #34285B !important;
+    margin: 0 !important;
+  }
+
+  .account-type-card.selected .card-desc {
+    color: #FFFFFF !important;
+  }
+
+  /* Step 1 Action Stack */
+  .step1-action-stack {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    width: 100% !important;
+    margin-top: 6px !important;
+  }
+
+  .btn-auth-next-grad {
+    width: 100% !important;
+    max-width: 380px !important;
+    height: 50px !important;
+    background: linear-gradient(90deg, #DC3AEE 0%, #5321E8 100%) !important;
+    border-radius: 10px !important;
+    border: none !important;
+    color: #FFFFFF !important;
+    font-family: 'Inter', sans-serif !important;
+    font-style: normal !important;
+    font-weight: 500 !important;
+    font-size: 20px !important;
+    line-height: 24px !important;
+    letter-spacing: 0.02em !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 10px !important;
+    cursor: pointer !important;
+    margin: 0 auto !important;
+    box-shadow: 0 4px 14px rgba(220, 58, 238, 0.25) !important;
+  }
+
+  .auth-footer-prompt {
+    text-align: center !important;
+    margin-top: 14px !important;
+    font-family: 'Inter', sans-serif !important;
+    font-style: normal !important;
+    font-weight: 400 !important;
+    font-size: 16px !important;
+    line-height: 19px !important;
+    letter-spacing: 0.02em !important;
+    color: rgba(83, 2, 158, 0.5) !important;
+  }
+
+  .auth-footer-login-link {
+    color: #5321E8 !important;
+    font-weight: 600 !important;
+    text-decoration: none !important;
+    margin-left: 4px !important;
+  }
+
+  .desktop-google-signup {
+    display: none !important;
+  }
+
+  .form-grid-2,
+  .upload-tiles-grid {
+    grid-template-columns: 1fr;
   }
 
   .verify-item-card {

@@ -1,3 +1,4 @@
+import { useRef, useEffect } from 'react';
 import iconNetwork from '../assets/figma/icon_network.png';
 import iconRightArrow from '../assets/figma/icon_right_arrow.png';
 import handshakeBusiness from '../assets/figma/handshake_business.jpg';
@@ -8,17 +9,41 @@ import prodBeauty from '../assets/figma/prod_beauty.png';
 import prodLifestyle from '../assets/figma/prod_lifestyle.png';
 import prodHome from '../assets/figma/prod_home.png';
 import prodNutrition from '../assets/figma/prod_nutrition.png';
+import iconCatMedical from '../assets/figma/icon_cat_medical.png';
+import iconCatBeauty from '../assets/figma/icon_cat_beauty.png';
+import iconCatLifestyle from '../assets/figma/icon_cat_lifestyle.png';
+import iconCatHome from '../assets/figma/icon_cat_home.png';
+import iconCatNutrition from '../assets/figma/icon_cat_nutrition.png';
 import './BusinessOpportunity.css';
 
 const productCategories = [
-  { label: 'Health & Wellness', image: prodHealth, active: false },
-  { label: 'Beauty & Personal Care', image: prodBeauty, active: true },
-  { label: 'Lifestyle', image: prodLifestyle, active: false },
-  { label: 'Home & Consumer', image: prodHome, active: false },
-  { label: 'Nutrition', image: prodNutrition, active: false },
+  { label: 'Health & Wellness', image: prodHealth, icon: iconCatMedical, active: false },
+  { label: 'Beauty & Personal Care', image: prodBeauty, icon: iconCatBeauty, active: true },
+  { label: 'Lifestyle', image: prodLifestyle, icon: iconCatLifestyle, active: false },
+  { label: 'Home & Consumer', image: prodHome, icon: iconCatHome, active: false },
+  { label: 'Nutrition', image: prodNutrition, icon: iconCatNutrition, active: false },
 ];
 
 export default function BusinessOpportunity() {
+  const productsScrollRef = useRef(null);
+
+  useEffect(() => {
+    if (productsScrollRef.current) {
+      productsScrollRef.current.scrollLeft = 0;
+    }
+  }, []);
+
+  const scrollProductsNext = () => {
+    if (productsScrollRef.current) {
+      const { scrollLeft, scrollWidth, clientWidth } = productsScrollRef.current;
+      const tileWidth = 106; // tile width + gap
+      if (scrollLeft + clientWidth >= scrollWidth - 10) {
+        productsScrollRef.current.scrollTo({ left: 0, behavior: 'smooth' });
+      } else {
+        productsScrollRef.current.scrollBy({ left: tileWidth, behavior: 'smooth' });
+      }
+    }
+  };
   return (
     <section className="figma-mid-sections-wrap">
       {/* ================= ROW 1: Opportunities (Left) & Leaders (Right) ================= */}
@@ -118,17 +143,19 @@ export default function BusinessOpportunity() {
               <h3 className="figma-leader-name">Alex Morgan</h3>
 
               <div className="figma-leader-meta">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#3B128D" strokeWidth="2">
-                  <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
-                  <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3B128D" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="2" y1="12" x2="22" y2="12" />
+                  <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
                 </svg>
                 <span>Business Leader</span>
               </div>
 
               <div className="figma-leader-meta">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#3B128D" strokeWidth="2">
-                  <circle cx="12" cy="8" r="7" />
-                  <polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88" />
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3B128D" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="21 8 21 21 3 21 3 8" />
+                  <rect x="1" y="3" width="22" height="5" />
+                  <line x1="10" y1="12" x2="14" y2="12" />
                 </svg>
                 <span>10+ Years Industry Experience</span>
               </div>
@@ -185,21 +212,40 @@ export default function BusinessOpportunity() {
             </p>
           </div>
 
-          <div className="figma-products-inner-card">
-            {productCategories.map((item) => (
-              <div
-                key={item.label}
-                className={`figma-prod-tile ${item.active ? 'active-tile' : ''}`}
-              >
-                {item.active && (
-                  <span className="figma-prod-hot-pill">Hot Opportunities</span>
-                )}
-                <div className="figma-prod-img-box">
-                  <img src={item.image} alt={item.label} className="figma-prod-img" />
+          <div className="figma-products-outer-wrap">
+            <div className="figma-products-inner-card" ref={productsScrollRef}>
+              {productCategories.map((item) => (
+                <div
+                  key={item.label}
+                  className={`figma-prod-tile ${item.active ? 'active-tile' : ''}`}
+                >
+                  {item.active && (
+                    <span className="figma-prod-hot-pill">Hot Opportunities</span>
+                  )}
+                  <div className="figma-prod-img-box">
+                    <img src={item.image} alt={item.label} className="figma-prod-img" />
+                  </div>
+                  <div className="figma-prod-label-box">
+                    <div className="figma-prod-cat-circle">
+                      <img src={item.icon} alt="" className="figma-prod-cat-icon" />
+                    </div>
+                    <span className="figma-prod-label">{item.label}</span>
+                  </div>
                 </div>
-                <span className="figma-prod-label">{item.label}</span>
-              </div>
-            ))}
+              ))}
+            </div>
+
+            {/* Pink Next Arrow (Frame 108 in Figma) */}
+            <button
+              type="button"
+              className="figma-prod-next-arrow"
+              aria-label="Next products"
+              onClick={scrollProductsNext}
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="2.5">
+                <path d="M9 18l6-6-6-6" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
           </div>
         </div>
 

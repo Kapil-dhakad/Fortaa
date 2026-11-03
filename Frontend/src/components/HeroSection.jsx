@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import heroMobileBg from '../assets/figma/hero_mobile_bg.png';
 import heroMountainBg from '../assets/figma/hero_mountain_bg.png';
 import heroRect7 from '../assets/figma/hero_rect_7.png';
 import heroRect10 from '../assets/figma/hero_rect_10.png';
@@ -40,6 +41,9 @@ export default function HeroSection() {
   return (
     <section className="figma-hero-wrapper" id="home">
       <div className="figma-hero-canvas">
+        {/* Mobile Figma background: exact 2x precomposed retina image */}
+        <img src={heroMobileBg} alt="" className="figma-hero-mobile-bg" />
+
         {/* Right side mountain image [9:79] relX:701, relY:2, w:737, h:473 */}
         <img
           src={heroMountainBg}

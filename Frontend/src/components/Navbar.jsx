@@ -48,6 +48,14 @@ export default function Navbar() {
               </a>
             );
           })}
+          <div className="figma-mobile-drawer-actions">
+            <Link to="/login" className="figma-btn-login mobile-drawer-btn" onClick={() => setMenuOpen(false)}>
+              Log In
+            </Link>
+            <Link to="/signup" className="figma-btn-list-business mobile-drawer-btn" onClick={() => setMenuOpen(false)}>
+              List Your Business
+            </Link>
+          </div>
         </nav>
 
         {/* Component button [62:27] x:1086, y:6, w:308, h:30 */}

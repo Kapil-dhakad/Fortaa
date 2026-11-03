@@ -47,8 +47,12 @@ async function handleGoogleAuth(req, res) {
 
     if (existingUser) {
       // ─── USER ALREADY EXISTS ───
-      // DO NOT RECREATE USER! Link session & log in directly
-      console.log(`[Google Auth]: Existing user found with email (${cleanEmail}). Logging in directly.`);
+      const isProfileCompleted = Boolean(
+        existingUser.mobile_number &&
+        (existingUser.company_brand || existingUser.business_name || existingUser.designation)
+      );
+
+      console.log(`[Google Auth]: Existing user found (${cleanEmail}). Profile completed: ${isProfileCompleted}`);
 
       const token = jwt.sign(
         { id: existingUser._id || existingUser.id, memberId: existingUser.member_id },
@@ -65,6 +69,7 @@ async function handleGoogleAuth(req, res) {
       return res.status(200).json({
         success: true,
         isNewUser: false,
+        isProfileCompleted,
         message: `Welcome back, ${existingUser.name}!`,
         token,
         user: {
@@ -75,14 +80,18 @@ async function handleGoogleAuth(req, res) {
           email: existingUser.email,
           mobileNumber: existingUser.mobile_number,
           company: existingUser.company_brand,
+          companyBrand: existingUser.company_brand,
+          businessName: existingUser.business_name,
+          designation: existingUser.designation,
+          avatarUrl: existingUser.avatar_url || googleProfile.picture || null,
           picture: googleProfile.picture || null,
+          isProfileCompleted,
         },
       });
     }
 
     // ─── NEW USER SIGNUP ───
-    // User does not exist, create a new record
-    console.log(`[Google Auth]: No existing user with email (${cleanEmail}). Creating new user.`);
+    console.log(`[Google Auth]: No existing user with email (${cleanEmail}). Creating new user via Google.`);
 
     const randomPassword = crypto.randomBytes(16).toString('hex') + 'A1!';
     const hashedPassword = await bcrypt.hash(randomPassword, 10);
@@ -95,6 +104,7 @@ async function handleGoogleAuth(req, res) {
       mobileNumber: '',
       emailVerified: true,
       mobileVerified: false,
+      avatarUrl: googleProfile.picture || null,
     });
 
     const token = jwt.sign(
@@ -112,7 +122,8 @@ async function handleGoogleAuth(req, res) {
     return res.status(201).json({
       success: true,
       isNewUser: true,
-      message: `Account created successfully with Google! Welcome to Fortaa, ${newUser.name}!`,
+      isProfileCompleted: false,
+      message: `Account created with Google! Please complete your profile, ${newUser.name}.`,
       token,
       user: {
         id: newUser._id || newUser.id,
@@ -120,9 +131,11 @@ async function handleGoogleAuth(req, res) {
         accountType: newUser.account_type,
         name: newUser.name,
         email: newUser.email,
-        mobileNumber: newUser.mobile_number,
-        company: newUser.company_brand,
+        mobileNumber: '',
+        company: '',
+        avatarUrl: googleProfile.picture || null,
         picture: googleProfile.picture || null,
+        isProfileCompleted: false,
       },
     });
   } catch (error) {

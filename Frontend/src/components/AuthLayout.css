@@ -28,6 +28,33 @@
   padding: 2px 0 6px;
 }
 
+.auth-header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.auth-lang-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 20px;
+  padding: 4px 10px;
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  color: #475569;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.auth-lang-pill:hover {
+  background: #F8FAFC;
+  border-color: #CBD5E1;
+}
+
 /* Common Logo Styles from Landing Page */
 .figma-logo {
   display: flex;
@@ -109,6 +136,11 @@
   color: #1A1A3A;
   margin-bottom: 4px;
   letter-spacing: -0.4px;
+  line-height: 1.18;
+}
+
+.auth-brand-purple {
+  color: #D31BFF;
 }
 
 .auth-hero-subtitle {
@@ -225,27 +257,128 @@
   }
 }
 
-@media (max-width: 640px) {
+/* =========================================================
+   FIGMA EXACT MOBILE RESPONSIVE (max-width: 768px)
+   Matches Frame 109 (width 402px, height 855px)
+   ========================================================= */
+@media (max-width: 768px) {
   .auth-page {
-    padding: 12px 14px 24px;
+    /* Frame 109: #FFFFFF with soft blurred glowing ellipses */
+    background: #FFFFFF !important;
+    position: relative !important;
+    overflow-x: hidden !important;
+    padding: 14px 12px 32px !important;
+    justify-content: flex-start !important;
+    min-height: 100vh !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
   }
 
+  /* Ellipse 16 - 24: #E4DFFD with opacity 0.5, blur(10px), rotate(40.68deg) */
+  .auth-page::before {
+    content: '' !important;
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    pointer-events: none !important;
+    background: 
+      radial-gradient(ellipse 262px 285px at -15% 35%, rgba(228, 223, 253, 0.55) 0%, transparent 70%),
+      radial-gradient(ellipse 262px 285px at 10% 12%, rgba(228, 223, 253, 0.5) 0%, transparent 70%),
+      radial-gradient(ellipse 262px 285px at 90% 15%, rgba(228, 223, 253, 0.5) 0%, transparent 70%),
+      radial-gradient(ellipse 262px 285px at 45% 45%, rgba(228, 223, 253, 0.45) 0%, transparent 70%),
+      radial-gradient(ellipse 262px 285px at -5% 65%, rgba(228, 223, 253, 0.5) 0%, transparent 70%),
+      radial-gradient(ellipse 262px 285px at 70% 85%, rgba(228, 223, 253, 0.45) 0%, transparent 70%) !important;
+    filter: blur(10px) !important;
+    z-index: 0 !important;
+  }
+
+  .auth-container {
+    max-width: 402px !important;
+    margin: 0 auto !important;
+    gap: 14px !important;
+    width: 100% !important;
+    position: relative !important;
+    z-index: 1 !important;
+  }
+
+  .auth-header {
+    padding: 2px 4px 6px !important;
+  }
+
+  .auth-back-link {
+    display: none !important;
+  }
+
+  .auth-lang-pill {
+    display: inline-flex !important;
+    border: 1px solid #E2E8F0 !important;
+    border-radius: 20px !important;
+    padding: 3px 10px !important;
+    font-size: 12px !important;
+    color: #232356 !important;
+    background: #FFFFFF !important;
+  }
+
+  .auth-content-grid {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 14px !important;
+    width: 100% !important;
+  }
+
+  .auth-left-panel {
+    gap: 4px !important;
+    width: 100% !important;
+    padding: 0 8px !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Join the Fortaa Community: 32px / 39px / #232356 */
   .auth-hero-title {
-    font-size: 22px;
+    font-family: 'Inter', sans-serif !important;
+    font-style: normal !important;
+    font-weight: 600 !important;
+    font-size: 32px !important;
+    line-height: 39px !important;
+    letter-spacing: 0.02em !important;
+    color: #232356 !important;
+    margin: 0 0 4px 0 !important;
+  }
+
+  .auth-brand-purple {
+    color: #BC45F8 !important;
+  }
+
+  /* Subtitle: 12px / 15px / #232356 / max-width: 258px */
+  .auth-hero-subtitle {
+    font-family: 'Inter', sans-serif !important;
+    font-style: normal !important;
+    font-weight: 400 !important;
+    font-size: 12px !important;
+    line-height: 15px !important;
+    letter-spacing: 0.02em !important;
+    color: #232356 !important;
+    margin: 0 0 4px 0 !important;
+    max-width: 260px !important;
+  }
+
+  /* Hide bulky illustration & feature pills on mobile per Figma */
+  .auth-illustration-card,
+  .auth-feature-pills {
+    display: none !important;
+  }
+
+  .auth-right-panel {
+    width: 100% !important;
   }
 
   .auth-form-card {
-    padding: 24px 18px;
-    border-radius: 10px;
-  }
-
-  .auth-feature-pills {
-    gap: 10px;
-    justify-content: space-between;
-  }
-
-  .auth-illustration-card {
-    height: 240px;
-    padding: 8px;
+    background: transparent !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
   }
 }

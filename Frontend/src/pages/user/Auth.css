@@ -461,3 +461,313 @@
   background: #F8FAFC;
   border-color: #5B1BD3;
 }
+
+/* =========================================================
+   FIGMA EXACT LOGIN PROPERTIES (Frame 109 & Inner Frames)
+   Directly matching Figma copied CSS properties
+   ========================================================= */
+
+/* Figma Frame 85: Left-aligned Forget Password link */
+.form-forgot-row {
+  width: 100%;
+  max-width: 328px;
+  display: flex;
+  justify-content: flex-start;
+  margin: -2px auto 8px;
+  box-sizing: border-box;
+}
+
+.forgot-pass-link {
+  color: #BC45F8;
+  font-family: 'Inter', sans-serif;
+  font-style: normal;
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 24px;
+  letter-spacing: 0.02em;
+  text-decoration: none;
+  transition: opacity 0.2s ease;
+}
+
+.forgot-pass-link:hover {
+  opacity: 0.8;
+  text-decoration: underline;
+}
+
+/* Figma Frame 58: Continue with Google (#0A7AF7) */
+.btn-social-google-blue {
+  width: 100%;
+  max-width: 328px;
+  height: 44px;
+  background: #0A7AF7;
+  border-radius: 10px;
+  border: none;
+  color: #FFFFFF;
+  font-family: 'Inter', sans-serif;
+  font-style: normal;
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 24px;
+  letter-spacing: 0.02em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.btn-social-google-blue:hover {
+  background: #0968d4;
+}
+
+.btn-social-icon-circle {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #FFFFFF;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* Figma Frame 59: Continue with LinkedIn (#29B6EB border, #484876 text) */
+.btn-social.btn-social-linkedin-card,
+.btn-social-linkedin-card {
+  box-sizing: border-box !important;
+  width: 100% !important;
+  max-width: 328px !important;
+  height: 46px !important;
+  border: 1px solid #29B6EB !important;
+  border-radius: 10px !important;
+  background: #FFFFFF !important;
+  color: #484876 !important;
+  font-family: 'Inter', sans-serif !important;
+  font-style: normal !important;
+  font-weight: 400 !important;
+  font-size: 16px !important;
+  line-height: 24px !important;
+  letter-spacing: 0.02em !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 10px !important;
+  cursor: pointer !important;
+  transition: background 0.2s ease, border-color 0.2s ease !important;
+}
+
+.btn-social.btn-social-linkedin-card:hover,
+.btn-social-linkedin-card:hover {
+  background: #F4FAFD !important;
+  border-color: #29B6EB !important;
+}
+
+/* Figma Frame 60: Sign Up with Email (Border 1px solid #53029E, Text #53029E) */
+.btn-signup-email {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 328px;
+  height: 46px;
+  border: 1px solid #53029E;
+  border-radius: 10px;
+  background: transparent;
+  color: #53029E;
+  font-family: 'Inter', sans-serif;
+  font-style: normal;
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 24px;
+  letter-spacing: 0.02em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.btn-signup-email:hover {
+  background: rgba(83, 2, 158, 0.06);
+}
+
+/* Figma Button: Next (width 380px, height 50px, #DC3AEE to #5321E8) */
+.btn-auth-next-grad {
+  width: 100%;
+  max-width: 380px;
+  height: 50px;
+  background: linear-gradient(90deg, #DC3AEE 0%, #5321E8 100%);
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 10px;
+  color: #FFFFFF;
+  font-family: 'Inter', sans-serif;
+  font-style: normal;
+  font-weight: 500;
+  font-size: 20px;
+  line-height: 24px;
+  letter-spacing: 0.02em;
+  transition: all 0.2s ease;
+  margin: 6px auto 0;
+  box-sizing: border-box;
+  box-shadow: 0 4px 14px rgba(220, 58, 238, 0.25);
+}
+
+.btn-auth-next-grad:hover {
+  opacity: 0.95;
+  transform: translateY(-1px);
+}
+
+.btn-auth-next-grad:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Figma Footer: Always have an account? Log In */
+.auth-footer-prompt {
+  text-align: center;
+  margin-top: 16px;
+  font-family: 'Inter', sans-serif;
+  font-style: normal;
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 19px;
+  letter-spacing: 0.02em;
+  color: rgba(83, 2, 158, 0.5);
+}
+
+.auth-footer-login-link {
+  color: #5321E8;
+  font-weight: 600;
+  text-decoration: none;
+  margin-left: 4px;
+}
+
+.auth-footer-login-link:hover {
+  text-decoration: underline;
+}
+
+/* Figma Frame 61 & 62 & or Divider Sizing & Mobile Adjustments */
+@media (max-width: 768px) {
+  /* Welcome Back */
+  .auth-card-title {
+    font-family: 'Inter', sans-serif !important;
+    font-style: normal !important;
+    font-weight: 600 !important;
+    font-size: 32px !important;
+    line-height: 39px !important;
+    letter-spacing: 0.02em !important;
+    color: #232356 !important;
+    margin-bottom: 4px !important;
+    text-align: center !important;
+  }
+
+  /* Sign in to your account */
+  .auth-card-subtitle {
+    font-family: 'Inter', sans-serif !important;
+    font-style: normal !important;
+    font-weight: 400 !important;
+    font-size: 20px !important;
+    line-height: 24px !important;
+    letter-spacing: 0.02em !important;
+    color: #232356 !important;
+    margin-bottom: 16px !important;
+    text-align: center !important;
+  }
+
+  /* Frame 61 & 62: width 328px, height 46px, border 1px solid #232356, radius 10px */
+  .form-group {
+    width: 100% !important;
+    max-width: 328px !important;
+    margin: 0 auto !important;
+  }
+
+  .input-with-icon {
+    width: 100% !important;
+    max-width: 328px !important;
+  }
+
+  .form-input {
+    width: 100% !important;
+    max-width: 328px !important;
+    height: 46px !important;
+    background: #FFFFFF !important;
+    border: 1px solid #232356 !important;
+    border-radius: 10px !important;
+    font-family: 'Inter', sans-serif !important;
+    font-style: normal !important;
+    font-weight: 400 !important;
+    font-size: 16px !important;
+    line-height: 24px !important;
+    letter-spacing: 0.02em !important;
+    color: #232356 !important;
+    padding: 10px 42px 10px 42px !important;
+    box-sizing: border-box !important;
+  }
+
+  .form-input::placeholder {
+    color: #232356 !important;
+    opacity: 0.8 !important;
+  }
+
+  .input-icon-left {
+    left: 12px !important;
+    color: #232356 !important;
+  }
+
+  .input-action-right {
+    right: 12px !important;
+  }
+
+  /* Figma: or (width 306px, gap 21px, lines 117px border 1px solid #000000, text 20px #232356) */
+  .auth-divider {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 100% !important;
+    max-width: 306px !important;
+    margin: 8px auto !important;
+    gap: 16px !important;
+  }
+
+  .auth-divider::before,
+  .auth-divider::after {
+    content: '' !important;
+    flex: 1 1 0 !important;
+    height: 0px !important;
+    border: none !important;
+    border-top: 1px solid #000000 !important;
+  }
+
+  .auth-divider span {
+    font-family: 'Inter', sans-serif !important;
+    font-style: normal !important;
+    font-weight: 400 !important;
+    font-size: 18px !important;
+    line-height: 24px !important;
+    letter-spacing: 0.02em !important;
+    color: #232356 !important;
+    padding: 0 !important;
+  }
+
+  /* Social Stack */
+  .auth-social-stack {
+    width: 100% !important;
+    max-width: 328px !important;
+    gap: 12px !important;
+    margin: 0 auto 4px !important;
+  }
+
+  .btn-social.btn-social-linkedin-card,
+  .btn-social-linkedin-card {
+    border: 1px solid #29B6EB !important;
+    border-radius: 10px !important;
+    background: #FFFFFF !important;
+  }
+}
+

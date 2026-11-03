@@ -1,0 +1,499 @@
+/* CompleteProfilePage.css */
+
+.complete-profile-page {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f8faff 0%, #f1f0fd 100%);
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 40px 20px;
+  box-sizing: border-box;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  color: #1f2937;
+}
+
+.complete-profile-container {
+  width: 100%;
+  max-width: 820px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Brand Navigation Bar */
+.cp-brand-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 4px;
+}
+
+.cp-brand-logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-decoration: none;
+}
+
+.cp-logo-icon {
+  width: 38px;
+  height: 38px;
+  object-fit: contain;
+}
+
+.cp-logo-text-wrap {
+  display: flex;
+  flex-direction: column;
+}
+
+.cp-logo-word {
+  height: 22px;
+  object-fit: contain;
+}
+
+.cp-logo-tagline {
+  font-size: 11px;
+  color: #6b7280;
+  letter-spacing: 0.5px;
+}
+
+.cp-skip-btn {
+  background: none;
+  border: 1px solid #d1d5db;
+  color: #4b5563;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.cp-skip-btn:hover {
+  background: #ffffff;
+  border-color: #9ca3af;
+  color: #111827;
+}
+
+/* Welcome Card */
+.cp-welcome-card {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 24px 28px;
+  box-shadow: 0 4px 20px rgba(90, 44, 228, 0.08);
+  border: 1px solid #eae8fd;
+}
+
+.cp-user-info-row {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.cp-user-avatar {
+  width: 68px;
+  height: 68px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid #5a2ce4;
+  box-shadow: 0 4px 10px rgba(90, 44, 228, 0.2);
+}
+
+.cp-user-avatar-fallback {
+  width: 68px;
+  height: 68px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #5a2ce4, #8b5cf6);
+  color: #ffffff;
+  font-size: 28px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cp-user-details {
+  flex: 1;
+}
+
+.cp-badge-google {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  padding: 3px 10px;
+  border-radius: 100px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 6px;
+}
+
+.cp-welcome-title {
+  margin: 0 0 6px 0;
+  font-size: 22px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.cp-welcome-sub {
+  margin: 0;
+  font-size: 13.5px;
+  color: #6b7280;
+  line-height: 1.45;
+}
+
+/* Form Card */
+.cp-form-card {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 32px 36px;
+  box-shadow: 0 4px 25px rgba(0, 0, 0, 0.05);
+  border: 1px solid #f0f0f5;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+/* Section styling */
+.cp-section {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.cp-section-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #f1f2f6;
+}
+
+.cp-section-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: #f5f3ff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+}
+
+.cp-section-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.cp-section-sub {
+  margin: 2px 0 0 0;
+  font-size: 12.5px;
+  color: #6b7280;
+}
+
+/* Form Grids & Groups */
+.cp-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 18px 24px;
+}
+
+.cp-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cp-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cp-required {
+  color: #dc2626;
+  font-weight: 700;
+}
+
+.cp-optional {
+  font-size: 11px;
+  color: #9ca3af;
+  font-weight: 400;
+}
+
+.cp-badge-verified {
+  background: #ecfdf5;
+  color: #059669;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.cp-label-with-action {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.cp-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #5a2ce4;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.cp-checkbox-label input[type='checkbox'] {
+  accent-color: #5a2ce4;
+  cursor: pointer;
+}
+
+/* Inputs & Selects */
+.cp-input,
+.cp-select {
+  height: 44px;
+  padding: 0 14px;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 9px;
+  font-size: 14px;
+  color: #111827;
+  background: #ffffff;
+  outline: none;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+}
+
+.cp-input:focus,
+.cp-select:focus {
+  border-color: #5a2ce4;
+  box-shadow: 0 0 0 3px rgba(90, 44, 228, 0.12);
+}
+
+.cp-has-error {
+  border-color: #ef4444 !important;
+}
+
+.cp-error-text {
+  font-size: 11.5px;
+  color: #dc2626;
+  font-weight: 500;
+}
+
+.cp-mt-sm {
+  margin-top: 8px;
+}
+
+/* Locked Inputs */
+.cp-input-locked-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.cp-input-locked {
+  background: #f9fafb !important;
+  color: #6b7280 !important;
+  cursor: not-allowed;
+  padding-right: 36px;
+  width: 100%;
+}
+
+.cp-lock-icon {
+  position: absolute;
+  right: 12px;
+  font-size: 13px;
+  pointer-events: none;
+  opacity: 0.6;
+}
+
+/* Phone input wrap */
+.cp-phone-wrap {
+  display: flex;
+  align-items: center;
+}
+
+.cp-phone-prefix {
+  height: 44px;
+  background: #f3f4f6;
+  border: 1.5px solid #e5e7eb;
+  border-right: none;
+  border-radius: 9px 0 0 9px;
+  padding: 0 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #4b5563;
+  display: flex;
+  align-items: center;
+}
+
+.cp-phone-input {
+  border-radius: 0 9px 9px 0 !important;
+  flex: 1;
+}
+
+/* Gender selector buttons */
+.cp-gender-row {
+  display: flex;
+  gap: 10px;
+  height: 44px;
+}
+
+.cp-gender-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 9px;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: #4b5563;
+  cursor: pointer;
+  background: #ffffff;
+  transition: all 0.2s ease;
+}
+
+.cp-gender-btn input[type='radio'] {
+  display: none;
+}
+
+.cp-gender-btn.active {
+  border-color: #5a2ce4;
+  background: #f5f3ff;
+  color: #5a2ce4;
+  font-weight: 600;
+}
+
+/* Upload Proof Box */
+.cp-upload-box {
+  background: #fafafc;
+  border: 1.5px dashed #d8d8ee;
+  border-radius: 12px;
+  padding: 16px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+
+.cp-upload-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.cp-upload-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: #eef2ff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+}
+
+.cp-upload-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.cp-upload-desc {
+  margin: 2px 0 0 0;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.cp-btn-upload {
+  padding: 8px 18px;
+  background: #ffffff;
+  border: 1.5px solid #5a2ce4;
+  color: #5a2ce4;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.cp-btn-upload:hover {
+  background: #5a2ce4;
+  color: #ffffff;
+}
+
+/* Submit Row */
+.cp-submit-row {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 10px;
+  border-top: 1px solid #f1f2f6;
+}
+
+.cp-btn-submit {
+  width: 100%;
+  height: 48px;
+  background: linear-gradient(135deg, #5a2ce4 0%, #7c3aed 100%);
+  color: #ffffff;
+  border: none;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 15px rgba(90, 44, 228, 0.35);
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cp-btn-submit:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(90, 44, 228, 0.45);
+}
+
+.cp-btn-submit:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .complete-profile-page {
+    padding: 20px 14px;
+  }
+
+  .cp-form-card {
+    padding: 20px 18px;
+  }
+
+  .cp-grid-2 {
+    grid-template-columns: 1fr;
+  }
+
+  .cp-upload-box {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .cp-btn-upload {
+    width: 100%;
+    text-align: center;
+  }
+}

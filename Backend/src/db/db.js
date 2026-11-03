@@ -34,12 +34,218 @@ CREATE TABLE IF NOT EXISTS users (
   website_social VARCHAR(255),
   mobile_verified BOOLEAN DEFAULT TRUE,
   email_verified BOOLEAN DEFAULT TRUE,
+  govt_id_url TEXT,
+  business_doc_url TEXT,
+  catalog_url TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
+ALTER TABLE users ADD COLUMN IF NOT EXISTS govt_id_url TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS business_doc_url TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS catalog_url TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_url TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS bio TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS location VARCHAR(150);
+ALTER TABLE users ADD COLUMN IF NOT EXISTS skills TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS username VARCHAR(100);
+
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 CREATE INDEX IF NOT EXISTS idx_users_member_id ON users(member_id);
+
+-- Posts Table for User Dashboard Feed
+CREATE TABLE IF NOT EXISTS posts (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  author_name VARCHAR(150) NOT NULL,
+  author_role VARCHAR(100) DEFAULT 'Member',
+  author_avatar TEXT,
+  content TEXT NOT NULL,
+  tags TEXT,
+  image_url TEXT,
+  likes_count INTEGER DEFAULT 0,
+  comments_count INTEGER DEFAULT 0,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Trainers Table
+CREATE TABLE IF NOT EXISTS trainers (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(150) NOT NULL,
+  role VARCHAR(100) NOT NULL,
+  network VARCHAR(50) DEFAULT '1.2K Network',
+  followers VARCHAR(50) DEFAULT '2K Followers',
+  avatar_url TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Services Table
+CREATE TABLE IF NOT EXISTS services (
+  id SERIAL PRIMARY KEY,
+  title VARCHAR(200) NOT NULL,
+  description TEXT,
+  location VARCHAR(150),
+  thumb_url TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Upcoming Events Table
+CREATE TABLE IF NOT EXISTS events (
+  id SERIAL PRIMARY KEY,
+  date VARCHAR(10) NOT NULL,
+  month VARCHAR(10) NOT NULL,
+  title VARCHAR(200) NOT NULL,
+  type VARCHAR(100) NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Popular Groups Table
+CREATE TABLE IF NOT EXISTS groups (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(200) NOT NULL,
+  members VARCHAR(50) NOT NULL,
+  sub VARCHAR(100),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Opportunities Table
+CREATE TABLE IF NOT EXISTS opportunities (
+  id SERIAL PRIMARY KEY,
+  title VARCHAR(200) NOT NULL,
+  is_new BOOLEAN DEFAULT FALSE,
+  tags TEXT[],
+  price VARCHAR(100) NOT NULL,
+  image_url TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Follows Table (Instagram-style follow relationship)
+CREATE TABLE IF NOT EXISTS follows (
+  id SERIAL PRIMARY KEY,
+  follower_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  following_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(follower_id, following_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_follows_follower ON follows(follower_id);
+CREATE INDEX IF NOT EXISTS idx_follows_following ON follows(following_id);
+
+-- Post Likes Table (Tracks which user liked which post)
+CREATE TABLE IF NOT EXISTS post_likes (
+  id SERIAL PRIMARY KEY,
+  post_id INTEGER NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(post_id, user_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_post_likes_post ON post_likes(post_id);
+CREATE INDEX IF NOT EXISTS idx_post_likes_user ON post_likes(user_id);
+
+-- Messages Table (Real-time Socket.io Chat)
+CREATE TABLE IF NOT EXISTS messages (
+  id SERIAL PRIMARY KEY,
+  sender_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  receiver_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  text TEXT NOT NULL,
+  is_read BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_messages_sender ON messages(sender_id);
+CREATE INDEX IF NOT EXISTS idx_messages_receiver ON messages(receiver_id);
+CREATE INDEX IF NOT EXISTS idx_messages_created_at ON messages(created_at);
 `;
+
+/**
+ * Seed initial dashboard data if tables are empty
+ */
+async function seedDashboardData(client) {
+  try {
+    // 1. Seed Posts
+    const postCount = await client.query('SELECT COUNT(*) FROM posts');
+    if (parseInt(postCount.rows[0].count, 10) === 0) {
+      await client.query(`
+        INSERT INTO posts (author_name, author_role, content, tags, likes_count, comments_count)
+        VALUES 
+        ('Kapil Dhakad', 'Gold Leader', 'Grateful to be part of an amazing team! Fortaa has given me the right platform to grow, learn and achieve my goals. Together we grow bigger!', '#FortaaMarketing #Teamwork #Success #Fortaa', 124, 28),
+        ('Sneha Patel', 'Platinum Leader', 'Looking for motivated people who want to build their own business and create financial freedom. DM me for more details.', '#Opportunity #FinancialFreedom #JoinNow', 89, 14),
+        ('Rahul Sharma', 'Diamond Leader', 'Just closed our biggest monthly milestone with over 50+ new distributors joining our team across India! Hard work always pays off.', '#DirectSelling #Leadership #FortaaGrow', 256, 45)
+      `);
+      console.log('✅ [PostgreSQL] Seeded initial posts.');
+    }
+
+    // 2. Seed Trainers
+    const trainerCount = await client.query('SELECT COUNT(*) FROM trainers');
+    if (parseInt(trainerCount.rows[0].count, 10) === 0) {
+      await client.query(`
+        INSERT INTO trainers (name, role, network, followers)
+        VALUES 
+        ('Neha Gupta', 'Diamond Leader', '1.2 Network', '2K Followers'),
+        ('Amit Verma', 'Diamond Leader', '1.2 Network', '5K Followers'),
+        ('Vikas Kumar', 'Diamond Leader', '1.2K Network', '1.1K Followers')
+      `);
+      console.log('✅ [PostgreSQL] Seeded initial trainers.');
+    }
+
+    // 3. Seed Services
+    const serviceCount = await client.query('SELECT COUNT(*) FROM services');
+    if (parseInt(serviceCount.rows[0].count, 10) === 0) {
+      await client.query(`
+        INSERT INTO services (title, description, location)
+        VALUES 
+        ('Digital Marketing Specialist', 'Digital Marketing | Graphic Designer | Video Editor | Software Engineer', 'Indore, Madhya Pradesh, India'),
+        ('Team Leader', 'Team Management | Marketing / Training | Reporting | Compose Target', 'Rewa, Madhya Pradesh, India'),
+        ('Franchise Partner', 'Franchise Opportunity | Business Set up Support | Marketing Support | Brand Licensing', 'France, Paris'),
+        ('Wellness Products', 'Health Supplements | Personal Care Products | Herbal Products | Nutrition Products', 'Indore, Madhya Pradesh, India'),
+        ('E - Commerce Business', 'Online Store Setup | Product Listing | Order Management | Payment Integration', 'Pune, Maharashtra India'),
+        ('Training & Development', 'Professional Skills | Leadership | Sales Training | Career Development', 'Singapore')
+      `);
+      console.log('✅ [PostgreSQL] Seeded initial services.');
+    }
+
+    // 4. Seed Events
+    const eventCount = await client.query('SELECT COUNT(*) FROM events');
+    if (parseInt(eventCount.rows[0].count, 10) === 0) {
+      await client.query(`
+        INSERT INTO events (date, month, title, type)
+        VALUES 
+        ('20', 'NOV', 'Leadership Summit', 'Online'),
+        ('25', 'NOV', 'Industry Networking Meet', 'New Delhi'),
+        ('30', 'NOV', 'Business Growth Workshop', 'Online')
+      `);
+      console.log('✅ [PostgreSQL] Seeded initial events.');
+    }
+
+    // 5. Seed Groups
+    const groupCount = await client.query('SELECT COUNT(*) FROM groups');
+    if (parseInt(groupCount.rows[0].count, 10) === 0) {
+      await client.query(`
+        INSERT INTO groups (name, members, sub)
+        VALUES 
+        ('Success Mindset & Moti...', '12.4K members', '3.8K mindset'),
+        ('Network Marketing Tips', '5.7K member', '8.6 mindset'),
+        ('Health & Wellness Products', '8.2k member', '6.2K mindset')
+      `);
+      console.log('✅ [PostgreSQL] Seeded initial groups.');
+    }
+
+    // 6. Seed Opportunities
+    const oppCount = await client.query('SELECT COUNT(*) FROM opportunities');
+    if (parseInt(oppCount.rows[0].count, 10) === 0) {
+      await client.query(`
+        INSERT INTO opportunities (title, is_new, tags, price)
+        VALUES 
+        ('Digital Marketing Specialist', false, ARRAY['Work from Home', 'High Earning'], '₹ 25k - 75k / month'),
+        ('Leadership Program', true, ARRAY['Build Team', 'Bonus'], '₹ 50k - 2L / month'),
+        ('Health & Wellness Specialist', false, ARRAY['High Demand'], '₹ 10k - 50k / month')
+      `);
+      console.log('✅ [PostgreSQL] Seeded initial opportunities.');
+    }
+  } catch (seedErr) {
+    console.error('⚠️ [PostgreSQL] Seeding error:', seedErr.message);
+  }
+}
 
 /**
  * Auto-ensures database exists, then connects and creates tables
@@ -51,11 +257,12 @@ async function connectDB() {
   try {
     const client = await pool.connect();
     await client.query(CREATE_TABLE_QUERY);
+    await seedDashboardData(client);
     client.release();
     isConnected = true;
     console.log(`\n==============================================`);
     console.log(`✅ [PostgreSQL] Connected to '${targetDb}' database successfully!`);
-    console.log(`✅ [PostgreSQL] 'users' table is ready.`);
+    console.log(`✅ [PostgreSQL] Dashboard tables & users table are ready.`);
     console.log(`==============================================\n`);
     return;
   } catch (err) {
@@ -101,4 +308,5 @@ function query(text, params) {
 module.exports = connectDB;
 module.exports.pool = pool;
 module.exports.query = query;
+module.exports.isDBConnected = () => isConnected;
 module.exports.isConnected = () => isConnected;
