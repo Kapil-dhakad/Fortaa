@@ -43,8 +43,7 @@ export default function AuthLayout({
           <div className="auth-left-panel">
             <div className="auth-left-text">
               <h1 className="auth-hero-title">
-                Join the<br />
-                <span className="auth-brand-purple">Fortaa</span> Community
+                {title || 'Join the Fortaa Community'}
               </h1>
               <p className="auth-hero-subtitle">{subtitle}</p>
             </div>

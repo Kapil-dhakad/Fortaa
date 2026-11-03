@@ -609,8 +609,14 @@ export default function SignUpPage() {
           {/* STEP 1: ACCOUNT TYPE */}
           {step === 1 && (
             <div>
-              <h2 className="step-heading">Create your Account</h2>
-              <p className="step-subheading">Choose your account type to get started with FORTAA.</p>
+              <h2 className="step-heading">
+                <span className="desk-step-heading">What type of account would you like to create?</span>
+                <span className="mob-step-heading">Create your Account</span>
+              </h2>
+              <p className="step-subheading">
+                <span className="desk-step-subheading">Select the option that best describes you.</span>
+                <span className="mob-step-subheading">Choose your account type to get started with FORTAA.</span>
+              </p>
 
               <div className="account-type-grid">
                 {accountTypes.map((item) => {
@@ -623,23 +629,39 @@ export default function SignUpPage() {
                     >
                       <div className="card-top-row">
                         <div className="card-icon-box">{item.icon}</div>
+                        <h3 className="card-title desktop-card-title">{item.title}</h3>
                         <div className="card-top-arrow-btn">
-                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={isSelected ? "#6226EA" : "#232356"} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={isSelected ? "#6226EA" : "#232356"} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M5 12h14M13 5l7 7-7 7" />
                           </svg>
                         </div>
                       </div>
                       <div className="card-content">
-                        <h3 className="card-title">{item.title}</h3>
+                        <h3 className="card-title mobile-card-title">{item.title}</h3>
                         <p className="card-desc">{item.desc}</p>
                       </div>
-                      <div className="card-arrow">→</div>
+                      <div className="card-arrow mobile-card-arrow">→</div>
                     </div>
                   );
                 })}
               </div>
 
-              <div className="step1-action-stack">
+              {/* Desktop Action Bar (Figma Frame 71 & Frame 28) */}
+              <div className="account-type-bottom-bar desktop-only-bar">
+                <button
+                  type="button"
+                  className="btn-desk-next"
+                  onClick={() => setStep(2)}
+                >
+                  <span>Next</span>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M5 12h14M13 5l7 7-7 7" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Mobile Action Stack */}
+              <div className="step1-action-stack mobile-only-stack">
                 <button
                   type="button"
                   className="btn-auth-next-grad"
@@ -657,32 +679,32 @@ export default function SignUpPage() {
                     Log In
                   </Link>
                 </div>
+              </div>
 
-                <div className="desktop-google-signup" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      width: '100%',
-                      maxWidth: '433px',
-                      margin: '16px 0',
-                      color: '#9CA3AF',
-                      fontSize: '12px',
-                      fontWeight: '600',
-                      textTransform: 'uppercase',
-                    }}
-                  >
-                    <div style={{ flex: 1, height: '1px', background: '#E5E7EB' }} />
-                    <span style={{ padding: '0 12px' }}>Or continue with</span>
-                    <div style={{ flex: 1, height: '1px', background: '#E5E7EB' }} />
-                  </div>
+              <div className="desktop-google-signup" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    width: '100%',
+                    maxWidth: '433px',
+                    margin: '16px 0',
+                    color: '#9CA3AF',
+                    fontSize: '12px',
+                    fontWeight: '600',
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  <div style={{ flex: 1, height: '1px', background: '#E5E7EB' }} />
+                  <span style={{ padding: '0 12px' }}>Or continue with</span>
+                  <div style={{ flex: 1, height: '1px', background: '#E5E7EB' }} />
+                </div>
 
-                  <div style={{ width: '100%', maxWidth: '433px' }}>
-                    <GoogleLoginButton
-                      buttonText="Sign up with Google"
-                      accountType={formData.accountType}
-                    />
-                  </div>
+                <div style={{ width: '100%', maxWidth: '433px' }}>
+                  <GoogleLoginButton
+                    buttonText="Sign up with Google"
+                    accountType={formData.accountType}
+                  />
                 </div>
               </div>
             </div>

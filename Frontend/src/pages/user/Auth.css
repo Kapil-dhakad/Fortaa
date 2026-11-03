@@ -769,5 +769,232 @@
     border-radius: 10px !important;
     background: #FFFFFF !important;
   }
+
+  /* View Isolation: Ensure desktop view is hidden on mobile */
+  .login-desktop-view {
+    display: none !important;
+  }
+  .login-mobile-view {
+    display: flex !important;
+    flex-direction: column !important;
+    width: 100% !important;
+  }
 }
+
+/* ============================================================== */
+/* DESKTOP LOGIN PAGE SPECIFIC STYLES (Figma Frame 56 / 1440x1024)  */
+/* ============================================================== */
+.login-desktop-view {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.login-mobile-view {
+  display: none;
+}
+
+/* Desktop Form helper row: Remember me (left) + Forget Password? (right) */
+.desk-login-helper-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  max-width: 398px;
+  margin: 4px auto 6px;
+}
+
+.desk-remember-me {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'Inter', sans-serif;
+  font-style: normal;
+  font-weight: 400;
+  font-size: 15px;
+  color: #000000;
+  cursor: pointer;
+  user-select: none;
+}
+
+.desk-remember-me input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: #5B1BD3;
+  margin: 0;
+}
+
+.desk-forgot-link {
+  font-family: 'Inter', sans-serif;
+  font-style: normal;
+  font-weight: 500;
+  font-size: 15px;
+  color: #BC45F8;
+  text-decoration: none;
+  transition: opacity 0.2s ease;
+}
+
+.desk-forgot-link:hover {
+  text-decoration: underline;
+  opacity: 0.9;
+}
+
+/* Frame 64: Desktop Login Button (width: 396px, height: 44px, #5B1BD3) */
+.btn-desk-login {
+  width: 100%;
+  max-width: 396px;
+  height: 44px;
+  background: #5B1BD3;
+  border-radius: 10px;
+  border: none;
+  font-family: 'Inter', sans-serif;
+  font-style: normal;
+  font-weight: 500;
+  font-size: 17px;
+  line-height: 24px;
+  letter-spacing: 0.02em;
+  color: #FFFFFF;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 6px auto 0;
+  transition: background 0.2s ease, transform 0.15s ease;
+}
+
+.btn-desk-login:hover {
+  background: #4A13B0;
+  transform: translateY(-1px);
+}
+
+.btn-desk-login:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Figma Desktop Divider (306px, 117px line, OR 20px, 117px line) */
+.desk-divider {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  width: 100%;
+  max-width: 306px;
+  margin: 12px auto;
+}
+
+.desk-divider-line {
+  flex: 1;
+  height: 1px;
+  background: #000000;
+}
+
+.desk-divider-text {
+  font-family: 'Inter', sans-serif;
+  font-style: normal;
+  font-weight: 400;
+  font-size: 17px;
+  line-height: 24px;
+  letter-spacing: 0.02em;
+  color: #232356;
+}
+
+/* Desktop Social Buttons (Google purple, Facebook blue, LinkedIn outline) */
+.btn-desk-social {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  max-width: 398px;
+  height: 44px;
+  border-radius: 10px;
+  font-family: 'Inter', sans-serif;
+  font-style: normal;
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 24px;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  margin: 4px auto;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+}
+
+.btn-desk-google-purple {
+  background: #5B1BD3;
+  color: #FFFFFF;
+  border: none;
+}
+
+.btn-desk-google-purple:hover {
+  background: #4A13B0;
+}
+
+.btn-social-icon-circle {
+  position: absolute;
+  left: 14px;
+  width: 26px;
+  height: 26px;
+  background: #FFFFFF;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-desk-facebook {
+  background: #0A7AF7;
+  color: #FFFFFF;
+  border: none;
+}
+
+.btn-desk-facebook:hover {
+  background: #0866D0;
+}
+
+.btn-social-icon-box {
+  position: absolute;
+  left: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-desk-linkedin {
+  background: #FFFFFF;
+  border: 1px solid #29B6EB;
+  color: #484876;
+}
+
+.btn-desk-linkedin:hover {
+  background: #F4FBFE;
+}
+
+/* Desktop Don't have an account? Sign Up */
+.desk-auth-bottom-switch {
+  text-align: center;
+  margin-top: 14px;
+  font-family: 'Inter', sans-serif;
+  font-style: normal;
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 24px;
+  letter-spacing: 0.02em;
+  color: #BEA0DB;
+}
+
+.desk-switch-link {
+  color: #BEA0DB;
+  font-weight: 600;
+  text-decoration: underline;
+  margin-left: 4px;
+}
+
+.desk-switch-link:hover {
+  color: #9C75C2;
+}
+
 
