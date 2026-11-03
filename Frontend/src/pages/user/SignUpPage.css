@@ -1270,7 +1270,10 @@
   }
 
   .desktop-google-signup {
-    display: none !important;
+    display: flex !important;
+    width: 100% !important;
+    margin-top: 12px !important;
+    margin-bottom: 8px !important;
   }
 
   .form-grid-2,
