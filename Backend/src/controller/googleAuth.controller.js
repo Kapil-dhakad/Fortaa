@@ -142,7 +142,7 @@ async function handleGoogleAuth(req, res) {
     console.error('[Google Auth Controller Error]:', error);
     return res.status(500).json({
       success: false,
-      message: 'Server error during Google authentication. Please try again.',
+      message: `Google login failed: ${error.message || 'Server error. Please try again.'}`,
       error: error.message,
     });
   }
