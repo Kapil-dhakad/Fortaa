@@ -35,7 +35,7 @@ const NAV_ITEMS = [
   { label: 'Market Place', icon: navMarketplaceIcon },
   { label: 'Companies', icon: navCompaniesIcon },
   { label: 'Products', icon: navProductsIcon },
-  { label: 'Leaders', icon: navLeadersIcon },
+  { label: 'Leaders', icon: navLeadersIcon, path: '/leaders' },
   { label: 'Promotions', icon: navPromotionsIcon },
   { label: 'Events', icon: navEventsIcon },
   { label: 'News & Updates', icon: navNewsIcon },

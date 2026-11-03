@@ -522,6 +522,8 @@ export default function UserDashboard() {
               setActiveTab(tab);
               if (tab === 'My Profile') navigate('/profile');
               if (tab === 'Messages') navigate('/messages');
+              if (tab === 'Leaders') navigate('/leaders');
+              if (tab === 'Following') navigate('/following');
             }}
             mobileMenuOpen={mobileMenuOpen}
             setMobileMenuOpen={setMobileMenuOpen}
@@ -968,7 +970,7 @@ export default function UserDashboard() {
               <div className="ud-side-card ud-leaders-card">
                 <div className="ud-side-card-header">
                   <h3 className="ud-side-card-title"># Leaders</h3>
-                  <a href="#leaders" className="ud-side-card-view-all">View All →</a>
+                  <button type="button" onClick={() => navigate("/leaders")} className="ud-side-card-view-all" style={{ border: "none", background: "transparent", cursor: "pointer", padding: 0 }}>View All →</button>
                 </div>
                 <div className="ud-leaders-list">
                   {leadersList.length === 0 ? (
@@ -1362,7 +1364,7 @@ export default function UserDashboard() {
             </div>
 
             {/* Story 5: Top Leaders */}
-            <div className="ud-mob-story-card story-leaders">
+            <div className="ud-mob-story-card story-leaders" onClick={() => navigate("/leaders")} style={{ cursor: "pointer" }}>
               <div className="ud-mob-story-avatar-wrap">
                 <div className="ud-mob-story-crown-icon">👑</div>
               </div>
