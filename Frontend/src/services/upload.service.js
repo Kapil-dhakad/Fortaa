@@ -2,6 +2,25 @@ import toast from 'react-hot-toast';
 
 const API_BASE = '/api/upload';
 
+async function handleUploadResponse(response, defaultErrorMsg = 'Upload failed') {
+  if (!response.ok) {
+    if (response.status === 413) {
+      throw new Error('File size is too large (Maximum allowed is 25MB).');
+    }
+    const text = await response.text();
+    try {
+      const data = JSON.parse(text);
+      throw new Error(data.message || defaultErrorMsg);
+    } catch (e) {
+      if (e.message && !e.message.includes('JSON')) {
+        throw e;
+      }
+      throw new Error(`${defaultErrorMsg} (Server returned ${response.status})`);
+    }
+  }
+  return await response.json();
+}
+
 /**
  * Upload single image to S3 via backend
  * @param {File} file - The file object from <input type="file" />
@@ -11,7 +30,7 @@ const API_BASE = '/api/upload';
 export async function uploadSingleImage(file, folder = 'images') {
   if (!file) return null;
 
-  const toastId = toast.loading('Uploading image to S3...');
+  const toastId = toast.loading('Uploading image...');
   try {
     const formData = new FormData();
     formData.append('file', file);
@@ -21,10 +40,7 @@ export async function uploadSingleImage(file, folder = 'images') {
       body: formData,
     });
 
-    const data = await response.json();
-    if (!response.ok) {
-      throw new Error(data.message || 'Image upload failed');
-    }
+    const data = await handleUploadResponse(response, 'Image upload failed');
 
     toast.success('Image uploaded successfully!', { id: toastId });
     return data.url;
@@ -43,7 +59,7 @@ export async function uploadSingleImage(file, folder = 'images') {
 export async function uploadMultipleImages(files, folder = 'gallery') {
   if (!files || files.length === 0) return null;
 
-  const toastId = toast.loading(`Uploading ${files.length} images to S3...`);
+  const toastId = toast.loading(`Uploading ${files.length} images...`);
   try {
     const formData = new FormData();
     for (let i = 0; i < files.length; i++) {
@@ -55,10 +71,7 @@ export async function uploadMultipleImages(files, folder = 'gallery') {
       body: formData,
     });
 
-    const data = await response.json();
-    if (!response.ok) {
-      throw new Error(data.message || 'Upload failed');
-    }
+    const data = await handleUploadResponse(response, 'Multiple upload failed');
 
     toast.success(`${data.files.length} images uploaded!`, { id: toastId });
     return data.files;
@@ -87,10 +100,7 @@ export async function uploadDocument(file, folder = 'documents') {
       body: formData,
     });
 
-    const data = await response.json();
-    if (!response.ok) {
-      throw new Error(data.message || 'Document upload failed');
-    }
+    const data = await handleUploadResponse(response, 'Document upload failed');
 
     toast.success('Document uploaded successfully!', { id: toastId });
     return data.url;

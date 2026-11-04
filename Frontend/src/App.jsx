@@ -104,6 +104,7 @@ export default function App() {
         <Route path="/all-posts" element={<AllPostsPage />} />
         <Route path="/following" element={<FollowingPage />} />
         <Route path="/leaders" element={<LeadersPage />} />
+        <Route path="/network" element={<LeadersPage />} />
         <Route path="/messages" element={<MessagesPage />} />
         <Route path="/dashboard" element={<UserDashboard />} />
         <Route path="/profile" element={<ProfilePage />} />

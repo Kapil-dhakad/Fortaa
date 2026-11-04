@@ -4,32 +4,62 @@
    ========================================================================== */
 
 .lead-page-root {
+  height: 100vh;
   min-height: 100vh;
   background: #FFFFFF;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   color: #232356;
 }
 
-/* Main Layout: Fixed Left Sidebar + Centered Content Area */
-.lead-main-layout {
+/* Main Layout Wrapper: Stationed Left Sidebar + Scrollable Right Content */
+.lead-main-wrapper {
   display: flex;
-  flex: 1;
   width: 100%;
-  max-width: 1440px;
-  margin: 0 auto;
+  height: calc(100vh - 51px);
+  overflow: hidden;
   box-sizing: border-box;
 }
 
-/* Body Content Wrapper: Main Left Column (895px) + Right Sidebar (325px) */
-.lead-body-wrapper {
+/* Scrollable Right Content Container */
+.lead-content-scroll-container {
   flex: 1;
-  display: flex;
-  gap: 24px;
-  padding: 20px 24px 60px 20px;
+  min-width: 0;
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
   box-sizing: border-box;
-  max-width: calc(100% - 185px);
+  scroll-behavior: smooth;
+}
+
+.lead-content-scroll-container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.lead-content-scroll-container::-webkit-scrollbar-track {
+  background: #F1F5F9;
+}
+
+.lead-content-scroll-container::-webkit-scrollbar-thumb {
+  background: #CBD5E1;
+  border-radius: 4px;
+}
+
+.lead-content-scroll-container::-webkit-scrollbar-thumb:hover {
+  background: #94A3B8;
+}
+
+/* Body Content Wrapper: Main Left Column (895px) + Right Sidebar (320px) */
+.lead-body-wrapper {
+  display: flex;
+  gap: 16px;
+  padding: 16px 18px 80px 16px;
+  box-sizing: border-box;
+  max-width: 1265px;
+  margin: 0 auto;
+  width: 100%;
 }
 
 /* ==========================================================================
@@ -52,7 +82,8 @@
   width: 100%;
   min-height: 141px;
   box-sizing: border-box;
-  background: linear-gradient(135deg, #1C053A 0%, #2E0362 55%, #4A0E7E 100%);
+  background: url('../../assets/dashboard/leaders_hero_bg.png') center / cover no-repeat,
+              linear-gradient(135deg, #1C053A 0%, #2E0362 55%, #4A0E7E 100%);
   border-radius: 10px;
   padding: 16px 20px;
   display: flex;
@@ -119,16 +150,20 @@
 }
 
 .lead-stat-card {
-  width: 96px;
-  height: 52px;
+  min-width: 95px;
+  height: 54px;
   background: #FFFFFF;
   border-radius: 10px;
   display: flex;
   align-items: center;
-  padding: 6px 8px;
-  gap: 6px;
+  padding: 8px 10px;
+  gap: 8px;
   box-sizing: border-box;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+}
+
+.lead-stat-card:nth-child(2) {
+  min-width: 120px;
 }
 
 .lead-stat-icon {
@@ -293,16 +328,20 @@
 }
 
 /* --------------------------------------------------------------------------
-   LEADERS CARDS GRID (3-Column Desktop, 2-Column Mobile)
+   LEADERS CARDS GRID (3-Column Desktop, All 3 Cards Visible Side-by-Side)
    -------------------------------------------------------------------------- */
 .lead-cards-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
   width: 100%;
+  box-sizing: border-box;
 }
 
+/* Card Container (Frame 301: 297px x 453px) */
 .lead-card {
+  width: 100%;
+  min-height: 450px;
   background: #F7FBFE;
   border: 1px solid #ECE7F6;
   border-radius: 10px;
@@ -319,55 +358,63 @@
   box-shadow: 0 8px 24px rgba(35, 35, 86, 0.08);
 }
 
-/* Card Banner (110px height) */
+/* Card Banner (image 32: 305px x 185px) */
 .lead-card-banner {
-  height: 110px;
+  height: 175px;
   width: 100%;
   position: relative;
   border-radius: 10px 10px 0 0;
+  background-size: cover;
+  background-position: center;
 }
 
-/* Level Badge floating on top left */
+/* Level Badge (Frame 302: 152px x 25px) */
 .lead-level-badge {
   position: absolute;
   top: 10px;
   left: 10px;
+  height: 24px;
+  padding: 0 10px;
+  box-sizing: border-box;
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 3px 8px;
+  justify-content: center;
+  gap: 6px;
   border-radius: 5px;
   color: #FFFFFF;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  z-index: 3;
 }
 
 .lead-badge-icon {
-  font-size: 11px;
+  font-size: 13px;
   line-height: 1;
 }
 
 .lead-badge-text {
   font-family: 'Inter', sans-serif;
   font-style: normal;
-  font-weight: 600;
-  font-size: 11px;
-  line-height: 14px;
+  font-weight: 500;
+  font-size: 13px;
+  line-height: 16px;
+  color: #FFFFFF;
+  white-space: nowrap;
 }
 
-/* Circular Avatar Overlapping Banner */
+/* Circular Avatar (Ellipse 43: 114px x 114px, top 71px, left 4px) */
 .lead-card-avatar-wrap {
-  width: 80px;
-  height: 80px;
+  width: 96px;
+  height: 96px;
   border-radius: 50%;
-  border: 3px solid #FFFFFF;
-  margin-top: -40px;
-  margin-left: 14px;
+  border: 2.5px solid #FFFFFF;
+  position: absolute;
+  left: 8px;
+  top: 70px;
   overflow: hidden;
   background: #ECE7F6;
-  position: relative;
   z-index: 2;
-  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.12);
-  flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-sizing: border-box;
 }
 
 .lead-card-avatar-img {
@@ -378,19 +425,22 @@
 
 /* Card Body */
 .lead-card-body {
-  padding: 10px 14px 14px;
+  padding: 10px 12px 14px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
   flex: 1;
+  background: #F7FBFE;
 }
 
+/* Vikram Yadav (Name: 20px-24px) */
 .lead-card-name {
   font-family: 'Inter', sans-serif;
   font-style: normal;
-  font-weight: 700;
-  font-size: 18px;
-  line-height: 22px;
+  font-weight: 600;
+  font-size: 20px;
+  line-height: 24px;
+  letter-spacing: 0.01em;
   color: #232356;
   margin: 0;
   white-space: nowrap;
@@ -398,6 +448,7 @@
   text-overflow: ellipsis;
 }
 
+/* Level row (Diamond Leaders: 13.5px) */
 .lead-card-level-row {
   display: flex;
   align-items: center;
@@ -405,7 +456,7 @@
 }
 
 .lead-level-icon-sm {
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1;
 }
 
@@ -413,19 +464,20 @@
   font-family: 'Inter', sans-serif;
   font-style: normal;
   font-weight: 500;
-  font-size: 13px;
-  line-height: 16px;
+  font-size: 13.5px;
+  line-height: 17px;
   color: #232356;
 }
 
+/* Location row (Hyderabad, India: 13px) */
 .lead-card-location-row {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
 }
 
 .lead-pin-icon {
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1;
 }
 
@@ -433,8 +485,8 @@
   font-family: 'Inter', sans-serif;
   font-style: normal;
   font-weight: 500;
-  font-size: 12px;
-  line-height: 15px;
+  font-size: 13px;
+  line-height: 16px;
   color: #4B5563;
   white-space: nowrap;
   overflow: hidden;
@@ -461,9 +513,9 @@
 .lead-card-stat-val {
   font-family: 'Inter', sans-serif;
   font-style: normal;
-  font-weight: 700;
+  font-weight: 600;
   font-size: 14px;
-  line-height: 16px;
+  line-height: 17px;
   color: #232356;
 }
 
@@ -471,28 +523,28 @@
   font-family: 'Inter', sans-serif;
   font-style: normal;
   font-weight: 400;
-  font-size: 11px;
-  line-height: 13px;
+  font-size: 12px;
+  line-height: 15px;
   color: #6B7280;
 }
 
-/* Quote */
+/* Quote: ‘’Small steps every day lead to big result.’’ */
 .lead-card-quote {
   font-family: 'Inter', sans-serif;
-  font-style: italic;
+  font-style: normal;
   font-weight: 400;
-  font-size: 12px;
-  line-height: 16px;
+  font-size: 13px;
+  line-height: 17px;
   color: #232356;
   margin: 0;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  min-height: 32px;
+  min-height: 34px;
 }
 
-/* Tags Row */
+/* Marketing, sales, strategy (13px, #8F2FB4) */
 .lead-card-tags-row {
   display: flex;
   align-items: center;
@@ -503,48 +555,50 @@
 .lead-tag-pill {
   display: inline-flex;
   align-items: center;
-  gap: 3px;
+  gap: 4px;
   font-family: 'Inter', sans-serif;
   font-style: normal;
   font-weight: 500;
-  font-size: 11px;
-  line-height: 14px;
+  font-size: 12.5px;
+  line-height: 16px;
   color: #8F2FB4;
   background: #F8F0FC;
-  padding: 3px 6px;
+  padding: 2px 6px;
   border-radius: 4px;
 }
 
 .lead-tag-icon {
-  font-size: 10px;
+  font-size: 12px;
   line-height: 1;
 }
 
-/* Action Buttons: Follow & Message */
+/* Action Buttons: Frame 42 (Follow: 129px x 30px) & Frame 45 (Message: 97px x 30px) */
 .lead-card-actions-row {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-top: 6px;
+  gap: 10px;
+  margin-top: 8px;
 }
 
 .lead-btn-follow {
-  flex: 1;
+  width: 129px;
   height: 30px;
   background: linear-gradient(270deg, #9F21FE 0%, #4F24FF 100%);
   border: 1px solid #8B17F8;
   border-radius: 5px;
   font-family: 'Inter', sans-serif;
   font-style: normal;
-  font-weight: 600;
-  font-size: 13px;
-  line-height: 15px;
+  font-weight: 500;
+  font-size: 13.5px;
+  line-height: 16px;
   color: #FFFFFF;
   cursor: pointer;
   transition: all 0.15s ease;
   display: flex;
   align-items: center;
   justify-content: center;
+  box-sizing: border-box;
+  flex-shrink: 0;
 }
 
 .lead-btn-follow:hover {
@@ -565,7 +619,7 @@
 }
 
 .lead-btn-message {
-  flex: 1;
+  width: 97px;
   height: 30px;
   background: #FFFFFF;
   border: 1px solid #8B17F8;
@@ -581,6 +635,21 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  box-sizing: border-box;
+  flex-shrink: 0;
+
+  font-style: normal;
+  font-weight: 500;
+  font-size: 11px;
+  line-height: 13px;
+  color: #8B17F8;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  flex-shrink: 0;
 }
 
 .lead-btn-message:hover {
@@ -709,15 +778,17 @@
 }
 
 /* ==========================================================================
-   RIGHT COLUMN SIDEBAR WIDGETS (325px - 329px)
+   RIGHT COLUMN SIDEBAR WIDGETS (320px)
    ========================================================================== */
 
 .lead-sidebar-right {
-  width: 325px;
+  width: 320px;
+  min-width: 290px;
+  max-width: 325px;
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 16px;
 }
 
 /* 1. Filter Leaders Card (Frame 291: 324px x 471px) */
@@ -1032,28 +1103,40 @@
   color: #9D4EDD;
 }
 
-/* 3. Expand Your Network Promo Card (Frame 140: 329px x 179px) */
+/* 3. Expand Your Network Promo Card (Frame 140: 329px x 180px) */
 .lead-expand-promo-card {
   width: 100%;
-  height: 179px;
+  min-height: 180px;
+  height: 180px;
   box-sizing: border-box;
-  background: linear-gradient(135deg, #1C053A 0%, #563E8B 50%, #8518F1 100%);
+  background: url('../../assets/dashboard/expand_network_bg.png') center / cover no-repeat,
+              linear-gradient(90deg, #563E8B 0%, #8518F1 100%);
   border-radius: 10px;
-  padding: 18px 20px;
+  padding: 16px 18px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   box-shadow: 0 4px 15px rgba(133, 24, 241, 0.25);
   position: relative;
   overflow: hidden;
+  flex-shrink: 0;
+}
+
+.lead-expand-content {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 100%;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .lead-expand-title {
   font-family: 'Inter', sans-serif;
   font-style: normal;
   font-weight: 600;
-  font-size: 20px;
-  line-height: 24px;
+  font-size: 22px;
+  line-height: 26px;
   color: #FFFFFF;
   margin: 0 0 6px;
 }
@@ -1062,14 +1145,15 @@
   font-family: 'Inter', sans-serif;
   font-style: normal;
   font-weight: 400;
-  font-size: 13px;
-  line-height: 16px;
-  color: #F1E9FD;
-  margin: 0;
+  font-size: 13.5px;
+  line-height: 17px;
+  color: #FFFFFF;
+  margin: 0 0 10px;
+  max-width: 270px;
 }
 
 .lead-expand-join-btn {
-  width: 105px;
+  width: 101px;
   height: 30px;
   background: #FFFFFF;
   border: none;
@@ -1079,14 +1163,14 @@
   font-weight: 600;
   font-size: 12px;
   line-height: 14px;
-  color: #9E04C3;
+  color: #232356;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
   cursor: pointer;
   transition: all 0.15s ease;
-  margin-top: 10px;
+  margin-top: auto;
 }
 
 .lead-expand-join-btn:hover {
@@ -1108,10 +1192,11 @@
    RESPONSIVE DESIGN BREAKPOINTS
    ========================================================================== */
 
-/* Tablet & Intermediate (1024px - 1280px) */
-@media (max-width: 1200px) {
+/* Smaller Desktop & Tablet (850px - 1100px) */
+@media (max-width: 1100px) {
   .lead-body-wrapper {
     flex-direction: column;
+    width: 100%;
     max-width: 100%;
   }
 
@@ -1119,26 +1204,20 @@
     max-width: 100%;
   }
 
+  .lead-cards-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .lead-sidebar-right {
     width: 100%;
+    max-width: 100%;
     display: grid;
     grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
   }
 
   .lead-expand-promo-card {
     grid-column: 1 / -1;
-  }
-}
-
-/* Smaller Tablet (769px - 1023px) */
-@media (max-width: 900px) {
-  .lead-cards-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  .lead-stats-row {
-    flex-wrap: wrap;
-    justify-content: flex-end;
   }
 }
 
@@ -1147,8 +1226,32 @@
    Matches Frame 109 and Mobile Screenshots exactly
    ========================================================================== */
 @media (max-width: 768px) {
+  /* Hide standard 2-row royal blue header so the custom hero header takes over */
+  .lead-page-root .ud-mob-header {
+    display: none !important;
+  }
+
+  .lead-page-root {
+    height: auto;
+    min-height: 100vh;
+    overflow-y: auto;
+    background: #FFFFFF;
+  }
+
+  .lead-main-wrapper {
+    height: auto;
+    overflow: visible;
+    flex-direction: column;
+  }
+
+  .lead-content-scroll-container {
+    height: auto;
+    overflow: visible;
+  }
+
   .lead-body-wrapper {
-    padding: 10px 10px 85px 10px;
+    padding: 0 10px 85px 10px;
+    width: 100%;
     max-width: 100%;
     gap: 12px;
   }
@@ -1158,23 +1261,138 @@
     display: none;
   }
 
-  /* Show Mobile Hero Header (Frame 193) */
+  /* Show Mobile Hero Header (Frame 193) matching Figma Frame 109 & Image */
   .lead-mob-hero-header {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    width: 100%;
+    min-height: 168px;
+    background: url('../../assets/dashboard/leaders_mobile_hero_bg.png') center / cover no-repeat,
+                linear-gradient(180deg, #1A0438 0%, #2E0362 100%);
+    border-radius: 0 0 16px 16px;
+    padding: 12px 14px 18px;
+    box-sizing: border-box;
+    box-shadow: 0 6px 20px rgba(46, 3, 98, 0.35);
+    margin: 0 -10px 8px -10px;
+    width: calc(100% + 20px);
+  }
+
+  /* Top Navigation Row in Hero Header */
+  .lead-mob-hero-topbar {
     display: flex;
     align-items: center;
     justify-content: space-between;
     width: 100%;
-    min-height: 48px;
-    background: linear-gradient(135deg, #1C053A 0%, #36066A 50%, #520F92 100%);
-    border-radius: 8px;
-    padding: 8px 12px;
-    box-sizing: border-box;
-    box-shadow: 0 4px 12px rgba(46, 3, 98, 0.2);
+  }
+
+  /* Brand Logo Capsule (white 152x42 style) */
+  .lead-mob-brand-capsule {
+    background: #FFFFFF;
+    border-radius: 5px;
+    padding: 3px 8px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  }
+
+  .lead-mob-brand-bold {
+    font-family: 'Inter', sans-serif;
+    font-weight: 800;
+    font-size: 13px;
+    line-height: 14px;
+    letter-spacing: 0.05em;
+    color: #2E0362;
+  }
+
+  .lead-mob-brand-sub {
+    font-family: 'Inter', sans-serif;
+    font-weight: 500;
+    font-size: 7px;
+    line-height: 9px;
+    color: #4A0E7E;
+  }
+
+  /* Actions on right */
+  .lead-mob-hero-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .lead-mob-icon-circle {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.18);
+    backdrop-filter: blur(4px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    cursor: pointer;
+    padding: 0;
+  }
+
+  .lead-mob-icon-circle.whatsapp {
+    background: #25D366;
+    border: none;
+  }
+
+  .lead-mob-icon-circle img {
+    width: 15px;
+    height: 15px;
+    object-fit: contain;
+  }
+
+  .lead-mob-badge-dot {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    background: #FF0033;
+    color: #FFFFFF;
+    font-size: 8px;
+    font-weight: 700;
+    border-radius: 50%;
+    width: 14px;
+    height: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #FFFFFF;
+  }
+
+  .lead-mob-avatar-pill {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 1.5px solid #FFFFFF;
+    cursor: pointer;
+  }
+
+  .lead-mob-avatar-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  /* Bottom Row in Hero Header */
+  .lead-mob-hero-bottom {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    width: 100%;
+    margin-top: 18px;
   }
 
   .lead-mob-hero-left {
     display: flex;
     flex-direction: column;
+    gap: 2px;
   }
 
   .lead-mob-hero-title {
@@ -1184,7 +1402,7 @@
   }
 
   .lead-mob-title-icon {
-    font-size: 16px;
+    font-size: 18px;
     line-height: 1;
   }
 
@@ -1192,8 +1410,8 @@
     font-family: 'Inter', sans-serif;
     font-style: normal;
     font-weight: 700;
-    font-size: 17px;
-    line-height: 20px;
+    font-size: 20px;
+    line-height: 24px;
     color: #FFFFFF;
     margin: 0;
   }
@@ -1202,33 +1420,35 @@
     font-family: 'Inter', sans-serif;
     font-style: normal;
     font-weight: 400;
-    font-size: 10px;
-    line-height: 12px;
+    font-size: 11px;
+    line-height: 14px;
     color: #E2D7FD;
-    margin: 2px 0 0;
+    margin: 0;
   }
 
   .lead-mob-count-pill {
-    background: rgba(255, 255, 255, 0.15);
+    background: rgba(98, 32, 254, 0.85);
     border: 1px solid rgba(255, 255, 255, 0.3);
     border-radius: 20px;
-    padding: 3px 8px;
+    padding: 4px 10px;
     font-family: 'Inter', sans-serif;
     font-style: normal;
     font-weight: 600;
-    font-size: 10px;
+    font-size: 10.5px;
     color: #FFFFFF;
     white-space: nowrap;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
   }
 
   /* Category Bar on Mobile */
   .lead-category-bar {
     padding: 0;
+    margin-bottom: 2px;
   }
 
   .lead-category-tab {
     height: 28px;
-    padding: 4px 10px;
+    padding: 4px 12px;
     font-size: 11px;
     border-radius: 14px;
   }
@@ -1243,11 +1463,12 @@
     align-items: center;
     gap: 8px;
     width: 100%;
+    margin-bottom: 4px;
   }
 
   .lead-mob-search-box {
     flex: 1;
-    height: 32px;
+    height: 34px;
     background: #FFFFFF;
     border: 1px solid #D9D9D9;
     border-radius: 6px;
@@ -1263,18 +1484,18 @@
     border: none;
     outline: none;
     font-family: 'Inter', sans-serif;
-    font-size: 11px;
+    font-size: 11.5px;
     color: #232356;
   }
 
   .lead-mob-search-box input::placeholder {
     color: #A0A5B9;
-    font-size: 10px;
+    font-size: 10.5px;
   }
 
   .lead-mob-filter-toggle-btn {
-    width: 32px;
-    height: 32px;
+    width: 34px;
+    height: 34px;
     background: #FFFFFF;
     border: 1px solid #E4DFFD;
     border-radius: 6px;
@@ -1285,118 +1506,239 @@
     flex-shrink: 0;
   }
 
-  /* Mobile 2-Column Cards Grid (matching 195px x 268px) */
+  /* Mobile 2-Column Cards Grid (matching Figma Frame 109: 195px x 268px) */
   .lead-cards-grid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 8px;
+    width: 100%;
   }
 
   .lead-card {
-    border-radius: 8px;
+    border-radius: 10px;
+    background: #F7FBFE;
+    min-height: 268px;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    box-shadow: 0 2px 8px rgba(35, 35, 86, 0.05);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 100%;
   }
 
   .lead-card-banner {
-    height: 75px;
-    border-radius: 8px 8px 0 0;
+    height: 97px;
+    position: relative;
+    border-radius: 10px 10px 0 0;
+    margin: 3px 3px 0 3px;
+    overflow: visible;
   }
 
   .lead-level-badge {
-    top: 6px;
-    left: 6px;
-    padding: 2px 6px;
-    border-radius: 4px;
+    position: absolute;
+    top: 7px;
+    left: 9px;
+    height: 16px;
+    border-radius: 5px;
+    padding: 0 6px;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    z-index: 2;
   }
 
   .lead-badge-icon {
     font-size: 9px;
+    line-height: 1;
   }
 
   .lead-badge-text {
     font-size: 8.5px;
     line-height: 10px;
+    font-weight: 500;
+    color: #FFFFFF;
+    white-space: nowrap;
   }
 
   .lead-card-avatar-wrap {
-    width: 42px;
-    height: 42px;
-    border-width: 2px;
-    margin-top: -21px;
-    margin-left: 8px;
+    width: 30px;
+    height: 30px;
+    border: 2px solid #FFFFFF;
+    border-radius: 50%;
+    position: absolute;
+    top: 68px;
+    left: 7px;
+    z-index: 3;
+    overflow: hidden;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
   }
 
   .lead-card-body {
-    padding: 6px 8px 10px;
-    gap: 4px;
+    padding: 8px 6px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    flex: 1;
+    background: #F7FBFE;
+    box-sizing: border-box;
   }
 
   .lead-card-name {
-    font-size: 13px;
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
     line-height: 16px;
+    font-weight: 600;
+    color: #232356;
+    margin: 2px 0 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .lead-card-level-row {
-    gap: 4px;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 10px;
+    line-height: 12px;
+    color: #232356;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .lead-level-icon-sm {
     font-size: 10px;
+    line-height: 1;
   }
 
   .lead-card-level-text {
-    font-size: 9.5px;
+    font-size: 10px;
     line-height: 12px;
+    color: #232356;
+  }
+
+  .lead-card-location-row {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 10px;
+    line-height: 12px;
+    color: #232356;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .lead-pin-icon {
-    font-size: 9px;
+    font-size: 10px;
+    line-height: 1;
   }
 
   .lead-card-location-text {
-    font-size: 9px;
-    line-height: 11px;
+    font-size: 10px;
+    line-height: 12px;
+    color: #232356;
   }
 
   .lead-card-stats-row {
-    padding: 4px 0;
-    margin: 1px 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 3px 0;
+    border-top: 1px solid #ECE7F6;
+    border-bottom: 1px solid #ECE7F6;
+    margin: 2px 0;
   }
 
   .lead-card-stat-val {
-    font-size: 11px;
-    line-height: 13px;
+    font-size: 10px;
+    font-weight: 600;
+    color: #232356;
+    line-height: 12px;
   }
 
   .lead-card-stat-lbl {
-    font-size: 8px;
-    line-height: 10px;
+    font-size: 9px;
+    color: #4B5563;
+    line-height: 11px;
   }
 
   .lead-card-quote {
-    font-size: 9px;
-    line-height: 12px;
-    min-height: 24px;
+    font-family: 'Inter', sans-serif;
+    font-size: 11px;
+    line-height: 13px;
+    color: #232356;
+    margin: 2px 0;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    min-height: 26px;
   }
 
   .lead-card-tags-row {
+    display: flex;
+    align-items: center;
     gap: 4px;
+    overflow-x: hidden;
+    flex-wrap: nowrap;
   }
 
   .lead-tag-pill {
-    font-size: 8.5px;
+    font-size: 9px;
     line-height: 11px;
-    padding: 2px 4px;
+    color: #8F2FB4;
+    background: transparent;
+    padding: 0;
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
   }
 
   .lead-card-actions-row {
+    display: flex;
+    align-items: center;
     gap: 6px;
     margin-top: 4px;
+    width: 100%;
+    justify-content: space-between;
   }
 
-  .lead-btn-follow,
+  .lead-btn-follow {
+    width: 65px;
+    height: 22px;
+    min-width: 65px;
+    background: linear-gradient(270deg, #9F21FE 0%, #4F24FF 100%);
+    border: 0.95px solid #8B17F8;
+    border-radius: 4.73px;
+    font-size: 10.5px;
+    font-weight: 500;
+    color: #FFFFFF;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+  }
+
   .lead-btn-message {
-    height: 24px;
+    width: 65px;
+    height: 22px;
+    min-width: 65px;
+    border: 1px solid #8B17F8;
+    border-radius: 5px;
     font-size: 10px;
-    border-radius: 4px;
+    font-weight: 500;
+    color: #8B17F8;
+    background: #FFFFFF;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
   }
 
   /* Hide Desktop Right Sidebar on Mobile */

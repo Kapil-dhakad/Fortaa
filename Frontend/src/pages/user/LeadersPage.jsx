@@ -10,6 +10,10 @@ import {
 } from '../../services/follow.service';
 import { fetchLeaders } from '../../services/dashboard.service';
 import { joinChat, subscribeToFollowEvents } from '../../services/socket.service';
+import whatsappIcon from '../../assets/dashboard/whatsaap-icon.png';
+import bellIcon from '../../assets/dashboard/bell-icon.png';
+import messageIcon from '../../assets/dashboard/message-icon.png';
+import userAvatarRahul from '../../assets/dashboard/user_avatar_rahul.png';
 import './LeadersPage.css';
 
 // Default / Figma Demo Leaders Dataset (100% matching Figma screenshot and specs)
@@ -29,8 +33,9 @@ const INITIAL_LEADERS = [
     quote: '“Small steps every day lead to big result.”',
     tags: ['Marketing', 'Sales', 'Strategy'],
     role: 'Digital Marketing',
+    bannerImg: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=600&auto=format&fit=crop&q=80',
     bannerGradient: 'linear-gradient(135deg, #FF6B6B 0%, #FFA07A 50%, #4A0E4E 100%)',
-    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80',
     networkSize: '1k-5k',
   },
   {
@@ -48,8 +53,9 @@ const INITIAL_LEADERS = [
     quote: '“Build your team, Build your dreams.”',
     tags: ['Marketing', 'Sales', 'Strategy'],
     role: 'Team Building',
+    bannerImg: 'https://images.unsplash.com/photo-1518495973542-4542c06a5843?w=600&auto=format&fit=crop&q=80',
     bannerGradient: 'linear-gradient(135deg, #6B11FF 0%, #B845ED 50%, #200052 100%)',
-    avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80',
+    avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&auto=format&fit=crop&q=80',
     networkSize: '5k-10k',
   },
   {
@@ -67,8 +73,9 @@ const INITIAL_LEADERS = [
     quote: '“Together we grow stronger.”',
     tags: ['Marketing', 'Sales', 'Strategy'],
     role: 'Direct Selling',
+    bannerImg: 'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=600&auto=format&fit=crop&q=80',
     bannerGradient: 'linear-gradient(135deg, #F39C12 0%, #E67E22 50%, #2C3E50 100%)',
-    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
+    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&auto=format&fit=crop&q=80',
     networkSize: '1k-5k',
   },
   {
@@ -86,8 +93,9 @@ const INITIAL_LEADERS = [
     quote: '“Small steps every day lead to big result.”',
     tags: ['Marketing', 'Sales', 'Strategy'],
     role: 'Business Strategy',
+    bannerImg: 'https://images.unsplash.com/photo-1509198397868-475647b2a1e5?w=600&auto=format&fit=crop&q=80',
     bannerGradient: 'linear-gradient(135deg, #0F2027 0%, #203A43 50%, #2C5364 100%)',
-    avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=80',
+    avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=200&auto=format&fit=crop&q=80',
     networkSize: '10k+',
   },
   {
@@ -105,8 +113,9 @@ const INITIAL_LEADERS = [
     quote: '“Together we grow stronger.”',
     tags: ['Marketing', 'Sales', 'Strategy'],
     role: 'Global Expansion',
+    bannerImg: 'https://images.unsplash.com/photo-1511497584788-87676104235f?w=600&auto=format&fit=crop&q=80',
     bannerGradient: 'linear-gradient(135deg, #134E5E 0%, #71B280 100%)',
-    avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80',
+    avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&auto=format&fit=crop&q=80',
     networkSize: '10k+',
   },
   {
@@ -124,8 +133,9 @@ const INITIAL_LEADERS = [
     quote: '“Build your team, Build your dreams.”',
     tags: ['Marketing', 'Sales', 'Strategy'],
     role: 'Sales Coach',
+    bannerImg: 'https://images.unsplash.com/photo-1432405972618-c60b0225b8f9?w=600&auto=format&fit=crop&q=80',
     bannerGradient: 'linear-gradient(135deg, #1D2671 0%, #C33764 100%)',
-    avatar: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=150&auto=format&fit=crop&q=80',
+    avatar: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=200&auto=format&fit=crop&q=80',
     networkSize: '1k-5k',
   },
   {
@@ -460,16 +470,18 @@ export default function LeadersPage() {
         onSearchChange={(e) => setSearchQuery(e.target.value)}
       />
 
-      <div className="lead-main-layout">
-        {/* Unified Pinned Left Sidebar */}
+      <div className="lead-main-wrapper">
+        {/* Unified Pinned Left Sidebar (Stationary / Fixed) */}
         <UserSidebar
           activeTab="Leaders"
           mobileMenuOpen={mobileMenuOpen}
           setMobileMenuOpen={setMobileMenuOpen}
         />
 
-        {/* Content Body Container */}
-        <div className="lead-body-wrapper">
+        {/* Scrollable Right Content Container */}
+        <div className="lead-content-scroll-container" id="lead-content-scroll-container">
+          {/* Content Body Container */}
+          <div className="lead-body-wrapper">
           {/* Main Left Column (Desktop 895px / Responsive) */}
           <main className="lead-main-column">
             {/* Desktop Hero Banner (Frame 307: 895px x 141px) */}
@@ -535,15 +547,70 @@ export default function LeadersPage() {
 
             {/* Mobile Hero Header (Frame 193) - Visible on Mobile Screens */}
             <div className="lead-mob-hero-header">
-              <div className="lead-mob-hero-left">
-                <div className="lead-mob-hero-title">
-                  <span className="lead-mob-title-icon">👥</span>
-                  <h2>Leaders</h2>
+              {/* Top Navigation Row in Hero Header matching Figma Screenshot */}
+              <div className="lead-mob-hero-topbar">
+                <div className="lead-mob-brand-capsule" onClick={() => navigate('/dashboard')} title="FORTAA Home">
+                  <span className="lead-mob-brand-bold">FORTAA</span>
+                  <span className="lead-mob-brand-sub">Discover, easy and Grow</span>
                 </div>
-                <p className="lead-mob-hero-tagline">Connect, Learn and Grow</p>
+
+                <div className="lead-mob-hero-actions">
+                  <a
+                    href="https://wa.me/"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="lead-mob-icon-circle whatsapp"
+                    title="WhatsApp"
+                  >
+                    <img src={whatsappIcon} alt="WhatsApp" />
+                  </a>
+
+                  <button
+                    type="button"
+                    className="lead-mob-icon-circle"
+                    title="Notifications"
+                    onClick={() => toast.success('You have 3 unread notifications')}
+                  >
+                    <img src={bellIcon} alt="Bell" />
+                    <span className="lead-mob-badge-dot">3</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    className="lead-mob-icon-circle"
+                    title="Messages"
+                    onClick={() => navigate('/messages')}
+                  >
+                    <img src={messageIcon} alt="Messages" />
+                    <span className="lead-mob-badge-dot">3</span>
+                  </button>
+
+                  <div
+                    className="lead-mob-avatar-pill"
+                    onClick={() => navigate('/profile')}
+                    title="My Profile"
+                  >
+                    <img
+                      src={storedUser?.avatar || userAvatarRahul}
+                      alt="User Avatar"
+                      className="lead-mob-avatar-img"
+                    />
+                  </div>
+                </div>
               </div>
-              <div className="lead-mob-count-pill">
-                <span>👥 1.2K+ Leaders</span>
+
+              {/* Bottom Row in Hero Header */}
+              <div className="lead-mob-hero-bottom">
+                <div className="lead-mob-hero-left">
+                  <div className="lead-mob-hero-title">
+                    <span className="lead-mob-title-icon">👥</span>
+                    <h2>Leaders</h2>
+                  </div>
+                  <p className="lead-mob-hero-tagline">Connect, Learn and Grow</p>
+                </div>
+                <div className="lead-mob-count-pill">
+                  <span>👥 1.2k+ Leaders</span>
+                </div>
               </div>
             </div>
 
@@ -634,9 +701,15 @@ export default function LeadersPage() {
                       {/* Top Banner */}
                       <div
                         className="lead-card-banner"
-                        style={{ background: leader.bannerGradient }}
+                        style={{
+                          backgroundImage: leader.bannerImg
+                            ? `url(${leader.bannerImg})`
+                            : leader.bannerGradient,
+                          backgroundSize: 'cover',
+                          backgroundPosition: 'center',
+                        }}
                       >
-                        {/* Level Badge Pill */}
+                        {/* Level Badge Pill (Frame 302: 152px x 25px) */}
                         <div
                           className="lead-level-badge"
                           style={{ background: leader.badgeColor }}
@@ -651,19 +724,19 @@ export default function LeadersPage() {
                           </span>
                           <span className="lead-badge-text">{leader.level} Leader</span>
                         </div>
-                      </div>
 
-                      {/* Avatar Overlap */}
-                      <div className="lead-card-avatar-wrap">
-                        <img
-                          src={leader.avatar}
-                          alt={leader.name}
-                          className="lead-card-avatar-img"
-                          onError={(e) => {
-                            e.currentTarget.src =
-                              'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80';
-                          }}
-                        />
+                        {/* Circular Avatar (Ellipse 43: 114px x 114px, top 71px, left 4px) */}
+                        <div className="lead-card-avatar-wrap">
+                          <img
+                            src={leader.avatar}
+                            alt={leader.name}
+                            className="lead-card-avatar-img"
+                            onError={(e) => {
+                              e.currentTarget.src =
+                                'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80';
+                            }}
+                          />
+                        </div>
                       </div>
 
                       {/* Card Content Details */}
@@ -1022,6 +1095,7 @@ export default function LeadersPage() {
           </aside>
         </div>
       </div>
+      </div>
 
       {/* Mobile Filters Drawer / Modal */}
       {mobileFilterOpen && (
@@ -1185,7 +1259,7 @@ export default function LeadersPage() {
             <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
             <path d="M16 3.13a4 4 0 0 1 0 7.75" />
           </svg>
-          <span>Leaders</span>
+          <span>Network</span>
         </button>
 
         {/* Center Floating Plus FAB */}
@@ -1201,14 +1275,14 @@ export default function LeadersPage() {
         <button
           type="button"
           className="lead-mob-bnav-item"
-          onClick={() => navigate('/following')}
+          onClick={() => navigate('/dashboard')}
         >
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <circle cx="12" cy="12" r="10" />
             <circle cx="12" cy="12" r="6" />
             <circle cx="12" cy="12" r="2" />
           </svg>
-          <span>Following</span>
+          <span>Opportunity</span>
         </button>
 
         <button
@@ -1216,10 +1290,10 @@ export default function LeadersPage() {
           className="lead-mob-bnav-item"
           onClick={() => navigate('/profile')}
         >
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <circle cx="12" cy="12" r="1" />
-            <circle cx="19" cy="12" r="1" />
-            <circle cx="5" cy="12" r="1" />
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+            <circle cx="12" cy="12" r="2.5" />
+            <circle cx="19" cy="12" r="2.5" />
+            <circle cx="5" cy="12" r="2.5" />
           </svg>
           <span>More</span>
         </button>

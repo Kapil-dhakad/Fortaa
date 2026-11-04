@@ -1687,7 +1687,7 @@ export default function UserDashboard() {
           <button
             type="button"
             className={`ud-mob-bnav-item ${activeTab === 'Network' ? 'active' : ''}`}
-            onClick={() => setActiveTab('Network')}
+            onClick={() => navigate('/leaders')}
           >
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
