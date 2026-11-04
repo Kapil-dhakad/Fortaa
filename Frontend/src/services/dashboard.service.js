@@ -59,6 +59,34 @@ export async function likePostApi(postId, userId) {
   }
 }
 
+export async function updatePostApi(postId, { content, tags, userId }) {
+  try {
+    const res = await fetch(`${BASE_URL}/posts/${postId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content, tags, userId }),
+    });
+    return await res.json();
+  } catch (err) {
+    console.error('updatePostApi error:', err);
+    return { success: false, message: 'Failed to update post' };
+  }
+}
+
+export async function deletePostApi(postId, userId) {
+  try {
+    const res = await fetch(`${BASE_URL}/posts/${postId}`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId }),
+    });
+    return await res.json();
+  } catch (err) {
+    console.error('deletePostApi error:', err);
+    return { success: false, message: 'Failed to delete post' };
+  }
+}
+
 export async function fetchTrainers() {
   try {
     const res = await fetch(`${BASE_URL}/trainers`);

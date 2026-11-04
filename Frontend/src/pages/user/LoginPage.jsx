@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import AuthLayout from '../../components/AuthLayout';
@@ -7,6 +7,19 @@ import './Auth.css';
 
 export default function LoginPage() {
   const navigate = useNavigate();
+
+  // If already logged in, redirect to Dashboard
+  useEffect(() => {
+    try {
+      const user = JSON.parse(localStorage.getItem('fortaa_user') || 'null');
+      if (user && (user.id || user.email)) {
+        navigate('/dashboard', { replace: true });
+      }
+    } catch {
+      // not logged in
+    }
+  }, [navigate]);
+
   const [emailOrPhone, setEmailOrPhone] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);

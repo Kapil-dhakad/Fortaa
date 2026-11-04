@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import NotificationDropdown from '../notifications/NotificationDropdown';
@@ -44,6 +44,40 @@ export default function UserHeader({
 
   const [notifOpen, setNotifOpen] = useState(false);
   const [realNotifCount, setRealNotifCount] = useState(0);
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const profileDropdownRef = useRef(null);
+  const mobProfileDropdownRef = useRef(null);
+
+  // Close profile dropdown on outside click
+  useEffect(() => {
+    function handleClickOutside(event) {
+      const isInsideDesktop = profileDropdownRef.current?.contains(event.target);
+      const isInsideMobile = mobProfileDropdownRef.current?.contains(event.target);
+      const isTrigger = event.target.closest('.ud-user-pill, .ud-mob-avatar-btn');
+
+      if (!isInsideDesktop && !isInsideMobile && !isTrigger) {
+        setProfileMenuOpen(false);
+      }
+    }
+    if (profileMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [profileMenuOpen]);
+
+  const handleLogout = (e) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    localStorage.clear();
+    sessionStorage.clear();
+    setProfileMenuOpen(false);
+    toast.success('Logged out successfully');
+    window.location.href = '/';
+  };
 
   // Fetch real notification count from backend + live socket updates
   useEffect(() => {
@@ -178,22 +212,52 @@ export default function UserHeader({
             {messageCount > 0 && <span className="ud-badge-count">{messageCount}</span>}
           </button>
 
-          {/* User Profile Mini Capsule */}
-          <div
-            className="ud-user-pill"
-            title="Current User"
-            onClick={handleProfileClick}
-            role="button"
-            tabIndex={0}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') handleProfileClick();
-            }}
-          >
-            <img src={displayAvatar} alt="Profile" className="ud-user-pill-avatar" />
-            <div className="ud-user-pill-info">
-              <span className="ud-user-pill-name">{displayName}</span>
-              <span className="ud-user-pill-role">{displayRole}</span>
+          {/* User Profile Mini Capsule with Dropdown */}
+          <div style={{ position: 'relative' }}>
+            <div
+              className="ud-user-pill"
+              title="Profile menu"
+              onClick={() => setProfileMenuOpen((prev) => !prev)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') setProfileMenuOpen((prev) => !prev);
+              }}
+            >
+              <img src={displayAvatar} alt="Profile" className="ud-user-pill-avatar" />
+              <div className="ud-user-pill-info">
+                <span className="ud-user-pill-name">{displayName}</span>
+                <span className="ud-user-pill-role">{displayRole}</span>
+              </div>
+              <span style={{ fontSize: '10px', marginLeft: '2px', color: 'rgba(255,255,255,0.7)' }}>
+                {profileMenuOpen ? '▲' : '▼'}
+              </span>
             </div>
+
+            {profileMenuOpen && (
+              <div className="ud-profile-dropdown" ref={profileDropdownRef}>
+                <div className="ud-profile-dropdown-user-block">
+                  <img src={displayAvatar} alt="" className="ud-profile-dropdown-avatar" />
+                  <div className="ud-profile-dropdown-meta">
+                    <span className="ud-profile-dropdown-name">{displayName}</span>
+                    <span className="ud-profile-dropdown-role">{displayRole}</span>
+                    <span className="ud-profile-dropdown-email">{storedUser.email || ''}</span>
+                  </div>
+                </div>
+
+                <div className="ud-profile-dropdown-divider" />
+
+                <button
+                  type="button"
+                  className="ud-profile-dropdown-btn ud-dropdown-logout-btn"
+                  onClick={handleLogout}
+                  onMouseDown={(e) => e.stopPropagation()}
+                >
+                  <span className="ud-dropdown-icon">🚪</span>
+                  <span>Log Out</span>
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </header>
@@ -240,14 +304,40 @@ export default function UserHeader({
               {messageCount > 0 && <span className="ud-mob-red-badge">{messageCount}</span>}
             </button>
 
-            <div
-              className="ud-mob-avatar-btn"
-              onClick={handleProfileClick}
-              role="button"
-              tabIndex={0}
-              title="Profile"
-            >
-              <img src={displayAvatar} alt="Profile" className="ud-mob-avatar-img" />
+            <div style={{ position: 'relative' }}>
+              <div
+                className="ud-mob-avatar-btn"
+                onClick={() => setProfileMenuOpen((prev) => !prev)}
+                role="button"
+                tabIndex={0}
+                title="Profile menu"
+              >
+                <img src={displayAvatar} alt="Profile" className="ud-mob-avatar-img" />
+              </div>
+
+              {profileMenuOpen && (
+                <div className="ud-profile-dropdown ud-profile-dropdown-mob" ref={mobProfileDropdownRef}>
+                  <div className="ud-profile-dropdown-user-block">
+                    <img src={displayAvatar} alt="" className="ud-profile-dropdown-avatar" />
+                    <div className="ud-profile-dropdown-meta">
+                      <span className="ud-profile-dropdown-name">{displayName}</span>
+                      <span className="ud-profile-dropdown-role">{displayRole}</span>
+                    </div>
+                  </div>
+
+                  <div className="ud-profile-dropdown-divider" />
+
+                  <button
+                    type="button"
+                    className="ud-profile-dropdown-btn ud-dropdown-logout-btn"
+                    onClick={handleLogout}
+                    onMouseDown={(e) => e.stopPropagation()}
+                  >
+                    <span className="ud-dropdown-icon">🚪</span>
+                    <span>Log Out</span>
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>

@@ -6,29 +6,55 @@ let ioInstance = null;
 
 function setupChatSocket(io) {
   ioInstance = io;
+
   io.on('connection', (socket) => {
-    let currentUserId = null;
+    let currentUserId = socket.handshake.query?.userId
+      ? String(socket.handshake.query.userId).trim()
+      : null;
 
-    // User joins with their personal userId
-    socket.on('join', ({ userId }) => {
+    if (currentUserId === 'undefined' || currentUserId === 'null' || !currentUserId) {
+      currentUserId = null;
+    }
+
+    // Register user function (used by handshake query and 'join' event)
+    const registerUser = (userId) => {
       if (!userId) return;
-      currentUserId = String(userId);
+      const uidStr = String(userId).trim();
+      if (!uidStr || uidStr === 'undefined' || uidStr === 'null') return;
 
-      // Join personal room for 1-to-1 message dispatch
+      // If user ID changed on same socket, clean up previous
+      if (currentUserId && currentUserId !== uidStr && onlineUsers.has(currentUserId)) {
+        const oldSockets = onlineUsers.get(currentUserId);
+        oldSockets.delete(socket.id);
+        if (oldSockets.size === 0) {
+          onlineUsers.delete(currentUserId);
+        }
+      }
+
+      currentUserId = uidStr;
       socket.join(`room_${currentUserId}`);
 
-      // Track online socket
       if (!onlineUsers.has(currentUserId)) {
         onlineUsers.set(currentUserId, new Set());
       }
       onlineUsers.get(currentUserId).add(socket.id);
 
-      // Notify everyone about active online users
+      // Broadcast active online users list to all connected clients
       io.emit('online_users', Array.from(onlineUsers.keys()));
-      console.log(`[Socket.IO] User ${currentUserId} connected (socket: ${socket.id})`);
+      console.log(`[Socket.IO] User ${currentUserId} active (socket: ${socket.id}, total online: ${onlineUsers.size})`);
+    };
+
+    // Auto-register from handshake query if provided
+    if (currentUserId) {
+      registerUser(currentUserId);
+    }
+
+    // User explicitly joins with their personal userId
+    socket.on('join', ({ userId }) => {
+      registerUser(userId);
     });
 
-    // Request current online users
+    // Request current online users list
     socket.on('get_online_users', () => {
       socket.emit('online_users', Array.from(onlineUsers.keys()));
     });
@@ -36,12 +62,16 @@ function setupChatSocket(io) {
     // Real-time Send Message
     socket.on('send_message', async (data) => {
       try {
-        const { senderId, receiverId, text } = data;
-        if (!senderId || !receiverId || !text || !text.trim()) {
+        const { senderId, receiverId, text, attachment } = data;
+        const cleanText = (text || '').trim();
+        if (!senderId || !receiverId || (!cleanText && !attachment)) {
           return socket.emit('error', { message: 'Invalid message payload' });
         }
 
-        const cleanText = text.trim();
+        const payloadToSave = attachment
+          ? JSON.stringify({ text: cleanText, attachment })
+          : cleanText;
+
         let savedMessage = null;
 
         if (db.isDBConnected()) {
@@ -49,7 +79,7 @@ function setupChatSocket(io) {
             `INSERT INTO messages (sender_id, receiver_id, text, is_read)
              VALUES ($1, $2, $3, FALSE)
              RETURNING id, sender_id, receiver_id, text, is_read, created_at`,
-            [Number(senderId), Number(receiverId), cleanText]
+            [Number(senderId), Number(receiverId), payloadToSave]
           );
           savedMessage = insertRes.rows[0];
         } else {
@@ -58,17 +88,29 @@ function setupChatSocket(io) {
             id: Date.now(),
             sender_id: Number(senderId),
             receiver_id: Number(receiverId),
-            text: cleanText,
+            text: payloadToSave,
             is_read: false,
             created_at: new Date().toISOString(),
           };
         }
 
-        // 1. Dispatch in real-time to receiver's private room
-        io.to(`room_${receiverId}`).emit('new_message', savedMessage);
+        // Check if receiver is online
+        const isReceiverOnline =
+          onlineUsers.has(String(receiverId)) && onlineUsers.get(String(receiverId)).size > 0;
+        const status = isReceiverOnline ? 'delivered' : 'sent';
 
-        // 2. Acknowledge back to sender with confirmed saved message
-        socket.emit('message_sent', savedMessage);
+        const finalMsg = {
+          ...savedMessage,
+          text: cleanText,
+          attachment: attachment || null,
+          status,
+        };
+
+        // 1. Dispatch in real-time to receiver's private room
+        io.to(`room_${String(receiverId)}`).emit('new_message', finalMsg);
+
+        // 2. Acknowledge back to sender with confirmed saved message and status
+        socket.emit('message_sent', finalMsg);
       } catch (err) {
         console.error('[Socket send_message error]:', err);
         socket.emit('error', { message: 'Failed to send message' });
@@ -78,13 +120,13 @@ function setupChatSocket(io) {
     // Typing Indicators
     socket.on('typing', ({ senderId, receiverId }) => {
       if (receiverId) {
-        io.to(`room_${receiverId}`).emit('user_typing', { senderId });
+        io.to(`room_${String(receiverId)}`).emit('user_typing', { senderId });
       }
     });
 
     socket.on('stop_typing', ({ senderId, receiverId }) => {
       if (receiverId) {
-        io.to(`room_${receiverId}`).emit('user_stop_typing', { senderId });
+        io.to(`room_${String(receiverId)}`).emit('user_stop_typing', { senderId });
       }
     });
 
@@ -100,7 +142,7 @@ function setupChatSocket(io) {
           );
         }
         // Inform sender that their messages were read
-        io.to(`room_${senderId}`).emit('messages_read', { byUserId: receiverId });
+        io.to(`room_${String(senderId)}`).emit('messages_read', { byUserId: Number(receiverId) });
       } catch (err) {
         console.error('[Socket mark_read error]:', err);
       }

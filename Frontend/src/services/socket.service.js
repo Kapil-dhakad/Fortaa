@@ -1,24 +1,54 @@
 import { io } from 'socket.io-client';
 
 let socket = null;
+let currentChatUserId = null;
 
-// Determine socket server URL (port 3000 where backend lives)
-const SOCKET_URL = window.location.port === '5173' ? 'http://localhost:3000' : window.location.origin;
+// Determine socket server URL (supports production environment variables or defaults)
+const SOCKET_URL =
+  import.meta.env?.VITE_SOCKET_URL ||
+  import.meta.env?.VITE_BACKEND_URL ||
+  (window.location.port === '5173' ? 'http://localhost:3000' : window.location.origin);
+
+function getStoredUserId() {
+  try {
+    const u = JSON.parse(localStorage.getItem('fortaa_user') || '{}');
+    return u?.id || u?._id || null;
+  } catch {
+    return null;
+  }
+}
 
 /**
  * Initialize or get singleton socket instance
  */
 export function getSocket() {
   if (!socket) {
+    const initialUid = currentChatUserId || getStoredUserId();
+
     socket = io(SOCKET_URL, {
       transports: ['websocket', 'polling'],
       reconnection: true,
-      reconnectionAttempts: 10,
+      reconnectionAttempts: Infinity,
       reconnectionDelay: 1000,
+      query: initialUid ? { userId: String(initialUid) } : {},
     });
 
     socket.on('connect', () => {
       console.log('⚡ [Socket.IO] Connected to chat server:', socket.id);
+      const uid = currentChatUserId || getStoredUserId();
+      if (uid) {
+        socket.emit('join', { userId: String(uid) });
+      }
+      socket.emit('get_online_users');
+    });
+
+    socket.on('reconnect', (attempt) => {
+      console.log(`⚡ [Socket.IO] Reconnected (attempt ${attempt}):`, socket.id);
+      const uid = currentChatUserId || getStoredUserId();
+      if (uid) {
+        socket.emit('join', { userId: String(uid) });
+      }
+      socket.emit('get_online_users');
     });
 
     socket.on('connect_error', (err) => {
@@ -32,18 +62,28 @@ export function getSocket() {
  * Join socket with user's ID
  */
 export function joinChat(userId) {
-  const s = getSocket();
   if (userId) {
-    s.emit('join', { userId: String(userId) });
+    currentChatUserId = String(userId);
+  }
+  const uid = currentChatUserId || getStoredUserId();
+  const s = getSocket();
+  if (uid && s) {
+    if (s.io && s.io.opts) {
+      s.io.opts.query = { userId: String(uid) };
+    }
+    if (s.connected) {
+      s.emit('join', { userId: String(uid) });
+      s.emit('get_online_users');
+    }
   }
 }
 
 /**
  * Send real-time message via Socket.IO
  */
-export function emitSendMessage({ senderId, receiverId, text }) {
+export function emitSendMessage({ senderId, receiverId, text, attachment }) {
   const s = getSocket();
-  s.emit('send_message', { senderId, receiverId, text });
+  s.emit('send_message', { senderId, receiverId, text, attachment });
 }
 
 /**

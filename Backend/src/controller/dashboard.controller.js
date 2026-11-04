@@ -487,11 +487,89 @@ async function getOpportunities(req, res) {
   }
 }
 
+// 11. Update / Edit Post
+async function updatePost(req, res) {
+  try {
+    const { id } = req.params;
+    const { content, tags, userId } = req.body;
+
+    if (!content || !content.trim()) {
+      return res.status(400).json({ success: false, message: 'Content cannot be empty' });
+    }
+
+    if (db.isDBConnected()) {
+      const checkRes = await db.query('SELECT user_id FROM posts WHERE id = $1', [id]);
+      if (checkRes.rows.length === 0) {
+        return res.status(404).json({ success: false, message: 'Post not found' });
+      }
+
+      if (userId && checkRes.rows[0].user_id && Number(checkRes.rows[0].user_id) !== Number(userId)) {
+        return res.status(403).json({ success: false, message: 'Not authorized to edit this post' });
+      }
+
+      const updateRes = await db.query(
+        `UPDATE posts 
+         SET content = $1, tags = COALESCE($2, tags)
+         WHERE id = $3
+         RETURNING *`,
+        [content.trim(), tags || null, id]
+      );
+
+      return res.status(200).json({
+        success: true,
+        message: 'Post updated successfully',
+        post: updateRes.rows[0],
+      });
+    }
+
+    const post = fallbackData.posts.find((p) => String(p.id) === String(id));
+    if (post) {
+      post.content = content.trim();
+      if (tags) post.tags = tags;
+      return res.status(200).json({ success: true, message: 'Post updated', post });
+    }
+    return res.status(404).json({ success: false, message: 'Post not found' });
+  } catch (err) {
+    console.error('updatePost error:', err);
+    return res.status(500).json({ success: false, message: 'Server error updating post' });
+  }
+}
+
+// 12. Delete Post
+async function deletePost(req, res) {
+  try {
+    const { id } = req.params;
+    const userId = req.body?.userId || req.query?.userId || req.userId;
+
+    if (db.isDBConnected()) {
+      const checkRes = await db.query('SELECT user_id FROM posts WHERE id = $1', [id]);
+      if (checkRes.rows.length === 0) {
+        return res.status(404).json({ success: false, message: 'Post not found' });
+      }
+
+      if (userId && checkRes.rows[0].user_id && Number(checkRes.rows[0].user_id) !== Number(userId)) {
+        return res.status(403).json({ success: false, message: 'Not authorized to delete this post' });
+      }
+
+      await db.query('DELETE FROM posts WHERE id = $1', [id]);
+      return res.status(200).json({ success: true, message: 'Post deleted successfully' });
+    }
+
+    fallbackData.posts = fallbackData.posts.filter((p) => String(p.id) !== String(id));
+    return res.status(200).json({ success: true, message: 'Post deleted' });
+  } catch (err) {
+    console.error('deletePost error:', err);
+    return res.status(500).json({ success: false, message: 'Server error deleting post' });
+  }
+}
+
 module.exports = {
   getDashboardOverview,
   getPosts,
   createPost,
   likePost,
+  updatePost,
+  deletePost,
   getTrainers,
   getLeaders,
   getServices,

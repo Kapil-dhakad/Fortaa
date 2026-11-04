@@ -183,20 +183,9 @@ CREATE INDEX IF NOT EXISTS idx_messages_created_at ON messages(created_at);
  */
 async function seedDashboardData(client) {
   try {
-    // 1. Seed Posts
-    const postCount = await client.query('SELECT COUNT(*) FROM posts');
-    if (parseInt(postCount.rows[0].count, 10) === 0) {
-      await client.query(`
-        INSERT INTO posts (author_name, author_role, content, tags, likes_count, comments_count)
-        VALUES 
-        ('Kapil Dhakad', 'Gold Leader', 'Grateful to be part of an amazing team! Fortaa has given me the right platform to grow, learn and achieve my goals. Together we grow bigger!', '#FortaaMarketing #Teamwork #Success #Fortaa', 124, 28),
-        ('Sneha Patel', 'Platinum Leader', 'Looking for motivated people who want to build their own business and create financial freedom. DM me for more details.', '#Opportunity #FinancialFreedom #JoinNow', 89, 14),
-        ('Rahul Sharma', 'Diamond Leader', 'Just closed our biggest monthly milestone with over 50+ new distributors joining our team across India! Hard work always pays off.', '#DirectSelling #Leadership #FortaaGrow', 256, 45)
-      `);
-      console.log('✅ [PostgreSQL] Seeded initial posts.');
-    }
+    // 1. Posts seeding disabled - only real user-created posts will be stored and displayed.
 
-    // 2. Seed Trainers
+    // 2. Seed Trainers (Static support until trainer module is built)
     const trainerCount = await client.query('SELECT COUNT(*) FROM trainers');
     if (parseInt(trainerCount.rows[0].count, 10) === 0) {
       await client.query(`

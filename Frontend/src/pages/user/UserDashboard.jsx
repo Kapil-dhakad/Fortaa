@@ -155,9 +155,7 @@ export default function UserDashboard() {
 
       // 3. Fetch Posts (Personalized feed for this user)
       const livePosts = await fetchPosts(currentId);
-      if (livePosts && livePosts.length > 0) {
-        setPosts(livePosts);
-      }
+      setPosts(Array.isArray(livePosts) ? livePosts : []);
 
       // 4. Supporting widgets
       const [tData, lData, sData, eData, gData, oData] = await Promise.all([
@@ -172,11 +170,11 @@ export default function UserDashboard() {
       if (tData?.length) setTrainersList(tData);
       
       // Load real database users/leaders (excluding current user)
-      const rawLeaders = (lData && lData.length > 0 ? lData : leaders);
+      const rawLeaders = Array.isArray(lData) ? lData : [];
       const visibleLeaders = rawLeaders.filter(
         (lead) => Number(lead.id) !== Number(currentId)
       );
-      setLeadersList(visibleLeaders.length > 0 ? visibleLeaders : rawLeaders);
+      setLeadersList(visibleLeaders);
 
       if (sData?.length) setServicesList(sData);
       if (eData?.length) setEventsList(eData);
@@ -751,191 +749,129 @@ export default function UserDashboard() {
                 </div>
               </div>
 
-              {/* ── POST SECTION (Figma: 420x688px, border 1px #D9D9D9, radius 10px) ── */}
+              {/* ── POST SECTION (Real User Feed - Max 2 Posts to preserve layout) ── */}
               <div className="ud-post-section">
-                {(posts.length > 0 ? posts.slice(0, 2) : [
-                  {
-                    id: 'mock-1',
-                    author_name: 'Rahul sharma',
-                    author_role: 'Gold Leader',
-                    author_avatar: userAvatarImg,
-                    time: '2hr ago',
-                    content: 'Grateful to be part of an amazing team! Fortaa has given me the right platform to grow, learn and achieve my goals. Together we grow bigger!',
-                    tags: '#FortaaMarketing #Teamwork #Success #Fortaa',
-                    image_url: postTogetherDreams,
-                    likes_count: 124,
-                    comments_count: 28,
-                    shares_count: 12,
-                    has_liked: false,
-                  },
-                  {
-                    id: 'mock-2',
-                    author_name: 'Sneha Patel',
-                    author_role: 'Platinum Leader',
-                    author_avatar: priyaSharmaImg,
-                    time: '4hr ago',
-                    content: 'Looking for motivated people who want to build their own business and create financial freedom. DM me for more details.',
-                    tags: '#Opportunity #FinancialFreedom #JoinNow',
-                    likes_count: 85,
-                    comments_count: 14,
-                    shares_count: 6,
-                    has_liked: false,
-                  },
-                ]).map((post, pIdx) => (
-                  <div key={post.id || pIdx} className={`ud-post-item ${pIdx === 0 ? 'ud-post-item-first' : 'ud-post-item-second'}`}>
-                    <div className="ud-post-header">
-                      <div className="ud-post-avatar-wrap">
-                        <img src={post.author_avatar || (pIdx === 0 ? userAvatarImg : priyaSharmaImg)} alt="" className="ud-post-avatar" />
-                        <span className="ud-post-online-dot"></span>
-                      </div>
-                      <div className="ud-post-author-meta">
-                        <div className="ud-post-author-name-row">
-                          <span className="ud-post-author-name">{post.author_name}</span>
-                          <span className="ud-post-badge">{post.author_role || (pIdx === 0 ? 'Gold Leader' : 'Platinum Leader')}</span>
-                          <span className="ud-post-time">
-                            • {post.time || (post.created_at ? new Date(post.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : (pIdx === 0 ? '2hr ago' : '4hr ago'))} • 🌐
-                          </span>
+                {posts.length > 0 ? (
+                  posts.slice(0, 2).map((post, pIdx) => (
+                    <div key={post.id || pIdx} className={`ud-post-item ${pIdx === 0 ? 'ud-post-item-first' : 'ud-post-item-second'}`}>
+                      <div className="ud-post-header">
+                        <div className="ud-post-avatar-wrap">
+                          <img src={post.author_avatar || userAvatarImg} alt="" className="ud-post-avatar" />
+                          <span className="ud-post-online-dot"></span>
                         </div>
-                      </div>
-                      {(() => {
-                        const isSelf = post.user_id && Number(post.user_id) === Number(profile.id);
-                        if (isSelf) return null;
-                        const targetId = post.user_id ? Number(post.user_id) : (pIdx === 0 ? 21 : 22);
-                        const isFollowed = followingIds.map(Number).includes(targetId);
-                        const isPending = pendingIds.map(Number).includes(targetId);
-                        return (
-                          <button
-                            type="button"
-                            className={`ud-btn-follow-post ${isFollowed ? 'following-active' : isPending ? 'pending-active' : ''}`}
-                            onClick={() => handleToggleFollow(targetId, post.author_name || 'Leader')}
-                          >
-                            {isFollowed ? 'Following ✓' : isPending ? 'Pending' : 'Follow'}
-                          </button>
-                        );
-                      })()}
-                      <button className="ud-btn-post-menu" type="button">⋮</button>
-                    </div>
-
-                    <div className="ud-post-body">
-                      <p className="ud-post-text">{post.content}</p>
-                      {post.tags && <p className="ud-post-tags">{post.tags}</p>}
-
-                      {/* Post 1: Image banner with Fortaa logo badge */}
-                      {(post.image_url || pIdx === 0) && (
-                        <div className="ud-post-image-box">
-                          <img
-                            src={post.image_url || postTogetherDreams}
-                            alt="Dream Connect Achieve"
-                            className="ud-post-img"
-                          />
-                          <div className="ud-post-img-logo-badge">
-                            <img src={logoTextImg} alt="FORTAA" className="ud-post-logo-badge-img" />
+                        <div className="ud-post-author-meta">
+                          <div className="ud-post-author-name-row">
+                            <span className="ud-post-author-name">{post.author_name}</span>
+                            <span className="ud-post-badge">{post.author_role || 'Member'}</span>
+                            <span className="ud-post-time">
+                              • {post.time || (post.created_at ? new Date(post.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Just now')} • 🌐
+                            </span>
                           </div>
                         </div>
-                      )}
-
-                      {/* Post 2: Two Attached Mini Business Opportunity Cards */}
-                      {pIdx === 1 && (
-                        <div className="ud-attached-opps-list">
-                          <div className="ud-attached-opp-card">
-                            <div className="ud-attached-opp-left">
-                              <div className="ud-opp-mini-avatar-wrap">
-                                <img src={priyaSharmaImg} alt="" className="ud-attached-opp-icon" />
-                                <span className="ud-post-online-dot"></span>
-                              </div>
-                              <div className="ud-opp-mini-texts">
-                                <h5 className="ud-attached-opp-title">Business Opportunity</h5>
-                                <span className="ud-attached-opp-sub">Flexible Working | Live Support | Global Platform</span>
-                              </div>
-                            </div>
-                            <button type="button" className="ud-btn-learn-more" onClick={() => toast.success('Opportunity details opened!')}>
-                              Learn More
+                        {(() => {
+                          const isSelf = post.user_id && Number(post.user_id) === Number(profile.id);
+                          if (isSelf) return null;
+                          const targetId = post.user_id ? Number(post.user_id) : null;
+                          if (!targetId) return null;
+                          const isFollowed = followingIds.map(Number).includes(targetId);
+                          const isPending = pendingIds.map(Number).includes(targetId);
+                          return (
+                            <button
+                              type="button"
+                              className={`ud-btn-follow-post ${isFollowed ? 'following-active' : isPending ? 'pending-active' : ''}`}
+                              onClick={() => handleToggleFollow(targetId, post.author_name || 'Leader')}
+                            >
+                              {isFollowed ? 'Following ✓' : isPending ? 'Pending' : 'Follow'}
                             </button>
-                          </div>
+                          );
+                        })()}
+                        <button className="ud-btn-post-menu" type="button">⋮</button>
+                      </div>
 
-                          <div className="ud-attached-opp-card">
-                            <div className="ud-attached-opp-left">
-                              <div className="ud-opp-mini-avatar-wrap">
-                                <img src={alexMorganImg} alt="" className="ud-attached-opp-icon" />
-                                <span className="ud-post-online-dot"></span>
-                              </div>
-                              <div className="ud-opp-mini-texts">
-                                <h5 className="ud-attached-opp-title">Business Opportunity</h5>
-                                <span className="ud-attached-opp-sub">Flexible Working | Live Support | Global Platform</span>
-                              </div>
+                      <div className="ud-post-body">
+                        <p className="ud-post-text">{post.content}</p>
+                        {post.tags && <p className="ud-post-tags">{post.tags}</p>}
+
+                        {/* Post Image banner if uploaded */}
+                        {post.image_url && (
+                          <div className="ud-post-image-box">
+                            <img
+                              src={post.image_url}
+                              alt="Post Media"
+                              className="ud-post-img"
+                            />
+                            <div className="ud-post-img-logo-badge">
+                              <img src={logoTextImg} alt="FORTAA" className="ud-post-logo-badge-img" />
                             </div>
-                            <button type="button" className="ud-btn-learn-more" onClick={() => toast.success('Opportunity details opened!')}>
-                              Learn More
-                            </button>
                           </div>
+                        )}
+                      </div>
+
+                      {/* Post Reactions & Action Bar */}
+                      <div className="ud-post-reactions-row">
+                        <div className="ud-post-reaction-icons">
+                          <span className="ud-react-pill-blue">👍</span>
+                          <span className="ud-react-pill-red">❤️</span>
+                          <span className="ud-react-count">{post.likes_count || 0}</span>
                         </div>
-                      )}
+                        <div className="ud-post-comment-counts">
+                          <span>{post.comments_count || 0} comments</span>
+                        </div>
+                      </div>
+
+                      <div className="ud-post-interact-bar">
+                        <button
+                          type="button"
+                          className={`ud-interact-btn ${post.has_liked ? 'liked-active' : ''}`}
+                          onClick={() => handleLike(post.id)}
+                        >
+                          {post.has_liked ? '👍 Liked' : '👍 Like'}
+                        </button>
+                        <button type="button" className="ud-interact-btn" onClick={() => toast('Comments coming soon!')}>
+                          💬 Comment
+                        </button>
+                        <button
+                          type="button"
+                          className="ud-interact-btn"
+                          onClick={() => {
+                            navigator.clipboard?.writeText(window.location.origin + '/all-posts');
+                            toast.success('Link copied to clipboard!');
+                          }}
+                        >
+                          ↗️ Share
+                        </button>
+                      </div>
                     </div>
-
-                    {/* Post 1 Reactions & Comments */}
-                    {pIdx === 0 && (
-                      <>
-                        <div className="ud-post-reactions-row">
-                          <div className="ud-post-reaction-icons">
-                            <span className="ud-react-pill-blue">👍</span>
-                            <span className="ud-react-pill-red">❤️</span>
-                            <span className="ud-react-count">124</span>
-                          </div>
-                          <div className="ud-post-comment-counts">
-                            <span>28 comments</span>
-                            <span>12 shares</span>
-                          </div>
-                        </div>
-
-                        <div className="ud-post-interact-bar">
-                          <button
-                            type="button"
-                            className={`ud-interact-btn ${post.has_liked ? 'liked-active' : ''}`}
-                            onClick={() => handleLike(post.id)}
-                          >
-                            👍 Like
-                          </button>
-                          <button type="button" className="ud-interact-btn" onClick={() => toast('Comment modal opened')}>
-                            💬 Comment
-                          </button>
-                          <button type="button" className="ud-interact-btn" onClick={() => toast.success('Link copied to clipboard!')}>
-                            ↗️ Share
-                          </button>
-                        </div>
-
-                        <div className="ud-post-comments-preview">
-                          <div className="ud-comment-item">
-                            <img src={userAvatarImg} alt="" className="ud-commenter-avatar" />
-                            <div className="ud-comment-content">
-                              <span className="ud-commenter-name">Amit Verma</span>
-                              <span className="ud-commenter-text">Great sharing keep insipiring!</span>
-                              <div className="ud-comment-actions">
-                                <span>Like</span>
-                                <span>Reply</span>
-                                <span>1h</span>
-                              </div>
-                            </div>
-                          </div>
-                          <div className="ud-comment-input-box">
-                            <span className="ud-comment-user-dot"></span>
-                            <input type="text" placeholder="Write a Comment..." className="ud-comment-input" />
-                            <span className="ud-comment-icon-btn">😊</span>
-                            <span className="ud-comment-icon-btn">📷</span>
-                          </div>
-                        </div>
-                      </>
-                    )}
+                  ))
+                ) : (
+                  <div
+                    style={{
+                      padding: '40px 24px',
+                      textAlign: 'center',
+                      background: '#F9FAFB',
+                      borderRadius: '10px',
+                      border: '1px dashed #D1D5DB',
+                      margin: '16px 0',
+                    }}
+                  >
+                    <div style={{ fontSize: '36px', marginBottom: '8px' }}>📝</div>
+                    <h4 style={{ margin: '0 0 6px 0', color: '#1F2937', fontWeight: 600 }}>No posts yet</h4>
+                    <p style={{ margin: 0, color: '#6B7280', fontSize: '13px' }}>
+                      Be the first to share an update, opportunity or photo with your network!
+                    </p>
                   </div>
-                ))}
+                )}
 
                 {/* View All Button inside the Post Section */}
-                <button
-                  type="button"
-                  className="ud-btn-view-all-wide ud-feed-view-all"
-                  onClick={() => navigate('/all-posts')}
-                >
-                  View All →
-                </button>
+                {posts.length > 0 && (
+                  <button
+                    type="button"
+                    className="ud-btn-view-all-wide ud-feed-view-all"
+                    onClick={() => navigate('/all-posts')}
+                  >
+                    View All →
+                  </button>
+                )}
               </div>
             </div>
 
@@ -1477,196 +1413,25 @@ export default function UserDashboard() {
                 </article>
               ))
             ) : (
-              <>
-                {/* Fallback Figma Post 1: Rahul Sharma */}
-                <article className="ud-mob-post-card">
-                  <div className="ud-mob-post-header">
-                    <div className="ud-mob-post-author">
-                      <div className="ud-mob-author-avatar-wrap">
-                        <img src={userAvatarImg} alt="Rahul Sharma" className="ud-mob-author-avatar" />
-                        <span className="ud-mob-online-dot" />
-                      </div>
-                      <div className="ud-mob-author-meta">
-                        <h4 className="ud-mob-author-name">Rahul sharma</h4>
-                        <span className="ud-mob-author-sub">Gold Leader • 2hr ago • 🌐</span>
-                      </div>
-                    </div>
-
-                    <div className="ud-mob-post-header-right">
-                      {(() => {
-                        const targetId = 21;
-                        const isFollowed = followingIds.map(Number).includes(targetId);
-                        const isPending = pendingIds.map(Number).includes(targetId);
-                        return (
-                          <button
-                            type="button"
-                            className={`ud-mob-btn-follow ${isFollowed ? 'following-active' : isPending ? 'pending-active' : ''}`}
-                            onClick={() => handleToggleFollow(targetId, 'Rahul sharma')}
-                          >
-                            {isFollowed ? 'Following ✓' : isPending ? 'Pending' : 'Follow'}
-                          </button>
-                        );
-                      })()}
-                      <button type="button" className="ud-mob-btn-menu" aria-label="More options">
-                        ⋮
-                      </button>
-                    </div>
-                  </div>
-
-                  <p className="ud-mob-post-text">
-                    Grateful to be part of an amazing team! Fortaa has given me the right platform to grow, learn and achieve my goals. Together we grow bigger!
-                  </p>
-
-                  <div className="ud-mob-post-tags">
-                    <span>#FortaaMarketing</span> <span>#Teamwork</span> <span>#Success</span> <span>#Fortaa</span>
-                  </div>
-
-                  {/* Dream Connect Achieve Banner Image */}
-                  <div className="ud-mob-post-banner-wrap">
-                    <img src={postTogetherDreams} alt="Dream Connect Achieve" className="ud-mob-post-banner-img" />
-                    <div className="ud-mob-banner-overlay-logo">
-                      <img src={logoTextImg} alt="Fortaa" className="ud-mob-banner-fortaa-word" />
-                    </div>
-                  </div>
-
-                  {/* Reactions Bar */}
-                  <div className="ud-mob-post-engagement">
-                    <div className="ud-mob-engagement-reactions">
-                      <span className="ud-mob-reaction-badge blue">👍</span>
-                      <span className="ud-mob-reaction-badge orange">🧡</span>
-                      <span className="ud-mob-engagement-count">124</span>
-                    </div>
-                    <div className="ud-mob-engagement-stats">
-                      <span>28 comments</span>
-                      <span>•</span>
-                      <span>12 shares</span>
-                    </div>
-                  </div>
-
-                  {/* Action Buttons: Like, Comment, Share */}
-                  <div className="ud-mob-post-actions-row">
-                    <button type="button" className="ud-mob-post-action-btn" onClick={() => toast.success('Liked Rahul\'s post!')}>
-                      <span>👍</span>
-                      <span>Like</span>
-                    </button>
-                    <button type="button" className="ud-mob-post-action-btn" onClick={() => toast('Comment section')}>
-                      <span>💬</span>
-                      <span>Comment</span>
-                    </button>
-                    <button type="button" className="ud-mob-post-action-btn" onClick={() => toast.success('Shared!')}>
-                      <span>↗</span>
-                      <span>Share</span>
-                    </button>
-                  </div>
-
-                  {/* Comment Preview */}
-                  <div className="ud-mob-comment-preview">
-                    <img src={alexMorganImg} alt="" className="ud-mob-comment-avatar" />
-                    <div className="ud-mob-comment-body">
-                      <span className="ud-mob-comment-author">Amit Verma</span>
-                      <p className="ud-mob-comment-msg">Great sharing keep insipiring!</p>
-                      <div className="ud-mob-comment-meta">
-                        <button type="button">Like</button>
-                        <button type="button">Reply</button>
-                        <span>1h</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Write a comment input */}
-                  <div className="ud-mob-comment-input-row">
-                    <img src={profile.avatarUrl || userAvatarImg} alt="" className="ud-mob-comment-my-avatar" />
-                    <div className="ud-mob-comment-input-box">
-                      <span className="ud-mob-input-icon">🔍</span>
-                      <input type="text" placeholder="Write a Comment" className="ud-mob-comment-field" />
-                      <span className="ud-mob-comment-tool">😊</span>
-                      <span className="ud-mob-comment-tool">📷</span>
-                    </div>
-                  </div>
-                </article>
-
-                {/* Fallback Figma Post 2: Sneha Patel */}
-                <article className="ud-mob-post-card">
-                  <div className="ud-mob-post-header">
-                    <div className="ud-mob-post-author">
-                      <div className="ud-mob-author-avatar-wrap">
-                        <img src={priyaSharmaImg} alt="Sneha Patel" className="ud-mob-author-avatar" />
-                        <span className="ud-mob-online-dot" />
-                      </div>
-                      <div className="ud-mob-author-meta">
-                        <h4 className="ud-mob-author-name">Sneha Patel</h4>
-                        <span className="ud-mob-author-sub">Platinum Leader • 4hr ago • 🌐</span>
-                      </div>
-                    </div>
-
-                    <div className="ud-mob-post-header-right">
-                      {(() => {
-                        const targetId = 22;
-                        const isFollowed = followingIds.map(Number).includes(targetId);
-                        const isPending = pendingIds.map(Number).includes(targetId);
-                        return (
-                          <button
-                            type="button"
-                            className={`ud-mob-btn-follow ${isFollowed ? 'following-active' : isPending ? 'pending-active' : ''}`}
-                            onClick={() => handleToggleFollow(targetId, 'Sneha Patel')}
-                          >
-                            {isFollowed ? 'Following ✓' : isPending ? 'Pending' : 'Follow'}
-                          </button>
-                        );
-                      })()}
-                      <button type="button" className="ud-mob-btn-menu" aria-label="More options">
-                        ⋮
-                      </button>
-                    </div>
-                  </div>
-
-                  <p className="ud-mob-post-text">
-                    Looking for motivated people who want to build their own business and create financial freedom. DM me for more details.
-                  </p>
-
-                  <div className="ud-mob-post-tags">
-                    <span>#Opportunity</span> <span>#FinancialFreedom</span> <span>#JoinNow</span>
-                  </div>
-
-                  {/* Embedded Opportunity Card */}
-                  <div className="ud-mob-opp-card-embed">
-                    <div className="ud-mob-opp-card-thumb">
-                      <span>BUILD YOUR FUTURE</span>
-                      <img src={logoTextImg} alt="" className="ud-mob-opp-fortaa-tiny" />
-                    </div>
-                    <div className="ud-mob-opp-card-info">
-                      <h5 className="ud-mob-opp-title">Business Opportunity</h5>
-                      <p className="ud-mob-opp-desc">Flexible Working | Live Support | Global Platform</p>
-                      <button type="button" className="ud-mob-opp-btn" onClick={() => navigate('/opportunity')}>
-                        Learn More
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Team Image Banner */}
-                  <div className="ud-mob-post-banner-wrap">
-                    <img src={handshakeBusiness} alt="Team" className="ud-mob-post-banner-img" />
-                  </div>
-
-                  <div className="ud-mob-post-tags">
-                    <span>#FortaaMarketing</span> <span>#Teamwork</span> <span>#Success</span> <span>#Fortaa</span>
-                  </div>
-
-                  {/* Reactions Bar */}
-                  <div className="ud-mob-post-engagement">
-                    <div className="ud-mob-engagement-reactions">
-                      <span className="ud-mob-reaction-badge blue">👍</span>
-                      <span className="ud-mob-reaction-badge orange">🧡</span>
-                      <span className="ud-mob-engagement-count">124</span>
-                    </div>
-                    <div className="ud-mob-engagement-stats">
-                      <span>30 comments</span>
-                      <span>•</span>
-                      <span>15 shares</span>
-                    </div>
-                  </div>
-                </article>
-              </>
+              <div
+                className="ud-mob-no-posts-card"
+                style={{
+                  padding: '36px 16px',
+                  textAlign: 'center',
+                  background: '#FFFFFF',
+                  borderRadius: '12px',
+                  border: '1px dashed #D1D5DB',
+                  margin: '12px 16px',
+                }}
+              >
+                <div style={{ fontSize: '36px', marginBottom: '8px' }}>📝</div>
+                <h4 style={{ margin: '0 0 6px 0', color: '#1F2937', fontSize: '15px', fontWeight: 600 }}>
+                  No posts yet
+                </h4>
+                <p style={{ margin: 0, color: '#6B7280', fontSize: '12px' }}>
+                  Share your first thought, photo or update above!
+                </p>
+              </div>
             )}
           </div>
         </div>

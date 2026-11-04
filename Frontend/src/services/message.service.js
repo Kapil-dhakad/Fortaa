@@ -1,4 +1,5 @@
-const API_BASE = '/api/messages';
+const BACKEND_BASE = import.meta.env?.VITE_API_URL || import.meta.env?.VITE_BACKEND_URL || '';
+const API_BASE = `${BACKEND_BASE}/api/messages`;
 
 /**
  * Fetch all conversations / contacts for user
@@ -31,12 +32,12 @@ export async function fetchChatHistory(userId, otherUserId) {
 /**
  * Send message via HTTP fallback
  */
-export async function sendChatMessageHttp({ senderId, receiverId, text }) {
+export async function sendChatMessageHttp({ senderId, receiverId, text, attachment }) {
   try {
     const res = await fetch(`${API_BASE}/send`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ senderId, receiverId, text }),
+      body: JSON.stringify({ senderId, receiverId, text, attachment }),
     });
     const data = await res.json();
     return data.success ? data.message : null;

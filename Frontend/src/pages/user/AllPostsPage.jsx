@@ -30,12 +30,15 @@ export default function AllPostsPage() {
         if (overview?.user?.id) currentId = overview.user.id;
         setProfileId(currentId);
 
-        const [fIds, livePosts] = await Promise.all([
+        const [fData, livePosts] = await Promise.all([
           fetchFollowingIds(currentId),
           fetchPosts(currentId),
         ]);
-        setFollowingIds(fIds || []);
-        if (livePosts?.length) setPosts(livePosts);
+        const ids = Array.isArray(fData?.followingIds) 
+          ? fData.followingIds 
+          : (Array.isArray(fData) ? fData : []);
+        setFollowingIds(ids);
+        if (Array.isArray(livePosts)) setPosts(livePosts);
       } catch (err) {
         console.error('[AllPosts load error]:', err);
         toast.error('Could not load posts');
@@ -64,18 +67,18 @@ export default function AllPostsPage() {
   };
 
   const handleToggleFollow = async (targetUserId, targetName) => {
-    if (!targetUserId || targetUserId === profileId) return;
+    if (!targetUserId || Number(targetUserId) === Number(profileId)) return;
     const res = await toggleFollowUser(targetUserId, profileId);
     if (res?.success) {
       if (res.isFollowing) {
-        setFollowingIds((prev) => [...prev, Number(targetUserId)]);
+        setFollowingIds((prev) => [...(Array.isArray(prev) ? prev : []), Number(targetUserId)]);
         toast.success(`Following ${targetName}!`);
       } else {
-        setFollowingIds((prev) => prev.filter((id) => Number(id) !== Number(targetUserId)));
+        setFollowingIds((prev) => (Array.isArray(prev) ? prev.filter((id) => Number(id) !== Number(targetUserId)) : []));
         toast(`Unfollowed ${targetName}`);
       }
       const updated = await fetchPosts(profileId);
-      if (updated?.length) setPosts(updated);
+      if (Array.isArray(updated)) setPosts(updated);
     }
   };
 
@@ -129,12 +132,12 @@ export default function AllPostsPage() {
                       </span>
                     </div>
                   </div>
-                  {post.user_id !== profileId && (
+                  {post.user_id && Number(post.user_id) !== Number(profileId) && (
                     <button
-                      className={`ap-follow-btn ${followingIds.includes(post.user_id) ? 'following' : ''}`}
+                      className={`ap-follow-btn ${Array.isArray(followingIds) && followingIds.map(Number).includes(Number(post.user_id)) ? 'following' : ''}`}
                       onClick={() => handleToggleFollow(post.user_id, post.author_name)}
                     >
-                      {followingIds.includes(post.user_id) ? 'Following ✓' : 'Follow'}
+                      {Array.isArray(followingIds) && followingIds.map(Number).includes(Number(post.user_id)) ? 'Following ✓' : 'Follow'}
                     </button>
                   )}
                   <button className="ap-menu-btn">⋮</button>

@@ -1133,16 +1133,20 @@
   position: relative;
   width: 100%;
   max-width: 399px;
-  height: 139px;
+  max-height: 280px;
   border-radius: 10px;
   overflow: hidden;
-  background: #000000;
+  background: transparent;
+  display: flex;
+  justify-content: center;
 }
 
 .ud-post-img {
   width: 100%;
-  height: 100%;
+  height: auto;
+  max-height: 280px;
   object-fit: cover;
+  border-radius: 10px;
   display: block;
 }
 

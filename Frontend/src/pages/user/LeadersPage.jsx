@@ -230,8 +230,8 @@ export default function LeadersPage() {
   const currentUserId = storedUser.id || 1;
 
   // State
-  const [leaders, setLeaders] = useState(INITIAL_LEADERS);
-  const [topPerforming, setTopPerforming] = useState(INITIAL_TOP_PERFORMING);
+  const [leaders, setLeaders] = useState([]);
+  const [topPerforming, setTopPerforming] = useState([]);
   const [activeTab, setActiveTab] = useState('all');
   const [sortOption, setSortOption] = useState('Most Viewed');
   const [searchQuery, setSearchQuery] = useState('');
@@ -321,12 +321,8 @@ export default function LeadersPage() {
           };
         });
 
-        // Merge keeping Figma heroes first
-        setLeaders((prev) => {
-          const existingIds = new Set(prev.map((p) => p.id));
-          const uniqueNew = mapped.filter((m) => !existingIds.has(m.id));
-          return [...prev, ...uniqueNew];
-        });
+        setLeaders(mapped);
+        setTopPerforming(mapped.slice(0, 3));
       })
       .catch((err) => console.log('fetchLeaders error:', err));
 

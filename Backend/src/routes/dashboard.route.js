@@ -5,6 +5,8 @@ const {
   getPosts,
   createPost,
   likePost,
+  updatePost,
+  deletePost,
   getTrainers,
   getLeaders,
   getServices,
@@ -20,6 +22,8 @@ router.get('/overview', getDashboardOverview);
 router.get('/posts', getPosts);
 router.post('/posts', createPost);
 router.post('/posts/:id/like', likePost);
+router.put('/posts/:id', updatePost);
+router.delete('/posts/:id', deletePost);
 
 // Supporting Cards
 router.get('/trainers', getTrainers);

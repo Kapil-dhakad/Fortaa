@@ -31,6 +31,13 @@ app.use('/api/follow', followRouter);
 app.use('/api/messages', messageRouter);
 app.use('/api/notifications', notificationRouter);
 
+// 1.5 Serve local uploaded files (chat attachments, etc.)
+const uploadsDir = path.join(__dirname, '../uploads');
+if (!require('fs').existsSync(uploadsDir)) {
+  require('fs').mkdirSync(uploadsDir, { recursive: true });
+}
+app.use('/uploads', express.static(uploadsDir));
+
 // 2. Serve static frontend build files
 const buildPath = path.join(__dirname, 'build');
 app.use(express.static(buildPath));

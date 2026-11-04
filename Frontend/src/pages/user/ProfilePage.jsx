@@ -8,7 +8,7 @@ import UserSidebar from '../../components/layout/UserSidebar';
 // User, Follow & Dashboard Services
 import { fetchUserProfile, updateUserProfile as apiUpdateUserProfile } from '../../services/user.service';
 import { uploadSingleImage } from '../../services/upload.service';
-import { fetchPosts, fetchDashboardOverview, likePostApi } from '../../services/dashboard.service';
+import { fetchPosts, fetchDashboardOverview, likePostApi, updatePostApi, deletePostApi } from '../../services/dashboard.service';
 import {
   fetchFollowers,
   fetchFollowing,
@@ -138,6 +138,83 @@ export default function ProfilePage() {
   const [myPosts, setMyPosts] = useState([]);
   const [followersList, setFollowersList] = useState([]);
   const [followingList, setFollowingList] = useState([]);
+
+  // Post 3-dots Menu & Edit/Delete State
+  const [activePostMenuId, setActivePostMenuId] = useState(null);
+  const [editingPost, setEditingPost] = useState(null);
+  const [editContent, setEditContent] = useState('');
+  const [editTags, setEditTags] = useState('');
+  const [savingEdit, setSavingEdit] = useState(false);
+  const postMenuRef = useRef(null);
+
+  // Close post 3-dots menu on outside click
+  useEffect(() => {
+    function handlePostMenuOutside(e) {
+      if (
+        postMenuRef.current &&
+        !postMenuRef.current.contains(e.target) &&
+        !e.target.closest('.prof-btn-menu-dots')
+      ) {
+        setActivePostMenuId(null);
+      }
+    }
+    if (activePostMenuId) {
+      document.addEventListener('mousedown', handlePostMenuOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handlePostMenuOutside);
+    };
+  }, [activePostMenuId]);
+
+  const handleStartEdit = (post) => {
+    setEditingPost(post);
+    setEditContent(post.content || '');
+    setEditTags(post.tags || '');
+    setActivePostMenuId(null);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editContent.trim()) {
+      toast.error('Post content cannot be empty');
+      return;
+    }
+    setSavingEdit(true);
+    const res = await updatePostApi(editingPost.id, {
+      content: editContent.trim(),
+      tags: editTags.trim(),
+      userId: currentUserId,
+    });
+    setSavingEdit(false);
+    if (res?.success) {
+      setMyPosts((prev) =>
+        prev.map((p) =>
+          p.id === editingPost.id
+            ? { ...p, content: editContent.trim(), tags: editTags.trim() }
+            : p
+        )
+      );
+      toast.success('Post updated successfully!');
+      setEditingPost(null);
+    } else {
+      toast.error(res?.message || 'Failed to update post');
+    }
+  };
+
+  const handleDeletePost = async (postId) => {
+    setActivePostMenuId(null);
+    if (!window.confirm('Are you sure you want to delete this post?')) return;
+    const res = await deletePostApi(postId, currentUserId);
+    if (res?.success) {
+      setMyPosts((prev) => prev.filter((p) => p.id !== postId));
+      setSocialCounts((prev) => ({
+        ...prev,
+        postsCount: Math.max(0, (Number(prev.postsCount) || 1) - 1),
+      }));
+      toast.success('Post deleted successfully!');
+    } else {
+      toast.error(res?.message || 'Failed to delete post');
+    }
+  };
 
   // Load real profile counts, posts, followers & following from PostgreSQL
   useEffect(() => {
@@ -1234,24 +1311,66 @@ export default function ProfilePage() {
                         <div key={post.id || pIdx} className="prof-post-card">
                           <div className="prof-post-header">
                             <div className="prof-post-author-row">
-                              <img src={userProfile.avatarImg} alt={userProfile.name} className="prof-post-avatar" />
+                              <img
+                                src={post.author_avatar || userProfile.avatarImg || userAvatarImg}
+                                alt={post.author_name || userProfile.name}
+                                className="prof-post-avatar"
+                              />
                               <div className="prof-post-meta">
-                                <span className="prof-post-author-name">{userProfile.name}</span>
-                                <span className="prof-post-subline">
-                                  <span className="prof-post-badge-gold">{userProfile.userRole}</span>
-                                  <span>
-                                    • {post.created_at ? new Date(post.created_at).toLocaleDateString() : 'Recent'} • 🌐
+                                <span className="prof-post-author-name">{post.author_name || userProfile.name}</span>
+                                <div className="prof-post-subline">
+                                  <span className="prof-post-badge-gold">{post.author_role || userProfile.userRole || 'Gold Leader'}</span>
+                                  <span className="prof-post-dot">•</span>
+                                  <span className="prof-post-time">
+                                    {post.created_at ? new Date(post.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '4hr ago'}
                                   </span>
-                                </span>
+                                  <span className="prof-post-dot">•</span>
+                                  <span className="prof-post-globe">🌐</span>
+                                </div>
                               </div>
                             </div>
-                            <button className="prof-btn-menu-dots">⋮</button>
+
+                            {/* 3-dots Menu for Edit & Delete */}
+                            <div className="prof-post-menu-wrap" style={{ position: 'relative' }}>
+                              <button
+                                type="button"
+                                className="prof-btn-menu-dots"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setActivePostMenuId((prev) => (prev === post.id ? null : post.id));
+                                }}
+                                title="Post options"
+                              >
+                                ⋮
+                              </button>
+
+                              {activePostMenuId === post.id && (
+                                <div className="prof-post-menu-dropdown" ref={postMenuRef}>
+                                  <button
+                                    type="button"
+                                    className="prof-post-menu-item"
+                                    onClick={() => handleStartEdit(post)}
+                                  >
+                                    <span className="prof-post-menu-icon">✏️</span>
+                                    <span>Edit Post</span>
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="prof-post-menu-item prof-post-menu-delete"
+                                    onClick={() => handleDeletePost(post.id)}
+                                  >
+                                    <span className="prof-post-menu-icon">🗑️</span>
+                                    <span>Delete Post</span>
+                                  </button>
+                                </div>
+                              )}
+                            </div>
                           </div>
 
                           <div className="prof-post-body">
                             <p className="prof-post-caption">{post.content}</p>
                             {post.tags && <p className="prof-post-tags">{post.tags}</p>}
-                            {post.image_url ? (
+                            {post.image_url && (
                               <div className="prof-post-media-box">
                                 <img
                                   src={post.image_url}
@@ -1259,32 +1378,58 @@ export default function ProfilePage() {
                                   className="prof-post-img"
                                 />
                               </div>
-                            ) : null}
+                            )}
                           </div>
 
                           <div className="prof-post-metrics-row">
                             <div className="prof-reactions-group">
                               <span className="prof-reaction-emojis">👍 💙 🧡</span>
-                              <span>{post.likes_count || 124}</span>
+                              <span className="prof-reaction-count">{post.likes_count || 124}</span>
                             </div>
-                            <div>
+                            <div className="prof-comments-shares">
                               <span>{post.comments_count || 28} comments</span> &nbsp;•&nbsp; <span>12 shares</span>
                             </div>
                           </div>
 
                           <div className="prof-post-actions-row">
                             <button
+                              type="button"
                               className={`prof-action-btn ${post.has_liked ? 'liked-active' : ''}`}
                               onClick={() => handleLike(post.id)}
-                              style={{
-                                color: post.has_liked ? '#5A2CE4' : 'inherit',
-                                fontWeight: post.has_liked ? '700' : '500',
+                            >
+                              👍 {post.has_liked ? 'Liked' : 'Like'}
+                            </button>
+                            <button
+                              type="button"
+                              className="prof-action-btn"
+                              onClick={() => toast('Comment modal opened')}
+                            >
+                              💬 Comment
+                            </button>
+                            <button
+                              type="button"
+                              className="prof-action-btn"
+                              onClick={() => {
+                                navigator.clipboard?.writeText(window.location.origin + '/all-posts');
+                                toast.success('Link copied to clipboard!');
                               }}
                             >
-                              {post.has_liked ? '👍 Liked' : '👍 Like'}
+                              ↗️ Share
                             </button>
-                            <button className="prof-action-btn">💬 Comment</button>
-                            <button className="prof-action-btn">↗️ Share</button>
+                          </div>
+
+                          {/* Frame 133: Figma Amit Verma Comment Preview */}
+                          <div className="prof-comment-preview-box">
+                            <img src={userAvatarImg} alt="Amit Verma" className="prof-comment-avatar" />
+                            <div className="prof-comment-info">
+                              <span className="prof-comment-author">Amit Verma</span>
+                              <p className="prof-comment-text">Great sharing keep insipiring!</p>
+                              <div className="prof-comment-meta-row">
+                                <button type="button">Like</button>
+                                <button type="button">Reply</button>
+                                <span>1h</span>
+                              </div>
+                            </div>
                           </div>
                         </div>
                       ))
@@ -1790,6 +1935,65 @@ export default function ProfilePage() {
                 }}
               >
                 Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Post Modal */}
+      {editingPost && (
+        <div className="prof-edit-modal-backdrop" onClick={() => setEditingPost(null)}>
+          <div className="prof-edit-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="prof-edit-modal-header">
+              <h3 className="prof-edit-modal-title">✏️ Edit Post</h3>
+              <button
+                type="button"
+                className="prof-edit-modal-close"
+                onClick={() => setEditingPost(null)}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="prof-edit-modal-body">
+              <label className="prof-edit-modal-label">Post Description / Content</label>
+              <textarea
+                rows={4}
+                className="prof-edit-modal-textarea"
+                value={editContent}
+                onChange={(e) => setEditContent(e.target.value)}
+                placeholder="Share your thoughts, updates or milestones..."
+              />
+
+              <label className="prof-edit-modal-label" style={{ marginTop: '14px' }}>
+                Tags
+              </label>
+              <input
+                type="text"
+                className="prof-edit-modal-input"
+                value={editTags}
+                onChange={(e) => setEditTags(e.target.value)}
+                placeholder="#FortaaMarketing #Success #Leadership"
+              />
+            </div>
+
+            <div className="prof-edit-modal-footer">
+              <button
+                type="button"
+                className="prof-btn-modal-cancel"
+                onClick={() => setEditingPost(null)}
+                disabled={savingEdit}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="prof-btn-modal-save"
+                onClick={handleSaveEdit}
+                disabled={savingEdit}
+              >
+                {savingEdit ? 'Saving...' : 'Save Changes'}
               </button>
             </div>
           </div>

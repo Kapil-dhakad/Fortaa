@@ -104,12 +104,21 @@ async function getChatHistory(req, res) {
     }
 
     // Mark incoming messages as read
-    await db.query(
+    const updateRes = await db.query(
       `UPDATE messages 
        SET is_read = TRUE 
        WHERE sender_id = $1 AND receiver_id = $2 AND is_read = FALSE`,
       [otherUserId, userId]
     );
+
+    // Notify original sender that their messages were read
+    try {
+      const { getIO } = require('../socket/chat.socket');
+      const io = getIO();
+      if (io) {
+        io.to(`room_${String(otherUserId)}`).emit('messages_read', { byUserId: Number(userId) });
+      }
+    } catch {}
 
     // Fetch messages in chronological order
     const historyQuery = `
@@ -122,9 +131,26 @@ async function getChatHistory(req, res) {
 
     const result = await db.query(historyQuery, [userId, otherUserId]);
 
+    const formattedMessages = result.rows.map((r) => {
+      let displayText = r.text;
+      let attachment = null;
+      try {
+        if (r.text && r.text.startsWith('{"') && r.text.includes('"attachment"')) {
+          const parsed = JSON.parse(r.text);
+          displayText = parsed.text || '';
+          attachment = parsed.attachment || null;
+        }
+      } catch {}
+      return {
+        ...r,
+        text: displayText,
+        attachment,
+      };
+    });
+
     return res.status(200).json({
       success: true,
-      messages: result.rows,
+      messages: formattedMessages,
     });
   } catch (error) {
     console.error('[getChatHistory Error]:', error);
@@ -137,10 +163,15 @@ async function getChatHistory(req, res) {
  */
 async function sendMessageHttp(req, res) {
   try {
-    const { senderId, receiverId, text } = req.body;
-    if (!senderId || !receiverId || !text || !text.trim()) {
-      return res.status(400).json({ success: false, message: 'senderId, receiverId and text required' });
+    const { senderId, receiverId, text, attachment } = req.body;
+    const cleanText = (text || '').trim();
+    if (!senderId || !receiverId || (!cleanText && !attachment)) {
+      return res.status(400).json({ success: false, message: 'senderId, receiverId and text or attachment required' });
     }
+
+    const payloadToSave = attachment
+      ? JSON.stringify({ text: cleanText, attachment })
+      : cleanText;
 
     if (!db.isDBConnected()) {
       return res.status(200).json({
@@ -149,7 +180,8 @@ async function sendMessageHttp(req, res) {
           id: Date.now(),
           sender_id: Number(senderId),
           receiver_id: Number(receiverId),
-          text: text.trim(),
+          text: cleanText,
+          attachment: attachment || null,
           is_read: false,
           created_at: new Date().toISOString(),
         },
@@ -160,12 +192,16 @@ async function sendMessageHttp(req, res) {
       `INSERT INTO messages (sender_id, receiver_id, text, is_read)
        VALUES ($1, $2, $3, FALSE)
        RETURNING id, sender_id, receiver_id, text, is_read, created_at`,
-      [Number(senderId), Number(receiverId), text.trim()]
+      [Number(senderId), Number(receiverId), payloadToSave]
     );
 
     return res.status(201).json({
       success: true,
-      message: insertRes.rows[0],
+      message: {
+        ...insertRes.rows[0],
+        text: cleanText,
+        attachment: attachment || null,
+      },
     });
   } catch (error) {
     console.error('[sendMessageHttp Error]:', error);
