@@ -49,52 +49,38 @@
 
 /* Content Body */
 .lp-content-body {
-  max-width: 1280px;
+  max-width: 1290px;
   margin: 0 auto;
-  padding: 16px 22px 60px 22px;
+  padding: 16px 20px 60px 20px;
   box-sizing: border-box;
-}
-
-/* Breadcrumb / Back button */
-.lp-breadcrumb-row {
-  margin-bottom: 12px;
-}
-
-.lp-back-btn {
-  background: transparent;
-  border: none;
-  font-size: 13px;
-  font-weight: 600;
-  color: #6B11D7;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 4px 8px;
-  border-radius: 6px;
-  transition: all 0.15s ease;
-}
-
-.lp-back-btn:hover {
-  background: #EDE9FE;
 }
 
 /* ==========================================================================
-   HERO PROFILE BANNER (936px x 232px)
+   TOP ROW BANNER: Hero Profile (Left) + Let's Grow Together (Right, Frame 320)
    ========================================================================== */
-.lp-hero-banner {
+.lp-top-row-banner {
+  display: flex;
+  gap: 16px;
+  align-items: stretch;
   width: 100%;
-  min-height: 232px;
-  background-color: #0A021D;
+  margin-bottom: 6px;
+}
+
+/* HERO PROFILE BANNER (Matching Figma 2nd image) */
+.lp-hero-banner {
+  flex: 1;
+  min-width: 0;
+  min-height: 179px;
+  background-color: #0E021F;
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
-  border-radius: 12px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.18);
+  border-radius: 10px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.16);
   position: relative;
   overflow: hidden;
   box-sizing: border-box;
-  padding: 24px 28px;
+  padding: 20px 24px;
   display: flex;
   align-items: center;
 }
@@ -102,7 +88,7 @@
 .lp-hero-inner {
   display: flex;
   align-items: center;
-  gap: 26px;
+  gap: 24px;
   width: 100%;
   position: relative;
   z-index: 2;
@@ -112,13 +98,13 @@
 .lp-hero-avatar-wrap {
   position: relative;
   flex-shrink: 0;
-  width: 130px;
-  height: 130px;
+  width: 124px;
+  height: 124px;
 }
 
 .lp-hero-avatar-box {
-  width: 130px;
-  height: 130px;
+  width: 124px;
+  height: 124px;
   border-radius: 50%;
   border: 3px solid #FFFFFF;
   overflow: hidden;
@@ -146,13 +132,14 @@
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
   display: flex;
   align-items: center;
-  gap: 3px;
+  gap: 4px;
   border: 1px solid #FFFFFF;
   letter-spacing: 0.02em;
 }
 
 .lp-crown-icon {
   font-size: 10px;
+  color: #4A2800;
 }
 
 .lp-avatar-camera-btn {
@@ -187,15 +174,17 @@
   align-items: center;
   gap: 12px;
   flex-wrap: wrap;
-  margin-bottom: 4px;
+  margin-bottom: 6px;
 }
 
 .lp-hero-name {
-  font-size: 22px;
-  font-weight: 700;
+  font-family: 'Inter', sans-serif;
+  font-style: normal;
+  font-weight: 600;
+  font-size: 26px;
+  line-height: 28px;
   color: #FFFFFF;
   margin: 0;
-  line-height: 1.2;
 }
 
 .lp-hero-rank-pill {
@@ -203,59 +192,62 @@
   align-items: center;
   gap: 6px;
   background: #541C98;
-  border: 0.5px solid rgba(255, 255, 255, 0.5);
+  border: 0.25px solid #FFFFFF;
   border-radius: 4px;
   padding: 3px 10px;
-  font-size: 10.5px;
+  font-size: 11px;
   color: #FFFFFF;
   letter-spacing: 0.02em;
 }
 
 .lp-rank-medal {
   font-size: 11px;
+  color: #FFD700;
 }
 
 .lp-rank-divider {
-  opacity: 0.6;
+  opacity: 0.7;
 }
 
 .lp-hero-username {
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.85);
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  color: #FFFFFF;
   margin-bottom: 8px;
-  font-weight: 500;
+  font-weight: 400;
 }
 
 .lp-hero-meta-row {
   display: flex;
   align-items: center;
-  gap: 18px;
+  gap: 20px;
   flex-wrap: wrap;
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.9);
+  font-family: 'Inter', sans-serif;
+  font-size: 13.5px;
+  color: #FFFFFF;
   margin-bottom: 10px;
 }
 
 .lp-hero-meta-item {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
+  color: #FFFFFF;
+  font-weight: 400;
 }
 
 .lp-meta-icon {
-  font-size: 12px;
-}
-
-.lp-hero-meta-item strong {
+  font-size: 14px;
   color: #FFFFFF;
-  font-weight: 600;
 }
 
 .lp-hero-quote {
-  font-size: 12.5px;
-  font-style: italic;
-  color: rgba(255, 255, 255, 0.95);
-  margin: 0 0 14px 0;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-style: normal;
+  font-weight: 400;
+  color: #FFFFFF;
+  margin: 0 0 16px 0;
   line-height: 1.4;
 }
 
@@ -263,7 +255,7 @@
 .lp-hero-actions-row {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   flex-wrap: wrap;
 }
 
@@ -271,10 +263,11 @@
   background: #6B11D7;
   color: #FFFFFF;
   border: none;
-  border-radius: 6px;
-  padding: 8px 22px;
-  font-size: 12.5px;
-  font-weight: 600;
+  border-radius: 5px;
+  padding: 8px 24px;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
   box-shadow: 0 2px 8px rgba(107, 17, 215, 0.35);
@@ -287,21 +280,21 @@
 
 .lp-btn-follow.following {
   background: #10B981;
-  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
 }
 
 .lp-btn-message {
   background: #FFFFFF;
-  color: #1E0241;
+  color: #232356;
   border: none;
-  border-radius: 6px;
-  padding: 8px 18px;
-  font-size: 12.5px;
-  font-weight: 600;
+  border-radius: 5px;
+  padding: 8px 20px;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   transition: all 0.2s ease;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
 }
@@ -313,16 +306,17 @@
 
 .lp-btn-share {
   background: #FFFFFF;
-  color: #1E0241;
+  color: #232356;
   border: none;
-  border-radius: 6px;
-  padding: 8px 18px;
-  font-size: 12.5px;
-  font-weight: 600;
+  border-radius: 5px;
+  padding: 8px 20px;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   transition: all 0.2s ease;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
 }
@@ -333,13 +327,99 @@
 }
 
 /* ==========================================================================
+   LET'S GROW TOGETHER BANNER (Frame 320: 316px x 179px, linear-gradient(90deg, #563E8B 0%, #8518F1 100%))
+   ========================================================================== */
+.lp-promo-banner {
+  width: 316px;
+  min-width: 316px;
+  height: 179px;
+  min-height: 179px;
+  background: linear-gradient(90deg, #563E8B 0%, #8518F1 100%);
+  background-size: cover;
+  background-position: center;
+  border-radius: 10px;
+  padding: 16px 18px;
+  box-sizing: border-box;
+  color: #FFFFFF;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  box-shadow: 0 4px 15px rgba(86, 62, 139, 0.25);
+  position: relative;
+  overflow: hidden;
+}
+
+.lp-promo-title {
+  font-family: 'Inter', sans-serif;
+  font-style: normal;
+  font-weight: 500;
+  font-size: 24px;
+  line-height: 25px;
+  color: #FFFFFF;
+  margin: 0 0 10px 0;
+  width: 258px;
+}
+
+.lp-promo-text {
+  font-family: 'Inter', sans-serif;
+  font-style: normal;
+  font-weight: 400;
+  font-size: 15px;
+  line-height: 17px;
+  color: #FFFFFF;
+  margin: 0 0 18px 0;
+  max-width: 265px;
+}
+
+/* Frame 105: 163px x 30px white button, text #9E04C3 */
+.lp-promo-btn {
+  width: 163px;
+  height: 30px;
+  background: #FFFFFF;
+  border-radius: 5px;
+  border: none;
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  padding: 0 10px;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+.lp-promo-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+.lp-promo-btn-text {
+  font-family: 'Inter', sans-serif;
+  font-style: normal;
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 19px;
+  letter-spacing: 0.02em;
+  color: #9E04C3;
+  white-space: nowrap;
+}
+
+.lp-promo-btn-arrow {
+  width: 20px;
+  height: 20px;
+  color: #9E04C3;
+  flex-shrink: 0;
+}
+
+/* ==========================================================================
    TABS BAR (802px x 35px)
    ========================================================================== */
 .lp-tabs-bar {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin: 18px 0;
+  margin: 16px 0;
   overflow-x: auto;
   padding-bottom: 4px;
 }
@@ -356,7 +436,7 @@
 .lp-tab-item {
   background: #FFFFFF;
   border: 1px solid #E2E8F0;
-  border-radius: 6px;
+  border-radius: 5px;
   padding: 8px 18px;
   font-size: 12.5px;
   font-weight: 500;
@@ -384,7 +464,7 @@
    ========================================================================== */
 .lp-columns-grid {
   display: flex;
-  gap: 18px;
+  gap: 16px;
   align-items: flex-start;
 }
 
@@ -393,7 +473,7 @@
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 16px;
 }
 
 .lp-col-center {
@@ -401,22 +481,22 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 16px;
 }
 
 .lp-col-right {
-  width: 310px;
+  width: 316px;
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 16px;
 }
 
 /* Shared Card Styles */
 .lp-card {
   background: #FFFFFF;
   border: 1px solid #E2E8F0;
-  border-radius: 12px;
+  border-radius: 10px;
   padding: 18px 20px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
   box-sizing: border-box;
@@ -456,6 +536,13 @@
   opacity: 0.85;
 }
 
+/* Helper text colors for react-icons */
+.text-red { color: #EF4444; }
+.text-amber { color: #F59E0B; }
+.text-gold { color: #EAB308; }
+.text-indigo { color: #6366F1; }
+.text-blue { color: #3B82F6; }
+
 /* ==========================================================================
    LEFT COLUMN: About & Featured Opportunities
    ========================================================================== */
@@ -481,7 +568,8 @@
 
 .lp-about-icon {
   font-size: 14px;
-  margin-top: 1px;
+  margin-top: 2px;
+  flex-shrink: 0;
 }
 
 .lp-about-info {
@@ -528,12 +616,10 @@
 }
 
 .lp-quote-icon {
-  font-size: 24px;
-  line-height: 1;
+  font-size: 18px;
   color: #F59E0B;
-  font-family: Georgia, serif;
   display: block;
-  margin-bottom: 2px;
+  margin-bottom: 6px;
 }
 
 .lp-quote-text {
@@ -629,10 +715,6 @@
   gap: 5px;
 }
 
-.lp-metric-icon {
-  font-size: 12px;
-}
-
 .lp-metric-val {
   display: block;
   font-size: 11px;
@@ -713,10 +795,6 @@
   border: 1.5px solid #0EA5E9;
 }
 
-.lp-skill-ico {
-  font-size: 20px;
-}
-
 .lp-skill-name {
   font-size: 11px;
   font-weight: 600;
@@ -772,10 +850,6 @@
   border: 1.5px solid #EAB308;
 }
 
-.lp-achieve-ico {
-  font-size: 22px;
-}
-
 .lp-achieve-title {
   font-size: 11px;
   font-weight: 700;
@@ -821,10 +895,6 @@
   flex-shrink: 0;
 }
 
-.lp-act-icon {
-  font-size: 15px;
-}
-
 .lp-act-content {
   flex: 1;
   min-width: 0;
@@ -863,10 +933,12 @@
   background: transparent;
   border: none;
   color: #94A3B8;
-  font-size: 16px;
+  font-size: 14px;
   cursor: pointer;
   padding: 0 4px;
   line-height: 1;
+  display: flex;
+  align-items: center;
 }
 
 .lp-act-dots:hover {
@@ -874,57 +946,13 @@
 }
 
 /* ==========================================================================
-   RIGHT COLUMN: Promo, Network, Top Leaders, Quick Actions
+   RIGHT COLUMN: Top Network, Top Leaders, Quick Actions
    ========================================================================== */
-/* Promo Banner */
-.lp-promo-banner {
+/* Network Card (Matching Frame 316x179px specs) */
+.lp-network-card {
   width: 100%;
-  min-height: 175px;
-  background-color: #200445;
-  background-size: cover;
-  background-position: center;
-  border-radius: 12px;
-  padding: 22px 20px;
-  box-sizing: border-box;
-  color: #FFFFFF;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  box-shadow: 0 4px 15px rgba(32, 4, 69, 0.25);
 }
 
-.lp-promo-title {
-  font-size: 16px;
-  font-weight: 700;
-  margin: 0 0 6px 0;
-  color: #FFFFFF;
-}
-
-.lp-promo-text {
-  font-size: 11.5px;
-  color: rgba(255, 255, 255, 0.85);
-  line-height: 1.4;
-  margin: 0 0 16px 0;
-}
-
-.lp-promo-btn {
-  background: #FFFFFF;
-  color: #2E0362;
-  border: none;
-  border-radius: 20px;
-  padding: 8px 16px;
-  font-size: 11.5px;
-  font-weight: 700;
-  cursor: pointer;
-  align-self: flex-start;
-  transition: transform 0.15s ease;
-}
-
-.lp-promo-btn:hover {
-  transform: translateY(-1px);
-}
-
-/* Network Card */
 .lp-network-avatars-row {
   display: flex;
   align-items: center;
@@ -965,11 +993,12 @@
 .lp-top-title-wrap {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
 }
 
 .lp-top-icon {
-  font-size: 13px;
+  font-size: 14px;
+  color: #EAB308;
 }
 
 .lp-top-list {
@@ -1040,48 +1069,74 @@
   color: #475569;
 }
 
-/* Quick Actions Card */
-.lp-quick-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 10px;
+/* Quick Actions Card (Frame: 325px x 144px, radius 10px, border 1px solid #D9D9D9, bg #F5FDFF) */
+.lp-quick-actions-card {
+  width: 100%;
+  min-height: 144px;
+  background: #F5FDFF;
+  border: 1px solid #D9D9D9;
+  border-radius: 10px;
+  padding: 16px 14px;
+  box-sizing: border-box;
 }
 
-.lp-quick-item {
-  background: #FAF7FE;
-  border: 1px solid #EDE9FE;
-  border-radius: 8px;
-  padding: 12px 8px;
+.lp-quick-actions-card .lp-card-title {
+  margin-bottom: 14px;
+}
+
+/* 4 horizontal action items in a row */
+.lp-quick-horizontal-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.lp-quick-action-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: flex-start;
+  flex: 1;
+  padding: 4px 2px;
+  transition: transform 0.15s ease;
+}
+
+.lp-quick-action-btn:hover {
+  transform: translateY(-2px);
+}
+
+.lp-quick-action-icon-wrap {
+  display: flex;
+  align-items: center;
   justify-content: center;
-  gap: 6px;
-  cursor: pointer;
-  transition: all 0.15s ease;
+  height: 30px;
+  margin-bottom: 4px;
 }
 
-.lp-quick-item:hover {
-  background: #EDE9FE;
-  border-color: #DDD6FE;
-  transform: translateY(-1px);
-}
-
-.lp-quick-ico {
-  font-size: 18px;
-}
-
-.lp-quick-lbl {
-  font-size: 11px;
+.lp-quick-action-label {
+  font-size: 10px;
   font-weight: 600;
   color: #1E0241;
   text-align: center;
+  line-height: 1.25;
+  max-width: 65px;
 }
 
 /* ==========================================================================
    RESPONSIVE DESIGN
    ========================================================================== */
 @media (max-width: 1200px) {
+  .lp-top-row-banner {
+    flex-direction: column;
+  }
+  .lp-promo-banner {
+    width: 100%;
+    min-width: 100%;
+  }
   .lp-columns-grid {
     flex-wrap: wrap;
   }
@@ -1139,9 +1194,12 @@
     height: 100px;
   }
   .lp-hero-name {
-    font-size: 19px;
+    font-size: 20px;
   }
-  .lp-quick-grid {
-    grid-template-columns: 1fr;
+  .lp-quick-horizontal-row {
+    gap: 4px;
+  }
+  .lp-quick-action-label {
+    font-size: 9px;
   }
 }

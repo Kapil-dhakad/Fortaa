@@ -6,10 +6,45 @@ import UserSidebar from '../../components/layout/UserSidebar';
 import { fetchUserProfile } from '../../services/user.service';
 import {
   sendFollowRequest,
-  cancelFollowRequest,
   unfollowUser,
-  fetchUserSocialCounts,
 } from '../../services/follow.service';
+
+// React Icons
+import {
+  FaCrown,
+  FaCamera,
+  FaMedal,
+  FaMapMarkerAlt,
+  FaCalendarAlt,
+  FaUsers,
+  FaUserCheck,
+  FaBriefcase,
+  FaStar,
+  FaGlobe,
+  FaQuoteLeft,
+  FaGlobeAmericas,
+  FaHeadset,
+  FaRegCommentDots,
+} from 'react-icons/fa';
+import {
+  HiChatAlt2,
+  HiEye,
+  HiUserGroup,
+  HiShare,
+  HiCurrencyDollar,
+  HiOutlineClock,
+  HiArrowRight,
+  HiLightBulb,
+  HiTrendingUp,
+  HiSpeakerphone,
+  HiRefresh,
+  HiUserAdd,
+  HiCalendar,
+  HiSparkles,
+} from 'react-icons/hi';
+import { MdLanguage, MdCampaign } from 'react-icons/md';
+import { BsThreeDotsVertical } from 'react-icons/bs';
+import { FiShare2 } from 'react-icons/fi';
 
 // Assets
 import leaderHeroBg from '../../assets/leader_hero_wave_bg.png';
@@ -242,130 +277,137 @@ export default function LeaderProfilePage() {
         <div className="lp-scroll-container">
           <div className="lp-content-body">
 
-            {/* Back Button / Navigation link */}
-            <div className="lp-breadcrumb-row">
-              <button
-                type="button"
-                className="lp-back-btn"
-                onClick={() => navigate('/leaders')}
-                title="Back to Leaders"
+            {/* TOP ROW: Hero Profile Banner (left) + Let's Grow Together (right, Frame 320: 316x179px) */}
+            <div className="lp-top-row-banner">
+              
+              {/* HERO PROFILE BANNER (Matching Figma 2nd image exactly) */}
+              <section
+                className="lp-hero-banner"
+                style={{
+                  backgroundImage: `url(${leaderHeroBg})`,
+                }}
               >
-                ‹ Back to Leaders
-              </button>
-            </div>
-
-            {/* HERO PROFILE BANNER (936px x 232px) */}
-            <section
-              className="lp-hero-banner"
-              style={{
-                backgroundImage: `url(${leaderHeroBg})`,
-              }}
-            >
-              <div className="lp-hero-inner">
-                {/* Avatar with Badge & Camera */}
-                <div className="lp-hero-avatar-wrap">
-                  <div className="lp-hero-avatar-box">
-                    <img
-                      src={leader.avatar}
-                      alt={leader.name}
-                      className="lp-hero-avatar-img"
-                      onError={(e) => {
-                        e.currentTarget.src = userAvatarRahul;
-                      }}
-                    />
-                  </div>
-                  {/* Top Leader Gold Pill */}
-                  <div className="lp-avatar-crown-pill">
-                    <span className="lp-crown-icon">👑</span>
-                    <span>Top Leader</span>
-                  </div>
-                  {/* Camera Icon Pill at Bottom Right */}
-                  <div className="lp-avatar-camera-btn" title="Profile Photo">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="#1E0241">
-                      <path d="M12 9a3 3 0 100 6 3 3 0 000-6z" />
-                      <path fillRule="evenodd" d="M2 7a2 2 0 012-2h3.172a2 2 0 001.414-.586l.828-.828A2 2 0 0110.828 3h2.344a2 2 0 011.414.586l.828.828A2 2 0 0016.828 5H20a2 2 0 012 2v11a2 2 0 01-2 2H4a2 2 0 01-2-2V7zm10 10a5 5 0 100-10 5 5 0 000 10z" clipRule="evenodd" />
-                    </svg>
-                  </div>
-                </div>
-
-                {/* Hero Details */}
-                <div className="lp-hero-details">
-                  {/* Name & Title */}
-                  <div className="lp-hero-title-row">
-                    <h1 className="lp-hero-name">{leader.name}</h1>
-                    <div className="lp-hero-rank-pill">
-                      <span className="lp-rank-medal">🏅</span>
-                      <span className="lp-rank-company">{leader.company || 'Index Technology'}</span>
-                      <span className="lp-rank-divider">|</span>
-                      <span className="lp-rank-level">{leader.level || 'Silver Leader'}</span>
+                <div className="lp-hero-inner">
+                  {/* Avatar with Badge & Camera */}
+                  <div className="lp-hero-avatar-wrap">
+                    <div className="lp-hero-avatar-box">
+                      <img
+                        src={leader.avatar}
+                        alt={leader.name}
+                        className="lp-hero-avatar-img"
+                        onError={(e) => {
+                          e.currentTarget.src = userAvatarRahul;
+                        }}
+                      />
+                    </div>
+                    {/* Top Leader Gold Pill */}
+                    <div className="lp-avatar-crown-pill">
+                      <FaCrown className="lp-crown-icon" />
+                      <span>Top Leader</span>
+                    </div>
+                    {/* Camera Icon Pill at Bottom Right */}
+                    <div className="lp-avatar-camera-btn" title="Profile Photo">
+                      <FaCamera size={13} color="#1E0241" />
                     </div>
                   </div>
 
-                  {/* Username */}
-                  <div className="lp-hero-username">
-                    User Name: {leader.username}
-                  </div>
+                  {/* Hero Details */}
+                  <div className="lp-hero-details">
+                    {/* Name & Rank Pill */}
+                    <div className="lp-hero-title-row">
+                      <h1 className="lp-hero-name">{leader.name}</h1>
+                      <div className="lp-hero-rank-pill">
+                        <FaMedal className="lp-rank-medal" />
+                        <span className="lp-rank-company">{leader.company || 'Index Technology'}</span>
+                        <span className="lp-rank-divider">|</span>
+                        <span className="lp-rank-level">{leader.level || 'Silver Leader'}</span>
+                      </div>
+                    </div>
 
-                  {/* Meta Row: Location, Joined, Followers, Following */}
-                  <div className="lp-hero-meta-row">
-                    <span className="lp-hero-meta-item">
-                      <span className="lp-meta-icon">📍</span> {leader.location}
-                    </span>
-                    <span className="lp-hero-meta-item">
-                      <span className="lp-meta-icon">👥</span> {leader.joinedDate || 'Joined Jan 2013'}
-                    </span>
-                    <span className="lp-hero-meta-item">
-                      <span className="lp-meta-icon">⭕</span> <strong>{leader.followers}</strong> Followers
-                    </span>
-                    <span className="lp-hero-meta-item">
-                      <span className="lp-meta-icon">👤</span> <strong>{leader.following}</strong> Following
-                    </span>
-                  </div>
+                    {/* Username */}
+                    <div className="lp-hero-username">
+                      User Name: {leader.username}
+                    </div>
 
-                  {/* Quote */}
-                  <p className="lp-hero-quote">
-                    “{leader.quote}”
-                  </p>
+                    {/* Meta Row: Location, Joined, Followers, Following */}
+                    <div className="lp-hero-meta-row">
+                      <span className="lp-hero-meta-item">
+                        <FaMapMarkerAlt className="lp-meta-icon" /> {leader.location}
+                      </span>
+                      <span className="lp-hero-meta-item">
+                        <FaCalendarAlt className="lp-meta-icon" /> {leader.joinedDate || 'Joined Jan 2013'}
+                      </span>
+                      <span className="lp-hero-meta-item">
+                        <FaUsers className="lp-meta-icon" /> Followers
+                      </span>
+                      <span className="lp-hero-meta-item">
+                        <FaUserCheck className="lp-meta-icon" /> Following
+                      </span>
+                    </div>
 
-                  {/* Buttons Row */}
-                  <div className="lp-hero-actions-row">
-                    <button
-                      type="button"
-                      className={`lp-btn-follow ${isFollowing ? 'following' : ''}`}
-                      onClick={handleFollowToggle}
-                    >
-                      {isFollowing ? 'Following ✓' : 'Follow'}
-                    </button>
+                    {/* Quote */}
+                    <p className="lp-hero-quote">
+                      “{leader.quote}”
+                    </p>
 
-                    <button
-                      type="button"
-                      className="lp-btn-message"
-                      onClick={handleMessageClick}
-                    >
-                      <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z" />
-                      </svg>
-                      Message
-                    </button>
+                    {/* Action Buttons Row */}
+                    <div className="lp-hero-actions-row">
+                      <button
+                        type="button"
+                        className={`lp-btn-follow ${isFollowing ? 'following' : ''}`}
+                        onClick={handleFollowToggle}
+                      >
+                        {isFollowing ? 'Following ✓' : 'Follow'}
+                      </button>
 
-                    <button
-                      type="button"
-                      className="lp-btn-share"
-                      onClick={handleShareProfile}
-                    >
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-                        <circle cx="18" cy="5" r="3" />
-                        <circle cx="6" cy="12" r="3" />
-                        <circle cx="18" cy="19" r="3" />
-                        <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
-                        <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
-                      </svg>
-                      Share Profile
-                    </button>
+                      <button
+                        type="button"
+                        className="lp-btn-message"
+                        onClick={handleMessageClick}
+                      >
+                        <FaRegCommentDots size={16} />
+                        <span>Message</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        className="lp-btn-share"
+                        onClick={handleShareProfile}
+                      >
+                        <FiShare2 size={16} />
+                        <span>Share Profile</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
+              </section>
+
+              {/* LET'S GROW TOGETHER BANNER (Frame 320: 316px x 179px, linear-gradient(90deg, #563E8B 0%, #8518F1 100%)) */}
+              <div
+                className="lp-promo-banner"
+                style={{
+                  backgroundImage: `url(${leaderPromoBg})`,
+                }}
+              >
+                <h3 className="lp-promo-title">Let’s Grow Together</h3>
+                <p className="lp-promo-text">
+                  Connect, collaborate and create new opportunities together.
+                </p>
+                {/* Frame 105: 163px x 30px white button, text #9E04C3 */}
+                <button
+                  type="button"
+                  className="lp-promo-btn"
+                  onClick={() => {
+                    handleFollowToggle();
+                    toast.success('Connection request sent!');
+                  }}
+                >
+                  <span className="lp-promo-btn-text">Connect Now</span>
+                  <HiArrowRight className="lp-promo-btn-arrow" />
+                </button>
               </div>
-            </section>
+
+            </div>
 
             {/* TABS BAR (802px x 35px) */}
             <div className="lp-tabs-bar">
@@ -403,14 +445,14 @@ export default function LeaderProfilePage() {
 
                   <div className="lp-about-details-list">
                     <div className="lp-about-row">
-                      <span className="lp-about-icon">📍</span>
+                      <FaMapMarkerAlt className="lp-about-icon text-red" />
                       <div className="lp-about-info">
                         <span className="lp-about-subval">{leader.location}</span>
                       </div>
                     </div>
 
                     <div className="lp-about-row">
-                      <span className="lp-about-icon">💼</span>
+                      <FaBriefcase className="lp-about-icon text-amber" />
                       <div className="lp-about-info">
                         <span className="lp-about-lbl">Experience</span>
                         <span className="lp-about-val">{leader.experience}</span>
@@ -418,7 +460,7 @@ export default function LeaderProfilePage() {
                     </div>
 
                     <div className="lp-about-row">
-                      <span className="lp-about-icon">⭐</span>
+                      <FaStar className="lp-about-icon text-gold" />
                       <div className="lp-about-info">
                         <span className="lp-about-lbl">Specialization</span>
                         <span className="lp-about-val">{leader.specialization}</span>
@@ -426,7 +468,7 @@ export default function LeaderProfilePage() {
                     </div>
 
                     <div className="lp-about-row">
-                      <span className="lp-about-icon">🔤</span>
+                      <MdLanguage className="lp-about-icon text-indigo" />
                       <div className="lp-about-info">
                         <span className="lp-about-lbl">Language</span>
                         <span className="lp-about-val">{leader.language}</span>
@@ -434,7 +476,7 @@ export default function LeaderProfilePage() {
                     </div>
 
                     <div className="lp-about-row">
-                      <span className="lp-about-icon">🌐</span>
+                      <FaGlobe className="lp-about-icon text-blue" />
                       <div className="lp-about-info">
                         <span className="lp-about-lbl">Website</span>
                         <a
@@ -451,7 +493,7 @@ export default function LeaderProfilePage() {
 
                   {/* Motivational Quote Box */}
                   <div className="lp-about-quote-box">
-                    <span className="lp-quote-icon">“</span>
+                    <FaQuoteLeft className="lp-quote-icon" />
                     <p className="lp-quote-text">
                       “Small steps every day lead to big result.”
                     </p>
@@ -499,14 +541,14 @@ export default function LeaderProfilePage() {
                     <div className="lp-opp-footer">
                       <div className="lp-opp-metrics">
                         <div className="lp-opp-metric">
-                          <span className="lp-metric-icon">💰</span>
+                          <HiCurrencyDollar size={16} color="#059669" />
                           <div>
                             <span className="lp-metric-val">$500 - $10,000</span>
                             <span className="lp-metric-lbl">Investment</span>
                           </div>
                         </div>
                         <div className="lp-opp-metric">
-                          <span className="lp-metric-icon">⏱️</span>
+                          <HiOutlineClock size={16} color="#4F46E5" />
                           <div>
                             <span className="lp-metric-val">6-24</span>
                             <span className="lp-metric-lbl">Duration</span>
@@ -546,28 +588,28 @@ export default function LeaderProfilePage() {
                   <div className="lp-skills-row">
                     <div className="lp-skill-item">
                       <div className="lp-skill-circle purple">
-                        <span className="lp-skill-ico">📱</span>
+                        <MdCampaign size={24} color="#7C3AED" />
                       </div>
                       <span className="lp-skill-name">Digital Marketing</span>
                     </div>
 
                     <div className="lp-skill-item">
                       <div className="lp-skill-circle magenta">
-                        <span className="lp-skill-ico">🎧</span>
+                        <FaHeadset size={20} color="#DB2777" />
                       </div>
                       <span className="lp-skill-name">Customer Services</span>
                     </div>
 
                     <div className="lp-skill-item">
                       <div className="lp-skill-circle amber">
-                        <span className="lp-skill-ico">💡</span>
+                        <HiLightBulb size={24} color="#D97706" />
                       </div>
                       <span className="lp-skill-name">Project Management</span>
                     </div>
 
                     <div className="lp-skill-item">
                       <div className="lp-skill-circle cyan">
-                        <span className="lp-skill-ico">📊</span>
+                        <HiTrendingUp size={24} color="#0284C7" />
                       </div>
                       <span className="lp-skill-name">Business Development</span>
                     </div>
@@ -590,7 +632,7 @@ export default function LeaderProfilePage() {
                   <div className="lp-achieve-row">
                     <div className="lp-achieve-item">
                       <div className="lp-achieve-badge blue">
-                        <span className="lp-achieve-ico">👑</span>
+                        <FaCrown size={20} color="#2563EB" />
                       </div>
                       <span className="lp-achieve-title">Top Leader</span>
                       <span className="lp-achieve-tier">Diamond</span>
@@ -598,7 +640,7 @@ export default function LeaderProfilePage() {
 
                     <div className="lp-achieve-item">
                       <div className="lp-achieve-badge orange">
-                        <span className="lp-achieve-ico">📈</span>
+                        <HiTrendingUp size={20} color="#EA580C" />
                       </div>
                       <span className="lp-achieve-title">Growth Mentor</span>
                       <span className="lp-achieve-tier">Diamond</span>
@@ -606,7 +648,7 @@ export default function LeaderProfilePage() {
 
                     <div className="lp-achieve-item">
                       <div className="lp-achieve-badge teal">
-                        <span className="lp-achieve-ico">🌐</span>
+                        <FaGlobeAmericas size={20} color="#059669" />
                       </div>
                       <span className="lp-achieve-title">Community</span>
                       <span className="lp-achieve-tier">Diamond</span>
@@ -614,7 +656,7 @@ export default function LeaderProfilePage() {
 
                     <div className="lp-achieve-item">
                       <div className="lp-achieve-badge gold">
-                        <span className="lp-achieve-ico">👥</span>
+                        <FaUsers size={20} color="#CA8A04" />
                       </div>
                       <span className="lp-achieve-title">Team Builder</span>
                       <span className="lp-achieve-tier">Diamond</span>
@@ -639,7 +681,7 @@ export default function LeaderProfilePage() {
                     {/* Activity 1 */}
                     <div className="lp-activity-item">
                       <div className="lp-act-icon-wrap">
-                        <span className="lp-act-icon">📢</span>
+                        <HiSpeakerphone size={18} color="#7C3AED" />
                       </div>
                       <div className="lp-act-content">
                         <div className="lp-act-title-row">
@@ -650,13 +692,15 @@ export default function LeaderProfilePage() {
                           Global Business Expansion - Join now & grow together!
                         </p>
                       </div>
-                      <button type="button" className="lp-act-dots" title="More options">⋮</button>
+                      <button type="button" className="lp-act-dots" title="More options">
+                        <BsThreeDotsVertical size={14} />
+                      </button>
                     </div>
 
                     {/* Activity 2 */}
                     <div className="lp-activity-item">
                       <div className="lp-act-icon-wrap">
-                        <span className="lp-act-icon">🔄</span>
+                        <HiRefresh size={18} color="#7C3AED" />
                       </div>
                       <div className="lp-act-content">
                         <div className="lp-act-title-row">
@@ -667,13 +711,15 @@ export default function LeaderProfilePage() {
                           Success isn’t destination, it’s journey of continuous growth!
                         </p>
                       </div>
-                      <button type="button" className="lp-act-dots" title="More options">⋮</button>
+                      <button type="button" className="lp-act-dots" title="More options">
+                        <BsThreeDotsVertical size={14} />
+                      </button>
                     </div>
 
                     {/* Activity 3 */}
                     <div className="lp-activity-item">
                       <div className="lp-act-icon-wrap">
-                        <span className="lp-act-icon">👥</span>
+                        <HiUserAdd size={18} color="#7C3AED" />
                       </div>
                       <div className="lp-act-content">
                         <div className="lp-act-title-row">
@@ -684,13 +730,15 @@ export default function LeaderProfilePage() {
                           Welcome to our growing family!
                         </p>
                       </div>
-                      <button type="button" className="lp-act-dots" title="More options">⋮</button>
+                      <button type="button" className="lp-act-dots" title="More options">
+                        <BsThreeDotsVertical size={14} />
+                      </button>
                     </div>
 
                     {/* Activity 4 */}
                     <div className="lp-activity-item">
                       <div className="lp-act-icon-wrap">
-                        <span className="lp-act-icon">🔄</span>
+                        <HiRefresh size={18} color="#7C3AED" />
                       </div>
                       <div className="lp-act-content">
                         <div className="lp-act-title-row">
@@ -701,13 +749,15 @@ export default function LeaderProfilePage() {
                           Success isn’t destination, it’s journey of continuous growth!
                         </p>
                       </div>
-                      <button type="button" className="lp-act-dots" title="More options">⋮</button>
+                      <button type="button" className="lp-act-dots" title="More options">
+                        <BsThreeDotsVertical size={14} />
+                      </button>
                     </div>
 
                     {/* Activity 5 */}
                     <div className="lp-activity-item">
                       <div className="lp-act-icon-wrap">
-                        <span className="lp-act-icon">📝</span>
+                        <HiCalendar size={18} color="#7C3AED" />
                       </div>
                       <div className="lp-act-content">
                         <div className="lp-act-title-row">
@@ -718,40 +768,19 @@ export default function LeaderProfilePage() {
                           Leadership summit 2026 - Register Now!
                         </p>
                       </div>
-                      <button type="button" className="lp-act-dots" title="More options">⋮</button>
+                      <button type="button" className="lp-act-dots" title="More options">
+                        <BsThreeDotsVertical size={14} />
+                      </button>
                     </div>
                   </div>
                 </div>
 
               </div>
 
-              {/* RIGHT COLUMN: Let's Grow Together, Top Network, Top Leaders, Quick Actions */}
+              {/* RIGHT COLUMN: Top Network, Top Leaders, Quick Actions (Frame 325x144px) */}
               <div className="lp-col-right">
 
-                {/* Card 1: Let's Grow Together Promo Card */}
-                <div
-                  className="lp-promo-banner"
-                  style={{
-                    backgroundImage: `url(${leaderPromoBg})`,
-                  }}
-                >
-                  <h3 className="lp-promo-title">Let's Grow Together</h3>
-                  <p className="lp-promo-text">
-                    Connect, collaborate and create new opportunities together.
-                  </p>
-                  <button
-                    type="button"
-                    className="lp-promo-btn"
-                    onClick={() => {
-                      handleFollowToggle();
-                      toast.success('Connection request sent!');
-                    }}
-                  >
-                    Connect Now →
-                  </button>
-                </div>
-
-                {/* Card 2: Top Network */}
+                {/* Card 1: Top Network */}
                 <div className="lp-card lp-network-card">
                   <div className="lp-card-head-row">
                     <h3 className="lp-card-title">Top Network ({leader.followers || '2.4k'})</h3>
@@ -800,11 +829,11 @@ export default function LeaderProfilePage() {
                   </p>
                 </div>
 
-                {/* Card 3: Top Leaders List */}
+                {/* Card 2: Top Leaders List */}
                 <div className="lp-card lp-top-leaders-card">
                   <div className="lp-card-head-row">
                     <div className="lp-top-title-wrap">
-                      <span className="lp-top-icon">✨</span>
+                      <HiSparkles className="lp-top-icon" />
                       <h3 className="lp-card-title">Top Leaders</h3>
                     </div>
                     <button
@@ -845,50 +874,59 @@ export default function LeaderProfilePage() {
                   </div>
                 </div>
 
-                {/* Card 4: Quick Actions */}
+                {/* Card 3: Quick Actions (Frame 325px x 144px, border #D9D9D9, bg #F5FDFF) */}
                 <div className="lp-card lp-quick-actions-card">
                   <h3 className="lp-card-title">Quick Actions</h3>
 
-                  <div className="lp-quick-grid">
+                  {/* 4 horizontal action items matching Figma */}
+                  <div className="lp-quick-horizontal-row">
                     <button
                       type="button"
-                      className="lp-quick-item"
+                      className="lp-quick-action-btn"
                       onClick={handleMessageClick}
                     >
-                      <span className="lp-quick-ico">💬</span>
-                      <span className="lp-quick-lbl">Send Message</span>
+                      <div className="lp-quick-action-icon-wrap">
+                        <HiChatAlt2 size={24} color="#7C3AED" />
+                      </div>
+                      <span className="lp-quick-action-label">Send Message</span>
                     </button>
 
                     <button
                       type="button"
-                      className="lp-quick-item"
+                      className="lp-quick-action-btn"
                       onClick={() => {
                         setActiveTab('Network');
                         toast.success('Navigated to Network view');
                       }}
                     >
-                      <span className="lp-quick-ico">👁️</span>
-                      <span className="lp-quick-lbl">View Network</span>
+                      <div className="lp-quick-action-icon-wrap">
+                        <HiEye size={24} color="#7C3AED" />
+                      </div>
+                      <span className="lp-quick-action-label">View Network</span>
                     </button>
 
                     <button
                       type="button"
-                      className="lp-quick-item"
+                      className="lp-quick-action-btn"
                       onClick={() => {
                         toast.success(`Request sent to join ${leader.name}'s team!`);
                       }}
                     >
-                      <span className="lp-quick-ico">👥</span>
-                      <span className="lp-quick-lbl">Join Team</span>
+                      <div className="lp-quick-action-icon-wrap">
+                        <HiUserGroup size={24} color="#7C3AED" />
+                      </div>
+                      <span className="lp-quick-action-label">Join Team</span>
                     </button>
 
                     <button
                       type="button"
-                      className="lp-quick-item"
+                      className="lp-quick-action-btn"
                       onClick={handleShareProfile}
                     >
-                      <span className="lp-quick-ico">🔗</span>
-                      <span className="lp-quick-lbl">Share Profile</span>
+                      <div className="lp-quick-action-icon-wrap">
+                        <HiShare size={24} color="#7C3AED" />
+                      </div>
+                      <span className="lp-quick-action-label">Share Profile</span>
                     </button>
                   </div>
                 </div>
