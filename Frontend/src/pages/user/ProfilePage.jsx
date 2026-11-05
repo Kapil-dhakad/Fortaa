@@ -4,6 +4,8 @@ import toast from 'react-hot-toast';
 import './ProfilePage.css';
 import UserHeader from '../../components/layout/UserHeader';
 import UserSidebar from '../../components/layout/UserSidebar';
+import PostComments from '../../components/posts/PostComments';
+import ShareModal from '../../components/posts/ShareModal';
 
 // User, Follow & Dashboard Services
 import { fetchUserProfile, updateUserProfile as apiUpdateUserProfile } from '../../services/user.service';
@@ -136,6 +138,8 @@ export default function ProfilePage() {
     postsCount: 0,
   });
   const [myPosts, setMyPosts] = useState([]);
+  const [openCommentsPostId, setOpenCommentsPostId] = useState(null);
+  const [shareModalPost, setShareModalPost] = useState(null);
   const [followersList, setFollowersList] = useState([]);
   const [followingList, setFollowingList] = useState([]);
 
@@ -1389,8 +1393,12 @@ export default function ProfilePage() {
                               <span className="prof-reaction-emojis">👍 💙 🧡</span>
                               <span className="prof-reaction-count">{post.likes_count || 124}</span>
                             </div>
-                            <div className="prof-comments-shares">
-                              <span>{post.comments_count || 28} comments</span> &nbsp;•&nbsp; <span>12 shares</span>
+                            <div
+                              className="prof-comments-shares"
+                              style={{ cursor: 'pointer' }}
+                              onClick={() => setOpenCommentsPostId(openCommentsPostId === post.id ? null : post.id)}
+                            >
+                              <span>{post.comments_count || 0} comments</span> &nbsp;•&nbsp; <span>{post.shares_count || 12} shares</span>
                             </div>
                           </div>
 
@@ -1404,36 +1412,33 @@ export default function ProfilePage() {
                             </button>
                             <button
                               type="button"
-                              className="prof-action-btn"
-                              onClick={() => toast('Comment modal opened')}
+                              className={`prof-action-btn ${openCommentsPostId === post.id ? 'active' : ''}`}
+                              onClick={() => setOpenCommentsPostId(openCommentsPostId === post.id ? null : post.id)}
                             >
                               💬 Comment
                             </button>
                             <button
                               type="button"
                               className="prof-action-btn"
-                              onClick={() => {
-                                navigator.clipboard?.writeText(window.location.origin + '/all-posts');
-                                toast.success('Link copied to clipboard!');
-                              }}
+                              onClick={() => setShareModalPost(post)}
                             >
                               ↗️ Share
                             </button>
                           </div>
 
-                          {/* Frame 133: Figma Amit Verma Comment Preview */}
-                          <div className="prof-comment-preview-box">
-                            <img src={userAvatarImg} alt="Amit Verma" className="prof-comment-avatar" />
-                            <div className="prof-comment-info">
-                              <span className="prof-comment-author">Amit Verma</span>
-                              <p className="prof-comment-text">Great sharing keep insipiring!</p>
-                              <div className="prof-comment-meta-row">
-                                <button type="button">Like</button>
-                                <button type="button">Reply</button>
-                                <span>1h</span>
-                              </div>
-                            </div>
-                          </div>
+                          {/* Interactive Comments Drawer */}
+                          {openCommentsPostId === post.id && (
+                            <PostComments
+                              postId={post.id}
+                              currentUser={storedUser}
+                              initialCount={post.comments_count || 0}
+                              onCommentAdded={(newCount) => {
+                                setMyPosts((prev) =>
+                                  prev.map((p) => (p.id === post.id ? { ...p, comments_count: newCount } : p))
+                                );
+                              }}
+                            />
+                          )}
                         </div>
                       ))
                     ) : (
@@ -2066,6 +2071,23 @@ export default function ProfilePage() {
           <span>More</span>
         </button>
       </nav>
+
+      {/* Share Modal */}
+      <ShareModal
+        isOpen={Boolean(shareModalPost)}
+        post={shareModalPost}
+        currentUser={storedUser}
+        onClose={() => setShareModalPost(null)}
+        onShareSuccess={(newSharesCount) => {
+          if (shareModalPost) {
+            setMyPosts((prev) =>
+              prev.map((p) =>
+                p.id === shareModalPost.id ? { ...p, shares_count: newSharesCount } : p
+              )
+            );
+          }
+        }}
+      />
     </div>
   );
 }

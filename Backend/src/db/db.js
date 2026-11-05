@@ -65,8 +65,26 @@ CREATE TABLE IF NOT EXISTS posts (
   image_url TEXT,
   likes_count INTEGER DEFAULT 0,
   comments_count INTEGER DEFAULT 0,
+  shares_count INTEGER DEFAULT 0,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
+
+ALTER TABLE posts ADD COLUMN IF NOT EXISTS shares_count INTEGER DEFAULT 0;
+
+-- Post Comments Table
+CREATE TABLE IF NOT EXISTS post_comments (
+  id SERIAL PRIMARY KEY,
+  post_id INTEGER NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+  user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  author_name VARCHAR(150) NOT NULL,
+  author_role VARCHAR(100) DEFAULT 'Member',
+  author_avatar TEXT,
+  content TEXT NOT NULL,
+  likes_count INTEGER DEFAULT 0,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_post_comments_post ON post_comments(post_id);
 
 -- Trainers Table
 CREATE TABLE IF NOT EXISTS trainers (

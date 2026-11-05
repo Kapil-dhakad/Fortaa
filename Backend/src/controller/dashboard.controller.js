@@ -563,6 +563,228 @@ async function deletePost(req, res) {
   }
 }
 
+// 13. Get Post Comments
+async function getPostComments(req, res) {
+  try {
+    const { id } = req.params;
+    if (!id) {
+      return res.status(400).json({ success: false, message: 'Post ID is required' });
+    }
+
+    if (db.isDBConnected()) {
+      const result = await db.query(
+        `SELECT c.*,
+                COALESCE(u.name, c.author_name) AS author_name,
+                COALESCE(u.avatar_url, c.author_avatar) AS author_avatar,
+                COALESCE(u.designation, c.author_role, 'Member') AS author_role
+         FROM post_comments c
+         LEFT JOIN users u ON u.id = c.user_id
+         WHERE c.post_id = $1
+         ORDER BY c.created_at ASC`,
+        [id]
+      );
+      return res.status(200).json({ success: true, comments: result.rows });
+    }
+
+    const post = fallbackData.posts.find((p) => String(p.id) === String(id));
+    return res.status(200).json({ success: true, comments: post?.comments || [] });
+  } catch (err) {
+    console.error('getPostComments error:', err);
+    return res.status(500).json({ success: false, message: 'Failed to fetch comments' });
+  }
+}
+
+// 14. Add Comment to Post
+async function addPostComment(req, res) {
+  try {
+    const { id } = req.params;
+    const { content, userId, authorName, authorRole, authorAvatar } = req.body;
+
+    if (!id) {
+      return res.status(400).json({ success: false, message: 'Post ID is required' });
+    }
+    if (!content || !content.trim()) {
+      return res.status(400).json({ success: false, message: 'Comment content cannot be empty' });
+    }
+
+    const activeUserId = userId ? parseInt(userId, 10) : null;
+    const name = authorName || 'Member';
+    const role = authorRole || 'Member';
+    const avatar = authorAvatar || null;
+
+    if (db.isDBConnected()) {
+      // 1. Insert comment
+      const commentRes = await db.query(
+        `INSERT INTO post_comments (post_id, user_id, author_name, author_role, author_avatar, content)
+         VALUES ($1, $2, $3, $4, $5, $6)
+         RETURNING *`,
+        [id, activeUserId, name, role, avatar, content.trim()]
+      );
+
+      // 2. Update post comments count
+      const countRes = await db.query(
+        `UPDATE posts 
+         SET comments_count = (SELECT COUNT(*) FROM post_comments WHERE post_id = $1)
+         WHERE id = $1
+         RETURNING comments_count`,
+        [id]
+      );
+
+      const commentsCount = countRes.rows[0]?.comments_count || 1;
+
+      return res.status(201).json({
+        success: true,
+        message: 'Comment added successfully',
+        comment: commentRes.rows[0],
+        comments_count: commentsCount,
+      });
+    }
+
+    const post = fallbackData.posts.find((p) => String(p.id) === String(id));
+    if (!post) {
+      return res.status(404).json({ success: false, message: 'Post not found' });
+    }
+    if (!post.comments) post.comments = [];
+
+    const newComment = {
+      id: Date.now(),
+      post_id: id,
+      user_id: activeUserId,
+      author_name: name,
+      author_role: role,
+      author_avatar: avatar,
+      content: content.trim(),
+      likes_count: 0,
+      created_at: new Date().toISOString(),
+    };
+
+    post.comments.push(newComment);
+    post.comments_count = (post.comments_count || 0) + 1;
+
+    return res.status(201).json({
+      success: true,
+      message: 'Comment added',
+      comment: newComment,
+      comments_count: post.comments_count,
+    });
+  } catch (err) {
+    console.error('addPostComment error:', err);
+    return res.status(500).json({ success: false, message: 'Failed to add comment' });
+  }
+}
+
+// 15. Like a Comment
+async function likePostComment(req, res) {
+  try {
+    const { id } = req.params;
+    if (db.isDBConnected()) {
+      const result = await db.query(
+        `UPDATE post_comments SET likes_count = likes_count + 1 WHERE id = $1 RETURNING *`,
+        [id]
+      );
+      if (result.rows.length === 0) {
+        return res.status(404).json({ success: false, message: 'Comment not found' });
+      }
+      return res.status(200).json({ success: true, comment: result.rows[0] });
+    }
+
+    return res.status(200).json({ success: true, message: 'Comment liked' });
+  } catch (err) {
+    console.error('likePostComment error:', err);
+    return res.status(500).json({ success: false, message: 'Failed to like comment' });
+  }
+}
+
+// 16. Delete a Comment
+async function deletePostComment(req, res) {
+  try {
+    const { id } = req.params;
+    if (db.isDBConnected()) {
+      const check = await db.query('SELECT post_id FROM post_comments WHERE id = $1', [id]);
+      if (check.rows.length === 0) {
+        return res.status(404).json({ success: false, message: 'Comment not found' });
+      }
+      const postId = check.rows[0].post_id;
+      await db.query('DELETE FROM post_comments WHERE id = $1', [id]);
+      const countRes = await db.query(
+        'UPDATE posts SET comments_count = GREATEST(0, (SELECT COUNT(*) FROM post_comments WHERE post_id = $1)) WHERE id = $1 RETURNING comments_count',
+        [postId]
+      );
+      return res.status(200).json({
+        success: true,
+        message: 'Comment deleted',
+        comments_count: countRes.rows[0]?.comments_count || 0,
+      });
+    }
+
+    return res.status(200).json({ success: true, message: 'Comment deleted' });
+  } catch (err) {
+    console.error('deletePostComment error:', err);
+    return res.status(500).json({ success: false, message: 'Failed to delete comment' });
+  }
+}
+
+// 17. Share a Post (Tracks shares & increments shares_count)
+async function sharePost(req, res) {
+  try {
+    const { id } = req.params;
+    const { userId, quote, repostToFeed } = req.body;
+
+    if (db.isDBConnected()) {
+      const updateRes = await db.query(
+        `UPDATE posts 
+         SET shares_count = COALESCE(shares_count, 0) + 1 
+         WHERE id = $1 
+         RETURNING *`,
+        [id]
+      );
+
+      if (updateRes.rows.length === 0) {
+        return res.status(404).json({ success: false, message: 'Post not found' });
+      }
+
+      const originalPost = updateRes.rows[0];
+
+      // If user chose to Repost to feed
+      if (repostToFeed && userId) {
+        const userRes = await db.query('SELECT name, designation, avatar_url FROM users WHERE id = $1', [userId]);
+        const user = userRes.rows[0] || {};
+        await db.query(
+          `INSERT INTO posts (user_id, author_name, author_role, author_avatar, content, tags, image_url)
+           VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+          [
+            userId,
+            user.name || 'Member',
+            user.designation || 'Member',
+            user.avatar_url || null,
+            quote ? `${quote.trim()}\n\n[Reposted from ${originalPost.author_name}]: ${originalPost.content}` : `[Reposted from ${originalPost.author_name}]: ${originalPost.content}`,
+            originalPost.tags,
+            originalPost.image_url,
+          ]
+        );
+      }
+
+      return res.status(200).json({
+        success: true,
+        message: 'Post shared successfully',
+        post: originalPost,
+        shares_count: originalPost.shares_count,
+      });
+    }
+
+    const post = fallbackData.posts.find((p) => String(p.id) === String(id));
+    if (post) {
+      post.shares_count = (post.shares_count || 0) + 1;
+      return res.status(200).json({ success: true, message: 'Post shared', shares_count: post.shares_count });
+    }
+
+    return res.status(200).json({ success: true, message: 'Post shared', shares_count: 1 });
+  } catch (err) {
+    console.error('sharePost error:', err);
+    return res.status(500).json({ success: false, message: 'Failed to share post' });
+  }
+}
+
 module.exports = {
   getDashboardOverview,
   getPosts,
@@ -570,6 +792,11 @@ module.exports = {
   likePost,
   updatePost,
   deletePost,
+  getPostComments,
+  addPostComment,
+  likePostComment,
+  deletePostComment,
+  sharePost,
   getTrainers,
   getLeaders,
   getServices,

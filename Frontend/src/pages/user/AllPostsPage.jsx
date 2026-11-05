@@ -5,6 +5,8 @@ import { fetchPosts, likePostApi } from '../../services/dashboard.service';
 import { toggleFollowUser, fetchFollowingIds } from '../../services/follow.service';
 import { fetchDashboardOverview } from '../../services/dashboard.service';
 import userAvatarImg from '../../assets/dashboard/user_avatar_rahul.png';
+import PostComments from '../../components/posts/PostComments';
+import ShareModal from '../../components/posts/ShareModal';
 import './AllPostsPage.css';
 
 export default function AllPostsPage() {
@@ -15,6 +17,8 @@ export default function AllPostsPage() {
   });
 
   const [posts, setPosts] = useState([]);
+  const [openCommentsPostId, setOpenCommentsPostId] = useState(null);
+  const [shareModalPost, setShareModalPost] = useState(null);
   const [loading, setLoading] = useState(true);
   const [followingIds, setFollowingIds] = useState([]);
   const [profileId, setProfileId] = useState(null);
@@ -159,8 +163,11 @@ export default function AllPostsPage() {
 
                 <div className="ap-post-reactions-row">
                   <span>👍 ❤️ 👏 {post.likes_count || 0}</span>
-                  <span>
-                    {post.comments_count || 0} comments · 12 shares
+                  <span
+                    style={{ cursor: 'pointer' }}
+                    onClick={() => setOpenCommentsPostId(openCommentsPostId === post.id ? null : post.id)}
+                  >
+                    {post.comments_count || 0} comments · {post.shares_count || 12} shares
                   </span>
                 </div>
 
@@ -172,38 +179,52 @@ export default function AllPostsPage() {
                     {post.has_liked ? '👍 Liked' : '👍 Like'}
                   </button>
                   <button
-                    className="ap-interact-btn"
-                    onClick={() => toast('Comment feature coming soon!')}
+                    className={`ap-interact-btn ${openCommentsPostId === post.id ? 'active' : ''}`}
+                    onClick={() => setOpenCommentsPostId(openCommentsPostId === post.id ? null : post.id)}
                   >
                     💬 Comment
                   </button>
                   <button
                     className="ap-interact-btn"
-                    onClick={() => toast.success('Link copied!')}
+                    onClick={() => setShareModalPost(post)}
                   >
                     ↗️ Share
                   </button>
                 </div>
 
-                <div className="ap-post-comments-preview">
-                  <div className="ap-comment-item">
-                    <span className="ap-commenter-name">Amit Verma</span>
-                    <span className="ap-commenter-text">Great sharing keep inspiring!</span>
-                  </div>
-                  <div className="ap-comment-input-box">
-                    <input
-                      type="text"
-                      placeholder="Write a comment..."
-                      className="ap-comment-input"
-                    />
-                    <button className="ap-comment-submit">➤</button>
-                  </div>
-                </div>
+                {openCommentsPostId === post.id && (
+                  <PostComments
+                    postId={post.id}
+                    currentUser={storedUser}
+                    initialCount={post.comments_count || 0}
+                    onCommentAdded={(newCount) => {
+                      setPosts((prev) =>
+                        prev.map((p) => (p.id === post.id ? { ...p, comments_count: newCount } : p))
+                      );
+                    }}
+                  />
+                )}
               </div>
             ))}
           </div>
         )}
       </div>
+
+      <ShareModal
+        isOpen={Boolean(shareModalPost)}
+        post={shareModalPost}
+        currentUser={storedUser}
+        onClose={() => setShareModalPost(null)}
+        onShareSuccess={(newSharesCount) => {
+          if (shareModalPost) {
+            setPosts((prev) =>
+              prev.map((p) =>
+                p.id === shareModalPost.id ? { ...p, shares_count: newSharesCount } : p
+              )
+            );
+          }
+        }}
+      />
     </div>
   );
 }

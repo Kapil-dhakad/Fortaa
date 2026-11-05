@@ -153,3 +153,69 @@ export async function fetchOpportunities() {
     return [];
   }
 }
+
+export async function fetchPostComments(postId) {
+  try {
+    const res = await fetch(`${BASE_URL}/posts/${postId}/comments`);
+    if (!res.ok) throw new Error('Failed to fetch comments');
+    const data = await res.json();
+    return data.comments || [];
+  } catch (err) {
+    console.error('fetchPostComments error:', err);
+    return [];
+  }
+}
+
+export async function addPostCommentApi(postId, { content, userId, authorName, authorRole, authorAvatar }) {
+  try {
+    const res = await fetch(`${BASE_URL}/posts/${postId}/comments`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content, userId, authorName, authorRole, authorAvatar }),
+    });
+    const data = await res.json();
+    return data;
+  } catch (err) {
+    console.error('addPostCommentApi error:', err);
+    return { success: false, message: 'Failed to add comment' };
+  }
+}
+
+export async function likePostCommentApi(commentId) {
+  try {
+    const res = await fetch(`${BASE_URL}/comments/${commentId}/like`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    return await res.json();
+  } catch (err) {
+    console.error('likePostCommentApi error:', err);
+    return null;
+  }
+}
+
+export async function deletePostCommentApi(commentId) {
+  try {
+    const res = await fetch(`${BASE_URL}/comments/${commentId}`, {
+      method: 'DELETE',
+    });
+    return await res.json();
+  } catch (err) {
+    console.error('deletePostCommentApi error:', err);
+    return null;
+  }
+}
+
+export async function sharePostApi(postId, { userId, quote, repostToFeed = false }) {
+  try {
+    const res = await fetch(`${BASE_URL}/posts/${postId}/share`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId, quote, repostToFeed }),
+    });
+    return await res.json();
+  } catch (err) {
+    console.error('sharePostApi error:', err);
+    return { success: false, message: 'Failed to share post' };
+  }
+}

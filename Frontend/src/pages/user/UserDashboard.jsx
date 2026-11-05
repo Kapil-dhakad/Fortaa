@@ -5,6 +5,8 @@ import { FaCheck, FaUsers, FaUserFriends, FaRegAddressCard, FaShieldAlt } from '
 import './UserDashboard.css';
 import UserHeader from '../../components/layout/UserHeader';
 import UserSidebar from '../../components/layout/UserSidebar';
+import PostComments from '../../components/posts/PostComments';
+import ShareModal from '../../components/posts/ShareModal';
 
 // Upload & Dashboard APIs
 import { uploadSingleImage } from '../../services/upload.service';
@@ -100,6 +102,8 @@ export default function UserDashboard() {
   });
 
   const [posts, setPosts] = useState([]);
+  const [openCommentsPostId, setOpenCommentsPostId] = useState(null);
+  const [shareModalPost, setShareModalPost] = useState(null);
   const [followingIds, setFollowingIds] = useState([]);
   const [pendingIds, setPendingIds] = useState([]);
   const [trainersList, setTrainersList] = useState([]);
@@ -814,8 +818,19 @@ export default function UserDashboard() {
                           <span className="ud-react-pill-red">❤️</span>
                           <span className="ud-react-count">{post.likes_count || 0}</span>
                         </div>
-                        <div className="ud-post-comment-counts">
+                        <div
+                          className="ud-post-comment-counts"
+                          style={{ cursor: 'pointer' }}
+                          onClick={() => setOpenCommentsPostId(openCommentsPostId === post.id ? null : post.id)}
+                          title="View comments"
+                        >
                           <span>{post.comments_count || 0} comments</span>
+                          {Boolean(post.shares_count) && (
+                            <>
+                              <span> • </span>
+                              <span>{post.shares_count} shares</span>
+                            </>
+                          )}
                         </div>
                       </div>
 
@@ -827,20 +842,35 @@ export default function UserDashboard() {
                         >
                           {post.has_liked ? '👍 Liked' : '👍 Like'}
                         </button>
-                        <button type="button" className="ud-interact-btn" onClick={() => toast('Comments coming soon!')}>
+                        <button
+                          type="button"
+                          className={`ud-interact-btn ${openCommentsPostId === post.id ? 'active' : ''}`}
+                          onClick={() => setOpenCommentsPostId(openCommentsPostId === post.id ? null : post.id)}
+                        >
                           💬 Comment
                         </button>
                         <button
                           type="button"
                           className="ud-interact-btn"
-                          onClick={() => {
-                            navigator.clipboard?.writeText(window.location.origin + '/all-posts');
-                            toast.success('Link copied to clipboard!');
-                          }}
+                          onClick={() => setShareModalPost(post)}
                         >
                           ↗️ Share
                         </button>
                       </div>
+
+                      {/* Expandable Comments Drawer */}
+                      {openCommentsPostId === post.id && (
+                        <PostComments
+                          postId={post.id}
+                          currentUser={profile}
+                          initialCount={post.comments_count || 0}
+                          onCommentAdded={(newCount) => {
+                            setPosts((prev) =>
+                              prev.map((p) => (p.id === post.id ? { ...p, comments_count: newCount } : p))
+                            );
+                          }}
+                        />
+                      )}
                     </div>
                   ))
                 ) : (
@@ -1373,7 +1403,11 @@ export default function UserDashboard() {
                       <span className="ud-mob-reaction-badge orange">🧡</span>
                       <span className="ud-mob-engagement-count">{post.likes_count || 0}</span>
                     </div>
-                    <div className="ud-mob-engagement-stats">
+                    <div
+                      className="ud-mob-engagement-stats"
+                      style={{ cursor: 'pointer' }}
+                      onClick={() => setOpenCommentsPostId(openCommentsPostId === post.id ? null : post.id)}
+                    >
                       <span>{post.comments_count || 0} comments</span>
                       <span>•</span>
                       <span>{post.shares_count || 0} shares</span>
@@ -1394,22 +1428,37 @@ export default function UserDashboard() {
                       <span>{post.has_liked ? '❤️' : '👍'}</span>
                       <span>{post.has_liked ? 'Liked' : 'Like'}</span>
                     </button>
-                    <button type="button" className="ud-mob-post-action-btn" onClick={() => toast('Comments opening...')}>
+                    <button
+                      type="button"
+                      className={`ud-mob-post-action-btn ${openCommentsPostId === post.id ? 'active' : ''}`}
+                      onClick={() => setOpenCommentsPostId(openCommentsPostId === post.id ? null : post.id)}
+                    >
                       <span>💬</span>
                       <span>Comment</span>
                     </button>
                     <button
                       type="button"
                       className="ud-mob-post-action-btn"
-                      onClick={() => {
-                        navigator.clipboard?.writeText(window.location.href);
-                        toast.success('Post link copied!');
-                      }}
+                      onClick={() => setShareModalPost(post)}
                     >
                       <span>↗</span>
                       <span>Share</span>
                     </button>
                   </div>
+
+                  {/* Mobile Expandable Comments Drawer */}
+                  {openCommentsPostId === post.id && (
+                    <PostComments
+                      postId={post.id}
+                      currentUser={profile}
+                      initialCount={post.comments_count || 0}
+                      onCommentAdded={(newCount) => {
+                        setPosts((prev) =>
+                          prev.map((p) => (p.id === post.id ? { ...p, comments_count: newCount } : p))
+                        );
+                      }}
+                    />
+                  )}
                 </article>
               ))
             ) : (
@@ -1613,6 +1662,23 @@ export default function UserDashboard() {
           </div>
         </div>
       )}
+
+      {/* Share Post Modal */}
+      <ShareModal
+        isOpen={Boolean(shareModalPost)}
+        post={shareModalPost}
+        currentUser={profile}
+        onClose={() => setShareModalPost(null)}
+        onShareSuccess={(newSharesCount) => {
+          if (shareModalPost) {
+            setPosts((prev) =>
+              prev.map((p) =>
+                p.id === shareModalPost.id ? { ...p, shares_count: newSharesCount } : p
+              )
+            );
+          }
+        }}
+      />
     </div>
   );
 }

@@ -7,6 +7,11 @@ const {
   likePost,
   updatePost,
   deletePost,
+  getPostComments,
+  addPostComment,
+  likePostComment,
+  deletePostComment,
+  sharePost,
   getTrainers,
   getLeaders,
   getServices,
@@ -24,6 +29,13 @@ router.post('/posts', createPost);
 router.post('/posts/:id/like', likePost);
 router.put('/posts/:id', updatePost);
 router.delete('/posts/:id', deletePost);
+
+// Comments & Shares
+router.get('/posts/:id/comments', getPostComments);
+router.post('/posts/:id/comments', addPostComment);
+router.post('/comments/:id/like', likePostComment);
+router.delete('/comments/:id', deletePostComment);
+router.post('/posts/:id/share', sharePost);
 
 // Supporting Cards
 router.get('/trainers', getTrainers);

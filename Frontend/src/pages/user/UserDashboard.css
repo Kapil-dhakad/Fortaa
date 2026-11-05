@@ -1255,6 +1255,14 @@
   background: #F8FAFC;
 }
 
+.ud-interact-btn.active,
+.ud-mob-post-action-btn.active {
+  color: #6B11D7 !important;
+  font-weight: 600 !important;
+  background: #F3E8FF !important;
+  border-radius: 6px;
+}
+
 .ud-post-comments-preview {
   display: flex;
   flex-direction: column;
