@@ -693,7 +693,12 @@ export default function LeadersPage() {
                   const status = followMap[leader.id] || 'none';
 
                   return (
-                    <div key={leader.id} className="lead-card">
+                    <div
+                      key={leader.id}
+                      className="lead-card"
+                      onClick={() => navigate(`/leader/${leader.id}`, { state: { leader } })}
+                      style={{ cursor: 'pointer' }}
+                    >
                       {/* Top Banner */}
                       <div
                         className="lead-card-banner"
@@ -798,14 +803,20 @@ export default function LeadersPage() {
                           <button
                             type="button"
                             className={`lead-btn-follow ${status}`}
-                            onClick={() => handleFollowClick(leader.id, leader.name)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleFollowClick(leader.id, leader.name);
+                            }}
                           >
                             {status === 'accepted' ? 'Following ✓' : status === 'pending' ? 'Pending...' : 'Follow'}
                           </button>
                           <button
                             type="button"
                             className="lead-btn-message"
-                            onClick={() => navigate(`/messages?user=${leader.id}&name=${encodeURIComponent(leader.name)}`)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate(`/messages?user=${leader.id}&name=${encodeURIComponent(leader.name)}`);
+                            }}
                           >
                             Message
                           </button>
@@ -1033,7 +1044,12 @@ export default function LeadersPage() {
                   const status = followMap[topLdr.id] || 'none';
 
                   return (
-                    <div key={topLdr.id} className="lead-top-item">
+                    <div
+                      key={topLdr.id}
+                      className="lead-top-item"
+                      onClick={() => navigate(`/leader/${topLdr.id}`, { state: { leader: topLdr } })}
+                      style={{ cursor: 'pointer' }}
+                    >
                       {/* Rank Box (40px x 35px, #44297E) */}
                       <div className="lead-top-rank-box">{topLdr.rank}</div>
 
@@ -1059,7 +1075,10 @@ export default function LeadersPage() {
                       <button
                         type="button"
                         className={`lead-top-follow-btn ${status}`}
-                        onClick={() => handleFollowClick(topLdr.id, topLdr.name)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleFollowClick(topLdr.id, topLdr.name);
+                        }}
                       >
                         {status === 'accepted' ? 'Following' : status === 'pending' ? 'Pending' : 'Follow'}
                       </button>

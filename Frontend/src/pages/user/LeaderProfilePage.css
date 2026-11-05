@@ -1,0 +1,1147 @@
+/* ==========================================================================
+   LEADER PROFILE PAGE (Figma Spec 1465px x 1129px)
+   ========================================================================== */
+
+.lp-root-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background: #F5FDFF;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  color: #1E293B;
+  box-sizing: border-box;
+}
+
+.lp-main-wrapper {
+  display: flex;
+  width: 100%;
+  height: calc(100vh - 51px);
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+/* Scrollable Container for Content */
+.lp-scroll-container {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: #F5FDFF;
+}
+
+.lp-scroll-container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.lp-scroll-container::-webkit-scrollbar-track {
+  background: #F1F5F9;
+}
+
+.lp-scroll-container::-webkit-scrollbar-thumb {
+  background: #CBD5E1;
+  border-radius: 4px;
+}
+
+.lp-scroll-container::-webkit-scrollbar-thumb:hover {
+  background: #94A3B8;
+}
+
+/* Content Body */
+.lp-content-body {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 16px 22px 60px 22px;
+  box-sizing: border-box;
+}
+
+/* Breadcrumb / Back button */
+.lp-breadcrumb-row {
+  margin-bottom: 12px;
+}
+
+.lp-back-btn {
+  background: transparent;
+  border: none;
+  font-size: 13px;
+  font-weight: 600;
+  color: #6B11D7;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: all 0.15s ease;
+}
+
+.lp-back-btn:hover {
+  background: #EDE9FE;
+}
+
+/* ==========================================================================
+   HERO PROFILE BANNER (936px x 232px)
+   ========================================================================== */
+.lp-hero-banner {
+  width: 100%;
+  min-height: 232px;
+  background-color: #0A021D;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.18);
+  position: relative;
+  overflow: hidden;
+  box-sizing: border-box;
+  padding: 24px 28px;
+  display: flex;
+  align-items: center;
+}
+
+.lp-hero-inner {
+  display: flex;
+  align-items: center;
+  gap: 26px;
+  width: 100%;
+  position: relative;
+  z-index: 2;
+}
+
+/* Avatar Wrap */
+.lp-hero-avatar-wrap {
+  position: relative;
+  flex-shrink: 0;
+  width: 130px;
+  height: 130px;
+}
+
+.lp-hero-avatar-box {
+  width: 130px;
+  height: 130px;
+  border-radius: 50%;
+  border: 3px solid #FFFFFF;
+  overflow: hidden;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.35);
+  background: #1E0241;
+}
+
+.lp-hero-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.lp-avatar-crown-pill {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background: #FFB800;
+  color: #2D1A00;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 20px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  border: 1px solid #FFFFFF;
+  letter-spacing: 0.02em;
+}
+
+.lp-crown-icon {
+  font-size: 10px;
+}
+
+.lp-avatar-camera-btn {
+  position: absolute;
+  bottom: 4px;
+  right: 4px;
+  width: 26px;
+  height: 26px;
+  background: #FFFFFF;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.lp-avatar-camera-btn:hover {
+  transform: scale(1.08);
+}
+
+/* Hero Details */
+.lp-hero-details {
+  flex: 1;
+  min-width: 0;
+  color: #FFFFFF;
+}
+
+.lp-hero-title-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+}
+
+.lp-hero-name {
+  font-size: 22px;
+  font-weight: 700;
+  color: #FFFFFF;
+  margin: 0;
+  line-height: 1.2;
+}
+
+.lp-hero-rank-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #541C98;
+  border: 0.5px solid rgba(255, 255, 255, 0.5);
+  border-radius: 4px;
+  padding: 3px 10px;
+  font-size: 10.5px;
+  color: #FFFFFF;
+  letter-spacing: 0.02em;
+}
+
+.lp-rank-medal {
+  font-size: 11px;
+}
+
+.lp-rank-divider {
+  opacity: 0.6;
+}
+
+.lp-hero-username {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.85);
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+
+.lp-hero-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.9);
+  margin-bottom: 10px;
+}
+
+.lp-hero-meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.lp-meta-icon {
+  font-size: 12px;
+}
+
+.lp-hero-meta-item strong {
+  color: #FFFFFF;
+  font-weight: 600;
+}
+
+.lp-hero-quote {
+  font-size: 12.5px;
+  font-style: italic;
+  color: rgba(255, 255, 255, 0.95);
+  margin: 0 0 14px 0;
+  line-height: 1.4;
+}
+
+/* Actions Row */
+.lp-hero-actions-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.lp-btn-follow {
+  background: #6B11D7;
+  color: #FFFFFF;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 22px;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(107, 17, 215, 0.35);
+}
+
+.lp-btn-follow:hover {
+  background: #580EB3;
+  transform: translateY(-1px);
+}
+
+.lp-btn-follow.following {
+  background: #10B981;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+}
+
+.lp-btn-message {
+  background: #FFFFFF;
+  color: #1E0241;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 18px;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+}
+
+.lp-btn-message:hover {
+  background: #F8FAFC;
+  transform: translateY(-1px);
+}
+
+.lp-btn-share {
+  background: #FFFFFF;
+  color: #1E0241;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 18px;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+}
+
+.lp-btn-share:hover {
+  background: #F8FAFC;
+  transform: translateY(-1px);
+}
+
+/* ==========================================================================
+   TABS BAR (802px x 35px)
+   ========================================================================== */
+.lp-tabs-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 18px 0;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.lp-tabs-bar::-webkit-scrollbar {
+  height: 4px;
+}
+
+.lp-tabs-bar::-webkit-scrollbar-thumb {
+  background: #CBD5E1;
+  border-radius: 4px;
+}
+
+.lp-tab-item {
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 6px;
+  padding: 8px 18px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #475569;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.lp-tab-item:hover {
+  border-color: #6B11D7;
+  color: #6B11D7;
+}
+
+.lp-tab-item.active {
+  background: #6B11D7;
+  border-color: #6B11D7;
+  color: #FFFFFF;
+  font-weight: 600;
+  box-shadow: 0 2px 6px rgba(107, 17, 215, 0.25);
+}
+
+/* ==========================================================================
+   THREE COLUMNS LAYOUT
+   ========================================================================== */
+.lp-columns-grid {
+  display: flex;
+  gap: 18px;
+  align-items: flex-start;
+}
+
+.lp-col-left {
+  width: 360px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.lp-col-center {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.lp-col-right {
+  width: 310px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+/* Shared Card Styles */
+.lp-card {
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 12px;
+  padding: 18px 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  box-sizing: border-box;
+}
+
+.lp-card-head-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.lp-card-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #1E0241;
+  margin: 0 0 12px 0;
+}
+
+.lp-card-head-row .lp-card-title {
+  margin: 0;
+}
+
+.lp-view-all-link {
+  background: transparent;
+  border: none;
+  color: #6B11D7;
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  transition: opacity 0.15s ease;
+}
+
+.lp-view-all-link:hover {
+  text-decoration: underline;
+  opacity: 0.85;
+}
+
+/* ==========================================================================
+   LEFT COLUMN: About & Featured Opportunities
+   ========================================================================== */
+.lp-about-bio {
+  font-size: 12.5px;
+  color: #475569;
+  line-height: 1.5;
+  margin: 0 0 16px 0;
+}
+
+.lp-about-details-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.lp-about-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.lp-about-icon {
+  font-size: 14px;
+  margin-top: 1px;
+}
+
+.lp-about-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.lp-about-lbl {
+  font-size: 11px;
+  color: #94A3B8;
+  font-weight: 500;
+}
+
+.lp-about-val {
+  font-size: 12px;
+  color: #1E293B;
+  font-weight: 600;
+}
+
+.lp-about-subval {
+  font-size: 12.5px;
+  color: #334155;
+  font-weight: 500;
+}
+
+.lp-about-link {
+  font-size: 12px;
+  color: #6B11D7;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.lp-about-link:hover {
+  text-decoration: underline;
+}
+
+.lp-about-quote-box {
+  background: #FAF7FE;
+  border: 1px solid #EDE9FE;
+  border-radius: 8px;
+  padding: 12px 14px;
+  position: relative;
+}
+
+.lp-quote-icon {
+  font-size: 24px;
+  line-height: 1;
+  color: #F59E0B;
+  font-family: Georgia, serif;
+  display: block;
+  margin-bottom: 2px;
+}
+
+.lp-quote-text {
+  font-size: 11.5px;
+  font-style: italic;
+  color: #475569;
+  margin: 0 0 6px 0;
+  line-height: 1.4;
+}
+
+.lp-quote-author {
+  font-size: 11px;
+  font-weight: 600;
+  color: #6B11D7;
+  display: block;
+  text-align: right;
+}
+
+/* Featured Opportunities Card */
+.lp-opp-card {
+  padding: 16px;
+}
+
+.lp-opp-image-wrap {
+  width: 100%;
+  height: 110px;
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 12px;
+  background: #E2E8F0;
+}
+
+.lp-opp-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.lp-opp-heading {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1E0241;
+  margin: 0 0 6px 0;
+}
+
+.lp-opp-tags-row {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.lp-opp-tag {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.lp-tag-biz {
+  background: #EFF6FF;
+  color: #2563EB;
+}
+
+.lp-tag-earn {
+  background: #ECFDF5;
+  color: #059669;
+}
+
+.lp-opp-desc {
+  font-size: 11.5px;
+  color: #64748B;
+  line-height: 1.4;
+  margin: 0 0 12px 0;
+}
+
+.lp-opp-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px solid #F1F5F9;
+  padding-top: 10px;
+  gap: 8px;
+}
+
+.lp-opp-metrics {
+  display: flex;
+  gap: 12px;
+}
+
+.lp-opp-metric {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.lp-metric-icon {
+  font-size: 12px;
+}
+
+.lp-metric-val {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  color: #1E293B;
+  line-height: 1.2;
+}
+
+.lp-metric-lbl {
+  display: block;
+  font-size: 9.5px;
+  color: #94A3B8;
+}
+
+.lp-opp-btn {
+  background: #6B11D7;
+  color: #FFFFFF;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s ease;
+}
+
+.lp-opp-btn:hover {
+  background: #580EB3;
+}
+
+/* ==========================================================================
+   MIDDLE COLUMN: Skills, Achievements, Recent Activities
+   ========================================================================== */
+/* Skills Card */
+.lp-skills-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  padding: 8px 0;
+}
+
+.lp-skill-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+}
+
+.lp-skill-circle {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+}
+
+.lp-skill-circle.purple {
+  background: linear-gradient(135deg, #F3E8FF 0%, #D8B4FE 100%);
+  border: 1.5px solid #C084FC;
+}
+
+.lp-skill-circle.magenta {
+  background: linear-gradient(135deg, #FCE7F3 0%, #F472B6 100%);
+  border: 1.5px solid #F43F5E;
+}
+
+.lp-skill-circle.amber {
+  background: linear-gradient(135deg, #FEF3C7 0%, #FCD34D 100%);
+  border: 1.5px solid #F59E0B;
+}
+
+.lp-skill-circle.cyan {
+  background: linear-gradient(135deg, #E0F2FE 0%, #7DD3FC 100%);
+  border: 1.5px solid #0EA5E9;
+}
+
+.lp-skill-ico {
+  font-size: 20px;
+}
+
+.lp-skill-name {
+  font-size: 11px;
+  font-weight: 600;
+  color: #334155;
+  max-width: 75px;
+  line-height: 1.25;
+}
+
+/* Achievements Card */
+.lp-achieve-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  padding: 8px 0;
+}
+
+.lp-achieve-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 3px;
+}
+
+.lp-achieve-badge {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 4px;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.06);
+}
+
+.lp-achieve-badge.blue {
+  background: #EFF6FF;
+  border: 1.5px solid #3B82F6;
+}
+
+.lp-achieve-badge.orange {
+  background: #FFF7ED;
+  border: 1.5px solid #F97316;
+}
+
+.lp-achieve-badge.teal {
+  background: #ECFDF5;
+  border: 1.5px solid #10B981;
+}
+
+.lp-achieve-badge.gold {
+  background: #FEFCE8;
+  border: 1.5px solid #EAB308;
+}
+
+.lp-achieve-ico {
+  font-size: 22px;
+}
+
+.lp-achieve-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: #1E293B;
+  line-height: 1.2;
+}
+
+.lp-achieve-tier {
+  font-size: 10px;
+  color: #94A3B8;
+  font-weight: 500;
+}
+
+/* Recent Activities Card */
+.lp-activity-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.lp-activity-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #F1F5F9;
+}
+
+.lp-activity-item:last-child {
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.lp-act-icon-wrap {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #FAF5FF;
+  border: 1px solid #E9D5FF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.lp-act-icon {
+  font-size: 15px;
+}
+
+.lp-act-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.lp-act-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 2px;
+}
+
+.lp-act-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #1E293B;
+  margin: 0;
+  line-height: 1.3;
+}
+
+.lp-act-time {
+  font-size: 10.5px;
+  color: #94A3B8;
+  white-space: nowrap;
+}
+
+.lp-act-desc {
+  font-size: 11.5px;
+  color: #64748B;
+  margin: 0;
+  line-height: 1.35;
+}
+
+.lp-act-dots {
+  background: transparent;
+  border: none;
+  color: #94A3B8;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 0 4px;
+  line-height: 1;
+}
+
+.lp-act-dots:hover {
+  color: #1E293B;
+}
+
+/* ==========================================================================
+   RIGHT COLUMN: Promo, Network, Top Leaders, Quick Actions
+   ========================================================================== */
+/* Promo Banner */
+.lp-promo-banner {
+  width: 100%;
+  min-height: 175px;
+  background-color: #200445;
+  background-size: cover;
+  background-position: center;
+  border-radius: 12px;
+  padding: 22px 20px;
+  box-sizing: border-box;
+  color: #FFFFFF;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  box-shadow: 0 4px 15px rgba(32, 4, 69, 0.25);
+}
+
+.lp-promo-title {
+  font-size: 16px;
+  font-weight: 700;
+  margin: 0 0 6px 0;
+  color: #FFFFFF;
+}
+
+.lp-promo-text {
+  font-size: 11.5px;
+  color: rgba(255, 255, 255, 0.85);
+  line-height: 1.4;
+  margin: 0 0 16px 0;
+}
+
+.lp-promo-btn {
+  background: #FFFFFF;
+  color: #2E0362;
+  border: none;
+  border-radius: 20px;
+  padding: 8px 16px;
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+  align-self: flex-start;
+  transition: transform 0.15s ease;
+}
+
+.lp-promo-btn:hover {
+  transform: translateY(-1px);
+}
+
+/* Network Card */
+.lp-network-avatars-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.lp-net-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 2px solid #FFFFFF;
+  margin-left: -8px;
+  object-fit: cover;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+
+.lp-net-avatar:first-child {
+  margin-left: 0;
+}
+
+.lp-net-more {
+  background: #6B11D7;
+  color: #FFFFFF;
+  font-size: 10px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.lp-network-subtext {
+  font-size: 11px;
+  color: #64748B;
+  margin: 0;
+}
+
+/* Top Leaders Card */
+.lp-top-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.lp-top-icon {
+  font-size: 13px;
+}
+
+.lp-top-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.lp-top-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.lp-top-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.lp-top-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.lp-top-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: #1E293B;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lp-top-sub {
+  font-size: 10.5px;
+  color: #64748B;
+}
+
+.lp-top-followers {
+  font-size: 10px;
+  color: #94A3B8;
+}
+
+.lp-top-follow-btn {
+  background: #6B11D7;
+  color: #FFFFFF;
+  border: none;
+  border-radius: 4px;
+  padding: 4px 12px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.lp-top-follow-btn:hover {
+  background: #580EB3;
+}
+
+.lp-top-follow-btn.following {
+  background: #E2E8F0;
+  color: #475569;
+}
+
+/* Quick Actions Card */
+.lp-quick-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.lp-quick-item {
+  background: #FAF7FE;
+  border: 1px solid #EDE9FE;
+  border-radius: 8px;
+  padding: 12px 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.lp-quick-item:hover {
+  background: #EDE9FE;
+  border-color: #DDD6FE;
+  transform: translateY(-1px);
+}
+
+.lp-quick-ico {
+  font-size: 18px;
+}
+
+.lp-quick-lbl {
+  font-size: 11px;
+  font-weight: 600;
+  color: #1E0241;
+  text-align: center;
+}
+
+/* ==========================================================================
+   RESPONSIVE DESIGN
+   ========================================================================== */
+@media (max-width: 1200px) {
+  .lp-columns-grid {
+    flex-wrap: wrap;
+  }
+  .lp-col-left {
+    width: 320px;
+  }
+  .lp-col-right {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 900px) {
+  .lp-columns-grid {
+    flex-direction: column;
+  }
+  .lp-col-left,
+  .lp-col-center,
+  .lp-col-right {
+    width: 100%;
+  }
+  .lp-col-right {
+    display: flex;
+    flex-direction: column;
+  }
+  .lp-hero-inner {
+    flex-direction: column;
+    text-align: center;
+  }
+  .lp-hero-title-row {
+    justify-content: center;
+  }
+  .lp-hero-meta-row {
+    justify-content: center;
+  }
+  .lp-hero-actions-row {
+    justify-content: center;
+  }
+}
+
+@media (max-width: 600px) {
+  .lp-content-body {
+    padding: 12px 14px 70px 14px;
+  }
+  .lp-hero-banner {
+    padding: 18px 14px;
+  }
+  .lp-hero-avatar-wrap {
+    width: 100px;
+    height: 100px;
+  }
+  .lp-hero-avatar-box {
+    width: 100px;
+    height: 100px;
+  }
+  .lp-hero-name {
+    font-size: 19px;
+  }
+  .lp-quick-grid {
+    grid-template-columns: 1fr;
+  }
+}

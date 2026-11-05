@@ -12,6 +12,7 @@ import AllPostsPage from './pages/user/AllPostsPage';
 import MessagesPage from './pages/user/MessagesPage';
 import FollowingPage from './pages/user/FollowingPage';
 import LeadersPage from './pages/user/LeadersPage';
+import LeaderProfilePage from './pages/user/LeaderProfilePage';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminUserDashboard from './pages/admin/AdminUserDashboard';
 
@@ -104,6 +105,9 @@ export default function App() {
         <Route path="/all-posts" element={<AllPostsPage />} />
         <Route path="/following" element={<FollowingPage />} />
         <Route path="/leaders" element={<LeadersPage />} />
+        <Route path="/leaders/:id" element={<LeaderProfilePage />} />
+        <Route path="/leader/:id" element={<LeaderProfilePage />} />
+        <Route path="/leader-profile" element={<LeaderProfilePage />} />
         <Route path="/network" element={<LeadersPage />} />
         <Route path="/messages" element={<MessagesPage />} />
         <Route path="/dashboard" element={<UserDashboard />} />
