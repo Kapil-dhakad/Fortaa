@@ -35,6 +35,8 @@ class UserInstance {
     this.govt_id_url = data.govt_id_url || data.govtIdUrl || null;
     this.business_doc_url = data.business_doc_url || data.businessDocUrl || null;
     this.catalog_url = data.catalog_url || data.catalogUrl || null;
+    this.avatar_url = data.avatar_url || data.avatarUrl || null;
+    this.avatarUrl = this.avatar_url;
     this.created_at = data.created_at || new Date().toISOString();
   }
 
@@ -159,6 +161,7 @@ const userModel = {
         website_social: data.websiteSocial || null,
         mobile_verified: data.mobileVerified ?? true,
         email_verified: data.emailVerified ?? true,
+        avatar_url: data.avatarUrl || data.avatar_url || null,
         created_at: new Date().toISOString(),
       };
       memoryUsers.push(newUser);

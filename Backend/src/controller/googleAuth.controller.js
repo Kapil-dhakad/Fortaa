@@ -47,6 +47,24 @@ async function handleGoogleAuth(req, res) {
 
     if (existingUser) {
       // ─── USER ALREADY EXISTS ───
+      // If user doesn't have an avatar yet, update with their Google profile picture
+      if ((!existingUser.avatar_url || existingUser.avatar_url.trim() === '') && googleProfile.picture) {
+        try {
+          const db = require('../db/db');
+          if (db.isConnected()) {
+            await db.query('UPDATE users SET avatar_url = $1 WHERE id = $2', [
+              googleProfile.picture,
+              existingUser.id || existingUser._id,
+            ]);
+            console.log(`[Google Auth]: Updated avatar for user ${existingUser.name} with Google photo`);
+          }
+          existingUser.avatar_url = googleProfile.picture;
+          existingUser.avatarUrl = googleProfile.picture;
+        } catch (updateErr) {
+          console.error('[Google Auth] Failed to update avatar for existing user:', updateErr);
+        }
+      }
+
       const isProfileCompleted = Boolean(
         existingUser.mobile_number &&
         (existingUser.company_brand || existingUser.business_name || existingUser.designation)

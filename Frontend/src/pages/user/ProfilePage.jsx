@@ -407,7 +407,10 @@ export default function ProfilePage() {
         if (chosen) {
           setUserProfile((prev) => ({ ...prev, avatarImg: chosen.img }));
           setFormData((prev) => ({ ...prev, avatarImg: chosen.img }));
-          toast.success('Preset profile picture applied!');
+          await apiUpdateUserProfile(currentUserId, { avatarUrl: chosen.img });
+          const stored = JSON.parse(localStorage.getItem('fortaa_user') || '{}');
+          localStorage.setItem('fortaa_user', JSON.stringify({ ...stored, avatarUrl: chosen.img }));
+          toast.success('Preset profile picture saved to database!');
         }
       }
       setIsPhotoModalOpen(false);

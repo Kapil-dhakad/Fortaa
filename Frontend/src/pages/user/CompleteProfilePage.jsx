@@ -232,6 +232,7 @@ export default function CompleteProfilePage() {
       experience: formData.experience,
       referralId: formData.referralId.trim() || null,
       govtIdUrl: formData.govtIdUrl || null,
+      avatarUrl: currentUser?.avatarUrl || currentUser?.picture || null,
     };
 
     try {

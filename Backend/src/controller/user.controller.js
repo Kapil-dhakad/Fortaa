@@ -30,6 +30,8 @@ async function registerUser(req, res) {
       govtIdUrl,
       businessDocUrl,
       catalogUrl,
+      avatarUrl,
+      avatar_url,
     } = req.body;
 
     const resolvedName = (name || fullName || '').trim();
@@ -76,6 +78,7 @@ async function registerUser(req, res) {
       govtIdUrl: govtIdUrl || null,
       businessDocUrl: businessDocUrl || null,
       catalogUrl: catalogUrl || null,
+      avatarUrl: avatarUrl || avatar_url || null,
     });
 
    
@@ -110,6 +113,7 @@ async function registerUser(req, res) {
         designation: user.designation,
         experience: user.experience,
         govtIdUrl: user.govt_id_url,
+        avatarUrl: user.avatar_url || user.avatarUrl || null,
       },
     });
   } catch (error) {
@@ -181,6 +185,8 @@ async function loginUser(req, res) {
         email: user.email,
         mobileNumber: user.mobile_number,
         company: user.company_brand,
+        designation: user.designation,
+        avatarUrl: user.avatar_url || user.avatarUrl || null,
       },
     });
   } catch (error) {
@@ -223,6 +229,7 @@ async function getMe(req, res) {
         designation: user.designation,
         experience: user.experience,
         govtIdUrl: user.govt_id_url,
+        avatarUrl: user.avatar_url || user.avatarUrl || null,
       },
     });
   } catch (error) {
