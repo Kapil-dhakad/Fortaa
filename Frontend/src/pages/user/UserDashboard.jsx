@@ -7,6 +7,9 @@ import UserHeader from '../../components/layout/UserHeader';
 import UserSidebar from '../../components/layout/UserSidebar';
 import PostComments from '../../components/posts/PostComments';
 import ShareModal from '../../components/posts/ShareModal';
+import PostActionMenu from '../../components/posts/PostActionMenu';
+import AboutAccountModal from '../../components/posts/AboutAccountModal';
+import InstagramPostModal from '../../components/posts/InstagramPostModal';
 
 // Upload & Dashboard APIs
 import { uploadSingleImage } from '../../services/upload.service';
@@ -106,6 +109,9 @@ export default function UserDashboard() {
   const [posts, setPosts] = useState([]);
   const [openCommentsPostId, setOpenCommentsPostId] = useState(null);
   const [shareModalPost, setShareModalPost] = useState(null);
+  const [activeMenuPost, setActiveMenuPost] = useState(null);
+  const [aboutAccountPost, setAboutAccountPost] = useState(null);
+  const [instagramModalPost, setInstagramModalPost] = useState(null);
   const [followingIds, setFollowingIds] = useState([]);
   const [pendingIds, setPendingIds] = useState([]);
   const [trainersList, setTrainersList] = useState([]);
@@ -413,6 +419,29 @@ export default function UserDashboard() {
             : p
         )
       );
+    }
+  };
+
+  // Handle Author profile click navigation
+  const handleAuthorClick = (post) => {
+    if (!post) return;
+    const myId = profile.id || storedUser.id;
+    const isSelf = post.user_id && Number(post.user_id) === Number(myId);
+    if (isSelf) {
+      navigate('/profile');
+    } else if (post.user_id) {
+      navigate(`/leaders/${post.user_id}`, {
+        state: {
+          leader: {
+            id: post.user_id,
+            name: post.author_name,
+            avatar: post.author_avatar,
+            levelTitle: post.author_role,
+          },
+        },
+      });
+    } else {
+      navigate('/leaders');
     }
   };
 
@@ -806,13 +835,25 @@ export default function UserDashboard() {
                   posts.slice(0, 2).map((post, pIdx) => (
                     <div key={post.id || pIdx} className={`ud-post-item ${pIdx === 0 ? 'ud-post-item-first' : 'ud-post-item-second'}`}>
                       <div className="ud-post-header">
-                        <div className="ud-post-avatar-wrap">
+                        <div
+                          className="ud-post-avatar-wrap"
+                          style={{ cursor: 'pointer' }}
+                          onClick={() => handleAuthorClick(post)}
+                          title="View Profile"
+                        >
                           <img src={post.author_avatar || userAvatarImg} alt="" className="ud-post-avatar" />
                           <span className="ud-post-online-dot"></span>
                         </div>
                         <div className="ud-post-author-meta">
                           <div className="ud-post-author-name-row">
-                            <span className="ud-post-author-name">{post.author_name}</span>
+                            <span
+                              className="ud-post-author-name"
+                              style={{ cursor: 'pointer' }}
+                              onClick={() => handleAuthorClick(post)}
+                              title="View Profile"
+                            >
+                              {post.author_name}
+                            </span>
                             <span className="ud-post-badge">{post.author_role || 'Member'}</span>
                             <span className="ud-post-time">
                               • {post.time || (post.created_at ? new Date(post.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Just now')} • 🌐
@@ -836,10 +877,22 @@ export default function UserDashboard() {
                             </button>
                           );
                         })()}
-                        <button className="ud-btn-post-menu" type="button">⋮</button>
+                        <button
+                          className="ud-btn-post-menu"
+                          type="button"
+                          onClick={() => setActiveMenuPost(post)}
+                          title="More options"
+                        >
+                          ⋮
+                        </button>
                       </div>
 
-                      <div className="ud-post-body">
+                      <div
+                        className="ud-post-body"
+                        style={{ cursor: 'pointer' }}
+                        onClick={() => setInstagramModalPost(post)}
+                        title="Click to view post"
+                      >
                         <p className="ud-post-text">{post.content}</p>
                         {post.tags && <p className="ud-post-tags">{post.tags}</p>}
 
@@ -1396,12 +1449,24 @@ export default function UserDashboard() {
                 <article key={post.id || pIdx} className="ud-mob-post-card">
                   <div className="ud-mob-post-header">
                     <div className="ud-mob-post-author">
-                      <div className="ud-mob-author-avatar-wrap">
+                      <div
+                        className="ud-mob-author-avatar-wrap"
+                        style={{ cursor: 'pointer' }}
+                        onClick={() => handleAuthorClick(post)}
+                        title="View Profile"
+                      >
                         <img src={post.author_avatar || userAvatarImg} alt={post.author_name} className="ud-mob-author-avatar" />
                         <span className="ud-mob-online-dot" />
                       </div>
                       <div className="ud-mob-author-meta">
-                        <h4 className="ud-mob-author-name">{post.author_name || 'Fortaa Member'}</h4>
+                        <h4
+                          className="ud-mob-author-name"
+                          style={{ cursor: 'pointer' }}
+                          onClick={() => handleAuthorClick(post)}
+                          title="View Profile"
+                        >
+                          {post.author_name || 'Fortaa Member'}
+                        </h4>
                         <span className="ud-mob-author-sub">
                           {post.author_role || 'Leader'} • {post.created_at ? new Date(post.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Just now'} • 🌐
                         </span>
@@ -1425,27 +1490,39 @@ export default function UserDashboard() {
                           </button>
                         );
                       })()}
-                      <button type="button" className="ud-mob-btn-menu" aria-label="More options">
+                      <button
+                        type="button"
+                        className="ud-mob-btn-menu"
+                        aria-label="More options"
+                        onClick={() => setActiveMenuPost(post)}
+                        title="More options"
+                      >
                         ⋮
                       </button>
                     </div>
                   </div>
 
-                  <p className="ud-mob-post-text">{post.content}</p>
+                  <div
+                    style={{ cursor: 'pointer' }}
+                    onClick={() => setInstagramModalPost(post)}
+                    title="Click to view post"
+                  >
+                    <p className="ud-mob-post-text">{post.content}</p>
 
-                  {post.tags && (
-                    <div className="ud-mob-post-tags">
-                      {post.tags.split(' ').map((tg, i) => (
-                        <span key={i}>{tg} </span>
-                      ))}
-                    </div>
-                  )}
+                    {post.tags && (
+                      <div className="ud-mob-post-tags">
+                        {post.tags.split(' ').map((tg, i) => (
+                          <span key={i}>{tg} </span>
+                        ))}
+                      </div>
+                    )}
 
-                  {post.image_url && (
-                    <div className="ud-mob-post-banner-wrap">
-                      <img src={post.image_url} alt="Post content" className="ud-mob-post-banner-img" />
-                    </div>
-                  )}
+                    {post.image_url && (
+                      <div className="ud-mob-post-banner-wrap">
+                        <img src={post.image_url} alt="Post content" className="ud-mob-post-banner-img" />
+                      </div>
+                    )}
+                  </div>
 
                   {/* Reactions Bar */}
                   <div className="ud-mob-post-engagement">
@@ -1729,6 +1806,38 @@ export default function UserDashboard() {
             );
           }
         }}
+      />
+
+      {/* ── Post Action Menu (Three dots options) ── */}
+      <PostActionMenu
+        isOpen={Boolean(activeMenuPost)}
+        onClose={() => setActiveMenuPost(null)}
+        post={activeMenuPost}
+        onAboutAccount={(p) => setAboutAccountPost(p)}
+        onGoToPost={(p) => setInstagramModalPost(p)}
+        onShare={(p) => setShareModalPost(p)}
+      />
+
+      {/* ── About This Account Modal ── */}
+      <AboutAccountModal
+        isOpen={Boolean(aboutAccountPost)}
+        onClose={() => setAboutAccountPost(null)}
+        post={aboutAccountPost}
+        onViewProfile={handleAuthorClick}
+      />
+
+      {/* ── Instagram-Style Post Detail Modal ── */}
+      <InstagramPostModal
+        isOpen={Boolean(instagramModalPost)}
+        onClose={() => setInstagramModalPost(null)}
+        post={instagramModalPost}
+        currentUser={profile}
+        onLike={handleLike}
+        onShare={(p) => setShareModalPost(p)}
+        onAuthorClick={handleAuthorClick}
+        onMenuClick={(p) => setActiveMenuPost(p)}
+        followingIds={followingIds}
+        onToggleFollow={handleToggleFollow}
       />
     </div>
   );

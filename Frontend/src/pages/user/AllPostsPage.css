@@ -153,6 +153,39 @@
   font-size: 14px;
   font-weight: 700;
   color: #111827;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.ap-post-author-name:hover {
+  color: #5a2ce4;
+}
+
+.ap-post-avatar {
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.ap-post-avatar:hover {
+  transform: scale(1.05);
+}
+
+.ap-post-body {
+  cursor: pointer;
+}
+
+.ap-post-image-box {
+  cursor: pointer;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.ap-post-img {
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.ap-post-image-box:hover .ap-post-img {
+  opacity: 0.95;
 }
 
 .ap-post-badge {

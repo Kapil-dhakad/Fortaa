@@ -1107,8 +1107,47 @@
   background: transparent;
   border: none;
   color: #232356;
-  font-size: 15px;
+  font-size: 18px;
   cursor: pointer;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.ud-btn-post-menu:hover {
+  background: #EDE9FE;
+  color: #6D28D9;
+}
+
+.ud-post-avatar-wrap,
+.ud-post-author-name {
+  cursor: pointer;
+}
+
+.ud-post-author-name:hover {
+  color: #6D28D9;
+}
+
+.ud-post-body {
+  cursor: pointer;
+}
+
+.ud-post-image-box {
+  cursor: pointer;
+  overflow: hidden;
+  border-radius: 8px;
+}
+
+.ud-post-img {
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.ud-post-image-box:hover .ud-post-img {
+  opacity: 0.96;
 }
 
 .ud-post-text {

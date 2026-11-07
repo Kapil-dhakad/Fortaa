@@ -7,6 +7,9 @@ import { fetchDashboardOverview } from '../../services/dashboard.service';
 import userAvatarImg from '../../assets/dashboard/user_avatar_rahul.png';
 import PostComments from '../../components/posts/PostComments';
 import ShareModal from '../../components/posts/ShareModal';
+import PostActionMenu from '../../components/posts/PostActionMenu';
+import AboutAccountModal from '../../components/posts/AboutAccountModal';
+import InstagramPostModal from '../../components/posts/InstagramPostModal';
 import './AllPostsPage.css';
 
 export default function AllPostsPage() {
@@ -19,6 +22,9 @@ export default function AllPostsPage() {
   const [posts, setPosts] = useState([]);
   const [openCommentsPostId, setOpenCommentsPostId] = useState(null);
   const [shareModalPost, setShareModalPost] = useState(null);
+  const [activeMenuPost, setActiveMenuPost] = useState(null);
+  const [aboutAccountPost, setAboutAccountPost] = useState(null);
+  const [instagramModalPost, setInstagramModalPost] = useState(null);
   const [loading, setLoading] = useState(true);
   const [followingIds, setFollowingIds] = useState([]);
   const [profileId, setProfileId] = useState(null);
@@ -67,6 +73,27 @@ export default function AllPostsPage() {
       setPosts((prev) =>
         prev.map((p) => (p.id === postId ? { ...p, likes_count: res.post.likes_count, has_liked: res.liked } : p))
       );
+    }
+  };
+
+  const handleAuthorClick = (post) => {
+    if (!post) return;
+    const isSelf = post.user_id && Number(post.user_id) === Number(profileId || storedUser.id);
+    if (isSelf) {
+      navigate('/profile');
+    } else if (post.user_id) {
+      navigate(`/leaders/${post.user_id}`, {
+        state: {
+          leader: {
+            id: post.user_id,
+            name: post.author_name,
+            avatar: post.author_avatar,
+            levelTitle: post.author_role,
+          },
+        },
+      });
+    } else {
+      navigate('/leaders');
     }
   };
 
@@ -119,10 +146,20 @@ export default function AllPostsPage() {
                     src={post.author_avatar || userAvatarImg}
                     alt=""
                     className="ap-post-avatar"
+                    style={{ cursor: 'pointer' }}
+                    onClick={() => handleAuthorClick(post)}
+                    title="View Profile"
                   />
                   <div className="ap-post-author-meta">
                     <div className="ap-post-author-row">
-                      <span className="ap-post-author-name">{post.author_name}</span>
+                      <span
+                        className="ap-post-author-name"
+                        style={{ cursor: 'pointer' }}
+                        onClick={() => handleAuthorClick(post)}
+                        title="View Profile"
+                      >
+                        {post.author_name}
+                      </span>
                       <span className="ap-post-badge">{post.author_role || 'Member'}</span>
                       <span className="ap-post-time">
                         •{' '}
@@ -144,10 +181,22 @@ export default function AllPostsPage() {
                       {Array.isArray(followingIds) && followingIds.map(Number).includes(Number(post.user_id)) ? 'Following ✓' : 'Follow'}
                     </button>
                   )}
-                  <button className="ap-menu-btn">⋮</button>
+                  <button
+                    className="ap-menu-btn"
+                    type="button"
+                    onClick={() => setActiveMenuPost(post)}
+                    title="More options"
+                  >
+                    ⋮
+                  </button>
                 </div>
 
-                <div className="ap-post-body">
+                <div
+                  className="ap-post-body"
+                  style={{ cursor: 'pointer' }}
+                  onClick={() => setInstagramModalPost(post)}
+                  title="Click to view post"
+                >
                   <p className="ap-post-text">{post.content}</p>
                   {post.tags && <p className="ap-post-tags">{post.tags}</p>}
                   {post.image_url && (
@@ -224,6 +273,38 @@ export default function AllPostsPage() {
             );
           }
         }}
+      />
+
+      {/* ── Post Action Menu ── */}
+      <PostActionMenu
+        isOpen={Boolean(activeMenuPost)}
+        onClose={() => setActiveMenuPost(null)}
+        post={activeMenuPost}
+        onAboutAccount={(p) => setAboutAccountPost(p)}
+        onGoToPost={(p) => setInstagramModalPost(p)}
+        onShare={(p) => setShareModalPost(p)}
+      />
+
+      {/* ── About This Account Modal ── */}
+      <AboutAccountModal
+        isOpen={Boolean(aboutAccountPost)}
+        onClose={() => setAboutAccountPost(null)}
+        post={aboutAccountPost}
+        onViewProfile={handleAuthorClick}
+      />
+
+      {/* ── Instagram-Style Post Detail Modal ── */}
+      <InstagramPostModal
+        isOpen={Boolean(instagramModalPost)}
+        onClose={() => setInstagramModalPost(null)}
+        post={instagramModalPost}
+        currentUser={storedUser}
+        onLike={handleLike}
+        onShare={(p) => setShareModalPost(p)}
+        onAuthorClick={handleAuthorClick}
+        onMenuClick={(p) => setActiveMenuPost(p)}
+        followingIds={followingIds}
+        onToggleFollow={handleToggleFollow}
       />
     </div>
   );

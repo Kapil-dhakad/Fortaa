@@ -1,0 +1,101 @@
+/* Instagram-style Post Action Menu */
+.pam-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 99999;
+  padding: 16px;
+  animation: pamFadeIn 0.18s ease-out;
+}
+
+.pam-modal {
+  width: 100%;
+  max-width: 360px;
+  background: #FFFFFF;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
+  animation: pamScaleIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.pam-menu-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.pam-menu-item {
+  width: 100%;
+  padding: 14px 20px;
+  background: #FFFFFF;
+  border: none;
+  border-bottom: 1px solid #EFEFEF;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 14.5px;
+  font-weight: 500;
+  color: #232356;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  transition: background-color 0.15s ease, color 0.15s ease;
+  user-select: none;
+}
+
+.pam-menu-item:last-child {
+  border-bottom: none;
+}
+
+.pam-menu-item:hover {
+  background: #F8FAFC;
+}
+
+.pam-item-highlight {
+  color: #6D28D9;
+  font-weight: 600;
+}
+
+.pam-item-highlight:hover {
+  background: #F5F3FF;
+  color: #5B21B6;
+}
+
+.pam-item-cancel {
+  color: #64748B;
+  font-weight: 500;
+}
+
+.pam-item-cancel:hover {
+  background: #F1F5F9;
+  color: #0F172A;
+}
+
+.pam-item-icon {
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+@keyframes pamFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes pamScaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
