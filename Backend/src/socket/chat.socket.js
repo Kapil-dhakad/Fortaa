@@ -143,6 +143,8 @@ function setupChatSocket(io) {
         }
         // Inform sender that their messages were read
         io.to(`room_${String(senderId)}`).emit('messages_read', { byUserId: Number(receiverId) });
+        // Inform receiver (and any other tabs of receiver) that messages were read
+        io.to(`room_${String(receiverId)}`).emit('messages_marked_read', { senderId: Number(senderId) });
       } catch (err) {
         console.error('[Socket mark_read error]:', err);
       }

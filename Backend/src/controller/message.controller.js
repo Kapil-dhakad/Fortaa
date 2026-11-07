@@ -117,6 +117,7 @@ async function getChatHistory(req, res) {
       const io = getIO();
       if (io) {
         io.to(`room_${String(otherUserId)}`).emit('messages_read', { byUserId: Number(userId) });
+        io.to(`room_${String(userId)}`).emit('messages_marked_read', { senderId: Number(otherUserId) });
       }
     } catch {}
 
@@ -209,8 +210,40 @@ async function sendMessageHttp(req, res) {
   }
 }
 
+/**
+ * Get total unread incoming messages count for a user
+ */
+async function getUnreadMessagesCount(req, res) {
+  try {
+    const userId = parseInt(req.params.userId || req.userId || req.query.userId, 10);
+    if (!userId || isNaN(userId)) {
+      return res.status(400).json({ success: false, message: 'Valid userId required', count: 0 });
+    }
+
+    if (!db.isDBConnected()) {
+      return res.status(200).json({ success: true, count: 0 });
+    }
+
+    const result = await db.query(
+      'SELECT COUNT(*)::int AS count FROM messages WHERE receiver_id = $1 AND is_read = FALSE',
+      [userId]
+    );
+
+    const count = result.rows[0]?.count || 0;
+    return res.status(200).json({
+      success: true,
+      count,
+    });
+  } catch (error) {
+    console.error('[getUnreadMessagesCount Error]:', error);
+    return res.status(500).json({ success: false, message: 'Failed to fetch unread count', count: 0 });
+  }
+}
+
 module.exports = {
   getConversations,
   getChatHistory,
   sendMessageHttp,
+  getUnreadMessagesCount,
 };
+

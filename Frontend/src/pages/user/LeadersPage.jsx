@@ -565,10 +565,9 @@ export default function LeadersPage() {
                     type="button"
                     className="lead-mob-icon-circle"
                     title="Notifications"
-                    onClick={() => toast.success('You have 3 unread notifications')}
+                    onClick={() => toast.success('Notifications')}
                   >
                     <img src={bellIcon} alt="Bell" />
-                    <span className="lead-mob-badge-dot">3</span>
                   </button>
 
                   <button
@@ -578,7 +577,6 @@ export default function LeadersPage() {
                     onClick={() => navigate('/messages')}
                   >
                     <img src={messageIcon} alt="Messages" />
-                    <span className="lead-mob-badge-dot">3</span>
                   </button>
 
                   <div

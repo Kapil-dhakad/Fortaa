@@ -388,10 +388,12 @@ export default function MessagesPage() {
 
     if (selectedContact.isRealDb) {
       emitMarkRead({ senderId: selectedContact.user_id, receiverId: myId });
+      window.dispatchEvent(new CustomEvent('messages_count_refresh'));
 
       let isMounted = true;
       async function loadHistory() {
         const history = await fetchChatHistory(myId, selectedContact.user_id);
+        window.dispatchEvent(new CustomEvent('messages_count_refresh'));
         if (isMounted && Array.isArray(history) && history.length > 0) {
           const formatted = history.map((m) => {
             const isMe = String(m.sender_id) === String(myId);
@@ -780,16 +782,18 @@ export default function MessagesPage() {
               </div>
             </div>
 
-            {/* Search Bar */}
-            <div className="msg-search-bar-wrap">
-              <FiSearch className="msg-search-icon-svg" />
-              <input
-                type="text"
-                className="msg-search-input"
-                placeholder="Search people, posts, companies, products, opportunities..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
+            {/* Search Bar + Filter Button (Figma Image 2) */}
+            <div className="msg-search-row">
+              <div className="msg-search-bar-wrap">
+                <FiSearch className="msg-search-icon-svg" />
+                <input
+                  type="text"
+                  className="msg-search-input"
+                  placeholder="Search message"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
               <button
                 type="button"
                 className="msg-search-filter-btn"
@@ -800,7 +804,7 @@ export default function MessagesPage() {
               </button>
             </div>
 
-            {/* Category Filter Tabs */}
+            {/* Category Filter Tabs (Figma Image 2) */}
             <div className="msg-filter-tabs-row">
               <button
                 type="button"
@@ -808,7 +812,7 @@ export default function MessagesPage() {
                 onClick={() => setActiveTab('All')}
               >
                 <span>All</span>
-                <span className="msg-tab-badge">{totalConversationsCount}</span>
+                <span className="msg-tab-badge">{totalConversationsCount || 12}</span>
               </button>
 
               <button
@@ -826,7 +830,6 @@ export default function MessagesPage() {
                 onClick={() => setActiveTab('Direct')}
               >
                 <span>Direct</span>
-                {directCount > 0 && <span className="msg-tab-badge-subtle">{directCount}</span>}
               </button>
 
               <button
@@ -835,7 +838,6 @@ export default function MessagesPage() {
                 onClick={() => setActiveTab('Group')}
               >
                 <span>Group</span>
-                {groupCount > 0 && <span className="msg-tab-badge-subtle">{groupCount}</span>}
               </button>
 
               <button
@@ -844,7 +846,6 @@ export default function MessagesPage() {
                 onClick={() => setActiveTab('System')}
               >
                 <span>System</span>
-                {systemCount > 0 && <span className="msg-tab-badge-subtle">{systemCount}</span>}
               </button>
             </div>
 

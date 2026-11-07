@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import NotificationDropdown from '../notifications/NotificationDropdown';
 import { fetchUnreadCount } from '../../services/notification.service';
+import { fetchUnreadMessageCount } from '../../services/message.service';
 import { joinChat, getSocket } from '../../services/socket.service';
 import './UserNavigation.css';
 
@@ -24,8 +25,8 @@ export default function UserHeader({
   onSearchSubmit,
   onProfileClick,
   onMessagesClick,
-  notificationCount = 4,
-  messageCount = 3,
+  notificationCount = 0,
+  messageCount = null,
 }) {
   const navigate = useNavigate();
 
@@ -44,6 +45,7 @@ export default function UserHeader({
 
   const [notifOpen, setNotifOpen] = useState(false);
   const [realNotifCount, setRealNotifCount] = useState(0);
+  const [realMessageCount, setRealMessageCount] = useState(0);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const profileDropdownRef = useRef(null);
   const mobProfileDropdownRef = useRef(null);
@@ -79,12 +81,12 @@ export default function UserHeader({
     window.location.href = '/';
   };
 
-  // Fetch real notification count from backend + live socket updates
+  // Fetch real notification & unread message count from backend + live socket updates
   useEffect(() => {
     if (!currentUserId) return;
     let isMounted = true;
 
-    const refreshCount = () => {
+    const refreshNotifCount = () => {
       fetchUnreadCount(currentUserId)
         .then((cnt) => {
           if (isMounted) setRealNotifCount(cnt || 0);
@@ -92,21 +94,45 @@ export default function UserHeader({
         .catch((err) => console.error('fetchUnreadCount error:', err));
     };
 
-    refreshCount();
+    const refreshMsgCount = () => {
+      fetchUnreadMessageCount(currentUserId)
+        .then((cnt) => {
+          if (isMounted) setRealMessageCount(cnt || 0);
+        })
+        .catch((err) => console.error('fetchUnreadMessageCount error:', err));
+    };
+
+    refreshNotifCount();
+    refreshMsgCount();
 
     // Socket live listener
     joinChat(currentUserId);
     const s = getSocket();
-    s.on('new_notification', refreshCount);
-    s.on('follow_request_received', refreshCount);
+    s.on('new_notification', refreshNotifCount);
+    s.on('follow_request_received', refreshNotifCount);
+
+    s.on('new_message', refreshMsgCount);
+    s.on('messages_read', refreshMsgCount);
+    s.on('messages_marked_read', refreshMsgCount);
+
+    // Custom window event for instant local updates across tabs / components
+    const handleCountRefresh = () => refreshMsgCount();
+    window.addEventListener('messages_count_refresh', handleCountRefresh);
 
     // 5s background sync
-    const interval = setInterval(refreshCount, 5000);
+    const interval = setInterval(() => {
+      refreshNotifCount();
+      refreshMsgCount();
+    }, 5000);
 
     return () => {
       isMounted = false;
-      s.off('new_notification', refreshCount);
-      s.off('follow_request_received', refreshCount);
+      s.off('new_notification', refreshNotifCount);
+      s.off('follow_request_received', refreshNotifCount);
+      s.off('new_message', refreshMsgCount);
+      s.off('messages_read', refreshMsgCount);
+      s.off('messages_marked_read', refreshMsgCount);
+      window.removeEventListener('messages_count_refresh', handleCountRefresh);
       clearInterval(interval);
     };
   }, [currentUserId]);
@@ -133,6 +159,8 @@ export default function UserHeader({
       onSearchSubmit(searchQuery);
     }
   };
+
+  const effectiveMsgCount = messageCount !== null ? messageCount : realMessageCount;
 
   return (
     <>
@@ -209,7 +237,11 @@ export default function UserHeader({
             onClick={handleMessagesClick}
           >
             <img src={messageIconImg} alt="Messages" className="ud-header-action-icon" />
-            {messageCount > 0 && <span className="ud-badge-count">{messageCount}</span>}
+            {effectiveMsgCount > 0 && (
+              <span className="ud-badge-count">
+                {effectiveMsgCount > 99 ? '99+' : effectiveMsgCount}
+              </span>
+            )}
           </button>
 
           {/* User Profile Mini Capsule with Dropdown */}
@@ -301,7 +333,11 @@ export default function UserHeader({
               onClick={handleMessagesClick}
             >
               <img src={messageIconImg} alt="Messages" className="ud-mob-action-img" />
-              {messageCount > 0 && <span className="ud-mob-red-badge">{messageCount}</span>}
+              {effectiveMsgCount > 0 && (
+                <span className="ud-mob-red-badge">
+                  {effectiveMsgCount > 99 ? '99+' : effectiveMsgCount}
+                </span>
+              )}
             </button>
 
             <div style={{ position: 'relative' }}>

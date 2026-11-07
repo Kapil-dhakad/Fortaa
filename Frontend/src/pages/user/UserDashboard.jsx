@@ -29,7 +29,9 @@ import {
   unfollowUser,
   fetchFollowingIds,
 } from '../../services/follow.service';
-import { joinChat, subscribeToFollowEvents } from '../../services/socket.service';
+import { joinChat, subscribeToFollowEvents, getSocket } from '../../services/socket.service';
+import { fetchUnreadMessageCount } from '../../services/message.service';
+import { fetchUnreadCount } from '../../services/notification.service';
 
 // Brand & icons
 import logoIconImg from '../../assets/figma/logo_icon_img.png';
@@ -119,6 +121,51 @@ export default function UserDashboard() {
   const [postImagePreview, setPostImagePreview] = useState(null);
   const photoInputRef = useRef(null);
   const postInputRef = useRef(null);
+
+  const [unreadMsgCount, setUnreadMsgCount] = useState(0);
+  const [unreadNotifCount, setUnreadNotifCount] = useState(0);
+
+  // Sync real-time message and notification counts for mobile header
+  useEffect(() => {
+    const myId = profile.id || storedUser.id;
+    if (!myId) return;
+    let isMounted = true;
+
+    const refreshCounts = () => {
+      fetchUnreadCount(myId)
+        .then((cnt) => { if (isMounted) setUnreadNotifCount(cnt || 0); })
+        .catch(() => {});
+      fetchUnreadMessageCount(myId)
+        .then((cnt) => { if (isMounted) setUnreadMsgCount(cnt || 0); })
+        .catch(() => {});
+    };
+
+    refreshCounts();
+
+    joinChat(myId);
+    const s = getSocket();
+    s.on('new_notification', refreshCounts);
+    s.on('follow_request_received', refreshCounts);
+    s.on('new_message', refreshCounts);
+    s.on('messages_read', refreshCounts);
+    s.on('messages_marked_read', refreshCounts);
+
+    const handleWindowRefresh = () => refreshCounts();
+    window.addEventListener('messages_count_refresh', handleWindowRefresh);
+
+    const interval = setInterval(refreshCounts, 5000);
+
+    return () => {
+      isMounted = false;
+      s.off('new_notification', refreshCounts);
+      s.off('follow_request_received', refreshCounts);
+      s.off('new_message', refreshCounts);
+      s.off('messages_read', refreshCounts);
+      s.off('messages_marked_read', refreshCounts);
+      window.removeEventListener('messages_count_refresh', handleWindowRefresh);
+      clearInterval(interval);
+    };
+  }, [profile.id, storedUser.id]);
 
   // Load live data from Backend APIs on Mount
   useEffect(() => {
@@ -1203,10 +1250,10 @@ export default function UserDashboard() {
                 type="button"
                 className="ud-mob-icon-btn"
                 title="Notifications"
-                onClick={() => toast('3 New Notifications', { icon: '🔔' })}
+                onClick={() => toast(`${unreadNotifCount} New Notifications`, { icon: '🔔' })}
               >
                 <img src={bellIconImg} alt="Notifications" className="ud-mob-action-img" />
-                <span className="ud-mob-red-badge">3</span>
+                {unreadNotifCount > 0 && <span className="ud-mob-red-badge">{unreadNotifCount}</span>}
               </button>
 
               <button
@@ -1216,7 +1263,11 @@ export default function UserDashboard() {
                 onClick={() => navigate('/messages')}
               >
                 <img src={messageIconImg} alt="Messages" className="ud-mob-action-img" />
-                <span className="ud-mob-red-badge">3</span>
+                {unreadMsgCount > 0 && (
+                  <span className="ud-mob-red-badge">
+                    {unreadMsgCount > 99 ? '99+' : unreadMsgCount}
+                  </span>
+                )}
               </button>
 
               <div

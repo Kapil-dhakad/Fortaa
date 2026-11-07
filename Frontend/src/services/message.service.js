@@ -46,3 +46,19 @@ export async function sendChatMessageHttp({ senderId, receiverId, text, attachme
     return null;
   }
 }
+
+/**
+ * Fetch total unread incoming messages count for user
+ */
+export async function fetchUnreadMessageCount(userId) {
+  try {
+    if (!userId) return 0;
+    const res = await fetch(`${API_BASE}/unread-count/${userId}`);
+    const data = await res.json();
+    return data.success ? (data.count || 0) : 0;
+  } catch (err) {
+    console.error('fetchUnreadMessageCount error:', err);
+    return 0;
+  }
+}
+
