@@ -10,6 +10,8 @@ import ShareModal from '../../components/posts/ShareModal';
 import PostActionMenu from '../../components/posts/PostActionMenu';
 import AboutAccountModal from '../../components/posts/AboutAccountModal';
 import InstagramPostModal from '../../components/posts/InstagramPostModal';
+import InviteTeamModal from '../../components/modals/InviteTeamModal';
+import JoinGroupModal from '../../components/modals/JoinGroupModal';
 
 // Upload & Dashboard APIs
 import { uploadSingleImage } from '../../services/upload.service';
@@ -122,6 +124,8 @@ export default function UserDashboard() {
   const [opportunitiesList, setOpportunitiesList] = useState([]);
 
   const [isCreatePostModalOpen, setIsCreatePostModalOpen] = useState(false);
+  const [isInviteTeamModalOpen, setIsInviteTeamModalOpen] = useState(false);
+  const [isJoinGroupModalOpen, setIsJoinGroupModalOpen] = useState(false);
   const [submittingPost, setSubmittingPost] = useState(false);
   const [postImageFile, setPostImageFile] = useState(null);
   const [postImagePreview, setPostImagePreview] = useState(null);
@@ -717,6 +721,10 @@ export default function UserDashboard() {
                   } else if (qa.label === 'Add Photo') {
                     setIsCreatePostModalOpen(true);
                     setTimeout(() => photoInputRef.current?.click(), 100);
+                  } else if (qa.label === 'Invite Team') {
+                    setIsInviteTeamModalOpen(true);
+                  } else if (qa.label === 'Join Group') {
+                    setIsJoinGroupModalOpen(true);
                   } else {
                     toast(`${qa.label} action triggered!`);
                   }
@@ -841,7 +849,15 @@ export default function UserDashboard() {
                           onClick={() => handleAuthorClick(post)}
                           title="View Profile"
                         >
-                          <img src={post.author_avatar || userAvatarImg} alt="" className="ud-post-avatar" />
+                          <img
+                            src={post.author_avatar || userAvatarImg}
+                            alt=""
+                            className="ud-post-avatar"
+                            onError={(e) => {
+                              e.currentTarget.onerror = null;
+                              e.currentTarget.src = userAvatarImg;
+                            }}
+                          />
                           <span className="ud-post-online-dot"></span>
                         </div>
                         <div className="ud-post-author-meta">
@@ -1157,7 +1173,14 @@ export default function UserDashboard() {
           <div className="ud-right-box ud-groups-box">
             <div className="ud-side-card-header">
               <h3 className="ud-side-card-title">👥 Popular Groups</h3>
-              <a href="#groups" className="ud-side-card-view-all">View All →</a>
+              <button
+                type="button"
+                className="ud-side-card-view-all"
+                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                onClick={() => setIsJoinGroupModalOpen(true)}
+              >
+                View All →
+              </button>
             </div>
             <div className="ud-groups-list">
               {(groupsList.length ? groupsList : popularGroups).map((grp, idx) => (
@@ -1167,7 +1190,10 @@ export default function UserDashboard() {
                     <h5 className="ud-group-name">{grp.name}</h5>
                     <span className="ud-group-stats">{grp.members}</span>
                   </div>
-                  <button className="ud-btn-join-group" onClick={() => toast.success(`Joined ${grp.name}!`)}>
+                  <button
+                    className="ud-btn-join-group"
+                    onClick={() => setIsJoinGroupModalOpen(true)}
+                  >
                     Join
                   </button>
                 </div>
@@ -1455,7 +1481,15 @@ export default function UserDashboard() {
                         onClick={() => handleAuthorClick(post)}
                         title="View Profile"
                       >
-                        <img src={post.author_avatar || userAvatarImg} alt={post.author_name} className="ud-mob-author-avatar" />
+                        <img
+                          src={post.author_avatar || userAvatarImg}
+                          alt={post.author_name}
+                          className="ud-mob-author-avatar"
+                          onError={(e) => {
+                            e.currentTarget.onerror = null;
+                            e.currentTarget.src = userAvatarImg;
+                          }}
+                        />
                         <span className="ud-mob-online-dot" />
                       </div>
                       <div className="ud-mob-author-meta">
@@ -1838,6 +1872,26 @@ export default function UserDashboard() {
         onMenuClick={(p) => setActiveMenuPost(p)}
         followingIds={followingIds}
         onToggleFollow={handleToggleFollow}
+      />
+
+      {/* ── Invite Team Modal ── */}
+      <InviteTeamModal
+        isOpen={isInviteTeamModalOpen}
+        onClose={() => setIsInviteTeamModalOpen(false)}
+        currentUser={profile}
+      />
+
+      {/* ── Join Group Modal ── */}
+      <JoinGroupModal
+        isOpen={isJoinGroupModalOpen}
+        onClose={() => setIsJoinGroupModalOpen(false)}
+        currentUser={profile}
+        onGroupJoined={() => {
+          // Refresh groups list in background
+          fetchGroups().then((data) => {
+            if (data?.length) setGroupsList(data);
+          });
+        }}
       />
     </div>
   );

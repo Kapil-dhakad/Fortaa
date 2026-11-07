@@ -154,6 +154,29 @@ export function subscribeToMessagesRead(callback) {
 }
 
 /**
+ * Group Room Management & Group Read Receipts
+ */
+export function joinGroupRoom(groupId) {
+  const s = getSocket();
+  if (s && groupId) {
+    s.emit('join_group_room', { groupId: String(groupId) });
+  }
+}
+
+export function leaveGroupRoom(groupId) {
+  const s = getSocket();
+  if (s && groupId) {
+    s.emit('leave_group_room', { groupId: String(groupId) });
+  }
+}
+
+export function subscribeToGroupMessagesRead(callback) {
+  const s = getSocket();
+  s.on('group_messages_read', callback);
+  return () => s.off('group_messages_read', callback);
+}
+
+/**
  * Subscribe to real-time follow events (accept, request received, update)
  */
 export function subscribeToFollowEvents({ onFollowAccepted, onFollowRequestReceived, onFollowUpdated }) {

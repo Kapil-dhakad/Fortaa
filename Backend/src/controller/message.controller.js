@@ -55,13 +55,28 @@ async function getConversations(req, res) {
     const convResult = await db.query(convQuery, [userId]);
     const existingPartnerIds = convResult.rows.map((r) => r.user_id);
 
+    const formattedConversations = convResult.rows.map((r) => {
+      let previewText = r.last_message_text;
+      try {
+        if (previewText && previewText.startsWith('{"') && previewText.includes('"attachment"')) {
+          const parsed = JSON.parse(previewText);
+          previewText = parsed.text || (parsed.attachment ? `📎 ${parsed.attachment.name || 'File'}` : '');
+        }
+      } catch {}
+      return {
+        ...r,
+        last_message_text: previewText,
+        is_new_contact: false,
+      };
+    });
+
     // 2. Fetch other registered users/leaders so user can start chatting with anyone
     const otherUsersQuery = `
       SELECT id as user_id, name, designation, company_brand, avatar_url
       FROM users
       WHERE id != $1 AND id NOT IN (${existingPartnerIds.length ? existingPartnerIds.join(',') : '0'})
       ORDER BY created_at DESC
-      LIMIT 15;
+      LIMIT 25;
     `;
     const otherUsersRes = await db.query(otherUsersQuery, [userId]);
 
@@ -75,11 +90,41 @@ async function getConversations(req, res) {
       last_message_time: null,
       unread_count: 0,
       is_new_contact: true,
+      category: 'Direct',
     }));
+
+    // 3. Fetch groups joined by this user so they appear under Group category tab
+    let userGroupsList = [];
+    try {
+      const userGroupsRes = await db.query(
+        `SELECT g.id, g.name, g.category, g.description, g.icon_url, g.members, gm.joined_at
+         FROM groups g
+         JOIN group_members gm ON gm.group_id = g.id
+         WHERE gm.user_id = $1
+         ORDER BY gm.joined_at DESC;`,
+        [userId]
+      );
+      userGroupsList = userGroupsRes.rows.map((g) => ({
+        user_id: `group_${g.id}`,
+        group_id: g.id,
+        name: g.name,
+        role: g.category || 'Group',
+        category: 'Group',
+        is_group: true,
+        company_brand: 'Fortaa Community',
+        avatar_url: g.icon_url || null,
+        last_message_text: g.description || 'Welcome to the group!',
+        last_message_time: g.joined_at,
+        unread_count: 0,
+        is_new_contact: false,
+      }));
+    } catch (gErr) {
+      console.warn('userGroups fetch error:', gErr.message);
+    }
 
     return res.status(200).json({
       success: true,
-      conversations: [...convResult.rows, ...suggestions],
+      conversations: [...formattedConversations, ...userGroupsList, ...suggestions],
     });
   } catch (error) {
     console.error('[getConversations Error]:', error);
@@ -93,7 +138,116 @@ async function getConversations(req, res) {
 async function getChatHistory(req, res) {
   try {
     const userId = parseInt(req.params.userId, 10);
-    const otherUserId = parseInt(req.params.otherUserId, 10);
+    const rawOtherId = String(req.params.otherUserId);
+
+    // Group Chat History Support
+    if (rawOtherId.startsWith('group_')) {
+      const groupId = parseInt(rawOtherId.replace('group_', ''), 10);
+      if (!groupId || isNaN(groupId)) {
+        return res.status(400).json({ success: false, message: 'Valid groupId required' });
+      }
+
+      if (!db.isDBConnected()) {
+        return res.status(200).json({ success: true, messages: [] });
+      }
+
+      // 1. Mark incoming group messages as read by current user
+      if (userId) {
+        try {
+          await db.query(
+            `UPDATE messages
+             SET read_by = array_append(COALESCE(read_by, '{}'), $1)
+             WHERE group_id = $2 
+               AND sender_id != $1 
+               AND NOT ($1 = ANY(COALESCE(read_by, '{}')));`,
+            [userId, groupId]
+          );
+
+          // Mark is_read = TRUE if all other group members have read
+          await db.query(
+            `WITH member_counts AS (
+               SELECT group_id, COUNT(*)::int as total_members
+               FROM group_members
+               WHERE group_id = $1
+               GROUP BY group_id
+             )
+             UPDATE messages m
+             SET is_read = TRUE
+             FROM member_counts mc
+             WHERE m.group_id = $1
+               AND m.is_read = FALSE
+               AND mc.total_members > 1
+               AND cardinality(COALESCE(m.read_by, '{}')) >= (mc.total_members - 1);`,
+            [groupId]
+          );
+
+          // Broadcast group read receipt so senders see Blue Ticks in real-time
+          const { getIO } = require('../socket/chat.socket');
+          const io = getIO();
+          if (io) {
+            io.to(`group_${groupId}`).emit('group_messages_read', { groupId, readByUserId: userId });
+          }
+        } catch (readErr) {
+          console.warn('[group read receipts error]:', readErr.message);
+        }
+      }
+
+      const groupHistoryQuery = `
+        SELECT 
+          m.id, 
+          m.sender_id, 
+          m.text, 
+          m.created_at, 
+          m.is_read,
+          COALESCE(m.read_by, '{}') as read_by,
+          u.name as sender_name, 
+          u.avatar_url as sender_avatar,
+          COALESCE((SELECT COUNT(*)::int FROM group_members WHERE group_id = $1 AND user_id != m.sender_id), 0) as required_readers
+        FROM messages m
+        LEFT JOIN users u ON u.id = m.sender_id
+        WHERE m.group_id = $1
+        ORDER BY m.created_at ASC;
+      `;
+      const groupHistoryRes = await db.query(groupHistoryQuery, [groupId]);
+      const formatted = groupHistoryRes.rows.map((r) => {
+        let msgText = r.text;
+        let attachment = null;
+        try {
+          if (r.text && r.text.startsWith('{"') && r.text.includes('"attachment"')) {
+            const parsed = JSON.parse(r.text);
+            msgText = parsed.text || '';
+            attachment = parsed.attachment || null;
+          }
+        } catch {}
+
+        const readCount = Array.isArray(r.read_by) ? r.read_by.length : 0;
+        const reqCount = r.required_readers || 0;
+        let msgStatus = 'sent';
+        if (r.is_read || (reqCount > 0 && readCount >= reqCount) || (reqCount === 0 && readCount > 0)) {
+          msgStatus = 'read'; // Blue double tick!
+        } else if (readCount > 0) {
+          msgStatus = 'delivered'; // Grey double tick
+        } else {
+          msgStatus = 'sent'; // Grey single tick
+        }
+
+        return {
+          id: r.id,
+          sender_id: r.sender_id,
+          sender_name: r.sender_name,
+          sender_avatar: r.sender_avatar,
+          text: msgText,
+          attachment,
+          created_at: r.created_at,
+          is_read: msgStatus === 'read',
+          status: msgStatus,
+          read_by: r.read_by || [],
+        };
+      });
+      return res.status(200).json({ success: true, messages: formatted });
+    }
+
+    const otherUserId = parseInt(rawOtherId, 10);
 
     if (!userId || !otherUserId || isNaN(userId) || isNaN(otherUserId)) {
       return res.status(400).json({ success: false, message: 'Valid user IDs required' });

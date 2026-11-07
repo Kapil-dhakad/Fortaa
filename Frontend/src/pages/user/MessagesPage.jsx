@@ -10,12 +10,13 @@ import {
   subscribeToNewMessages,
   subscribeToSentMessage,
   subscribeToOnlineUsers,
-  emitTyping,
-  emitStopTyping,
   subscribeToTyping,
   subscribeToStopTyping,
   emitMarkRead,
   subscribeToMessagesRead,
+  joinGroupRoom,
+  leaveGroupRoom,
+  subscribeToGroupMessagesRead,
 } from '../../services/socket.service';
 import {
   fetchConversations,
@@ -42,6 +43,7 @@ import {
   FiUsers,
   FiAward,
   FiMessageSquare,
+  FiShield,
 } from 'react-icons/fi';
 import {
   BsSliders,
@@ -53,7 +55,6 @@ import {
   BsPersonCheckFill,
   BsFileEarmarkPdfFill,
   BsAwardFill,
-  BsStarFill,
   BsThreeDots,
 } from 'react-icons/bs';
 import {
@@ -67,8 +68,8 @@ import { FaCrown } from 'react-icons/fa';
 
 // Asset Images
 import userAvatarRahul from '../../assets/dashboard/user_avatar_rahul.png';
-import chatBannerTechBg from '../../assets/dashboard/chat_banner_tech_bg.png';
 import chatBannerMountainBg from '../../assets/chat_banner_mountain_bg.png';
+import GroupMembersModal from '../../components/modals/GroupMembersModal';
 import './MessagesPage.css';
 
 // Popular Emojis categorized for the interactive picker
@@ -76,137 +77,6 @@ const POPULAR_EMOJIS = [
   '😀', '😂', '🤣', '😊', '😍', '🥰', '😎', '🤩', '🥳', '🤔', '🤫', '😴',
   '👍', '👏', '🙏', '🤝', '✌️', '👌', '❤️', '🔥', '⭐', '✨', '💯', '🎯',
   '💼', '📈', '📊', '🚀', '💡', '🏆', '🎉', '💰', '📱', '💻', '☕', '💪',
-];
-
-// Initial Figma sample contacts
-const INITIAL_FIGMA_CONTACTS = [
-  {
-    user_id: 101,
-    name: 'Arlene',
-    role: 'Business Partner',
-    category: 'Direct',
-    last_message_text: 'Great! Let’s connect and discuss...',
-    time: '10:24 AM',
-    unread_count: 3,
-    verified: true,
-  },
-  {
-    user_id: 102,
-    name: 'Theresa Webb',
-    role: 'Team member',
-    category: 'Direct',
-    last_message_text: 'Can you share the opportunity datails?',
-    time: '02:24 AM',
-    unread_count: 2,
-  },
-  {
-    user_id: 103,
-    name: 'Ronald Richards',
-    role: 'Business Partner',
-    category: 'Direct',
-    last_message_text: 'Sounds good! Looking forward...',
-    time: '12:00 AM',
-    unread_count: 1,
-  },
-  {
-    user_id: 104,
-    name: 'Courtney Henry',
-    role: 'Team member',
-    category: 'Direct',
-    last_message_text: 'I have joined the event.',
-    time: 'Yesterday',
-    unread_count: 3,
-  },
-  {
-    user_id: 105,
-    name: 'Jane Cooper',
-    role: 'Team member',
-    category: 'Direct',
-    last_message_text: 'Plese share the product catalog.',
-    time: 'Yesterday',
-    unread_count: 4,
-  },
-  {
-    user_id: 106,
-    name: 'Jacob Jones',
-    role: 'Customer',
-    category: 'Direct',
-    last_message_text: 'Thank you for information.',
-    time: 'Yesterday',
-    unread_count: 2,
-  },
-  {
-    user_id: 107,
-    name: 'Leslie Alexander',
-    role: 'Group',
-    category: 'Group',
-    last_message_text: 'Suresh: Welcome to the team!',
-    time: 'Yesterday',
-    unread_count: 5,
-  },
-  {
-    user_id: 108,
-    name: 'Leslie Alexander',
-    role: 'Group',
-    category: 'Group',
-    last_message_text: 'Priya: New opportunity is live now!',
-    time: 'Yesterday',
-    unread_count: 5,
-  },
-];
-
-// Initial Figma sample messages
-const INITIAL_FIGMA_MESSAGES = [
-  {
-    id: 'f1',
-    sender: 'them',
-    text: 'Hii Rahul How are you?',
-    time: '10:12 AM',
-  },
-  {
-    id: 'f2',
-    sender: 'me',
-    text: 'I’m good! Thanks for asking.I saw your post about the new opportunity. Can you share more details?',
-    time: '10:15 AM',
-    status: 'read',
-  },
-  {
-    id: 'f3',
-    sender: 'them',
-    text: 'Sure! It’s a great opportunity with good income potential. I’ll share the full details with you.',
-    attachment: {
-      name: 'Opportunity_Details.pdf',
-      size: '2.4 MB',
-      type: 'pdf',
-      url: '#',
-    },
-    time: '10:18 AM',
-  },
-  {
-    id: 'f4',
-    sender: 'them',
-    text: 'Let’s connect and discuss in detail today.',
-    time: '10:22 AM',
-  },
-  {
-    id: 'f5',
-    sender: 'me',
-    text: 'Perfect I’m joining the call at 5 PM. Looking forward!',
-    time: '10:24 AM',
-    status: 'delivered',
-  },
-  {
-    id: 'f6',
-    sender: 'them',
-    isAudio: true,
-    time: '10:30 AM',
-  },
-  {
-    id: 'f7',
-    sender: 'them',
-    text: 'Great! See you at 5 PM. 👍',
-    time: '10:30 AM',
-  },
 ];
 
 export default function MessagesPage() {
@@ -224,17 +94,28 @@ export default function MessagesPage() {
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('All');
-  const [conversations, setConversations] = useState(INITIAL_FIGMA_CONTACTS);
-  const [selectedContact, setSelectedContact] = useState(INITIAL_FIGMA_CONTACTS[0]);
-  const [messages, setMessages] = useState(INITIAL_FIGMA_MESSAGES);
+  const [conversations, setConversations] = useState([]);
+  const [selectedContact, setSelectedContact] = useState(null);
+  const [messages, setMessages] = useState([]);
+  const [loadingContacts, setLoadingContacts] = useState(true);
+  const [loadingMessages, setLoadingMessages] = useState(false);
   const [inputText, setInputText] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [onlineUserIds, setOnlineUserIds] = useState([]);
   const [isTyping, setIsTyping] = useState(false);
 
+  // Keep a live ref to selectedContact to prevent any async / socket message race conditions
+  const selectedContactRef = useRef(null);
+  useEffect(() => {
+    selectedContactRef.current = selectedContact;
+  }, [selectedContact]);
+
   // Attachment & Emoji dropdown state
   const [emojiPickerOpen, setEmojiPickerOpen] = useState(false);
   const [attachmentMenuOpen, setAttachmentMenuOpen] = useState(false);
+  const [groupMenuOpen, setGroupMenuOpen] = useState(false);
+  const [isGroupMembersModalOpen, setIsGroupMembersModalOpen] = useState(false);
+  const groupMenuRef = useRef(null);
 
   // Mobile navigation screen view: 'list' (Image 1) or 'chat' (Image 2)
   const [mobileActiveScreen, setMobileActiveScreen] = useState(
@@ -274,6 +155,9 @@ export default function MessagesPage() {
       if (attachmentRef.current && !attachmentRef.current.contains(event.target)) {
         setAttachmentMenuOpen(false);
       }
+      if (groupMenuRef.current && !groupMenuRef.current.contains(event.target)) {
+        setGroupMenuOpen(false);
+      }
     }
     document.addEventListener('mousedown', handleClickOutside);
     return () => {
@@ -296,10 +180,13 @@ export default function MessagesPage() {
     return <BsBriefcaseFill className="msg-role-icon-svg" />;
   };
 
-  // 1. Initial Socket & Conversations Load
+  // 1. Initial Socket & Real Database Conversations Load
   useEffect(() => {
     const myId = effectiveUserId || currentUserId;
-    if (!myId) return;
+    if (!myId) {
+      setLoadingContacts(false);
+      return;
+    }
 
     try {
       getSocket();
@@ -309,7 +196,7 @@ export default function MessagesPage() {
         setOnlineUserIds(onlineList.map(String));
       });
 
-      // Keep online status 100% synchronized periodically
+      // Keep online status synchronized periodically
       const intervalId = setInterval(() => {
         const s = getSocket();
         if (s && s.connected) {
@@ -324,41 +211,46 @@ export default function MessagesPage() {
       window.addEventListener('focus', handleFocus);
 
       async function loadContacts() {
-        const dbData = await fetchConversations(myId);
-        if (Array.isArray(dbData) && dbData.length > 0) {
-          const merged = [
-            ...dbData.map((d) => ({
+        setLoadingContacts(true);
+        try {
+          const dbData = await fetchConversations(myId);
+          if (Array.isArray(dbData)) {
+            const realList = dbData.map((d) => ({
               user_id: d.user_id,
               name: d.name,
-              role: d.designation || 'Senior Leader',
-              category: 'Direct',
-              last_message_text: d.last_message_text || 'Click to open conversation',
+              role: d.designation || 'Member',
+              category: d.category || 'Direct',
+              last_message_text: d.last_message_text || (d.is_new_contact ? 'Start conversation' : 'Click to open conversation'),
               time: d.last_message_time
                 ? new Date(d.last_message_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                : 'Recent',
+                : '',
               unread_count: Number(d.unread_count) || 0,
               avatar_url: d.avatar_url,
+              company_brand: d.company_brand,
+              is_new_contact: Boolean(d.is_new_contact),
               isRealDb: true,
-            })),
-            ...INITIAL_FIGMA_CONTACTS.filter(
-              (f) => !dbData.some((d) => String(d.user_id) === String(f.user_id))
-            ),
-          ];
-          setConversations(merged);
+            }));
+            setConversations(realList);
 
-          if (preselectUserId) {
-            const found = merged.find((c) => String(c.user_id) === String(preselectUserId));
-            if (found) setSelectedContact(found);
-          } else {
-            // Pick latest real contact if placeholder is selected
-            setSelectedContact((prev) => {
-              if (!prev || !prev.isRealDb) {
-                return merged[0];
+            if (preselectUserId) {
+              const found = realList.find((c) => String(c.user_id) === String(preselectUserId));
+              if (found) {
+                setSelectedContact(found);
+              } else if (realList.length > 0) {
+                setSelectedContact(realList[0]);
               }
-              const refreshed = merged.find((c) => String(c.user_id) === String(prev.user_id));
-              return refreshed || prev;
-            });
+            } else {
+              setSelectedContact((prev) => {
+                if (!prev) return realList[0] || null;
+                const stillExists = realList.find((c) => String(c.user_id) === String(prev.user_id));
+                return stillExists || realList[0] || null;
+              });
+            }
           }
+        } catch (err) {
+          console.error('[loadContacts Error]:', err);
+        } finally {
+          setLoadingContacts(false);
         }
       }
 
@@ -370,31 +262,54 @@ export default function MessagesPage() {
         window.removeEventListener('focus', handleFocus);
       };
     } catch {
-      // Graceful fallback
+      setLoadingContacts(false);
     }
   }, [effectiveUserId, currentUserId, preselectUserId]);
 
-  // 2. Fetch Chat History when Contact Changes
+  // 2. Fetch Chat History when Contact Changes (Strictly Isolated Per-Contact)
   useEffect(() => {
     const myId = effectiveUserId || currentUserId;
-    if (!selectedContact || !myId) return;
+    if (!selectedContact || !myId) {
+      setMessages([]);
+      return;
+    }
 
-    // Reset unread count for selected contact
+    const targetContactId = selectedContact.user_id;
+    const isGroupContact = String(targetContactId).startsWith('group_');
+    const gid = isGroupContact ? parseInt(String(targetContactId).replace('group_', ''), 10) : null;
+
+    // Immediately wipe messages from previous contact to prevent any visual leaks
+    setMessages([]);
+    setLoadingMessages(true);
+
+    // Reset unread count for selected contact in sidebar
     setConversations((prev) =>
       prev.map((c) =>
-        String(c.user_id) === String(selectedContact.user_id) ? { ...c, unread_count: 0 } : c
+        String(c.user_id) === String(targetContactId) ? { ...c, unread_count: 0 } : c
       )
     );
 
-    if (selectedContact.isRealDb) {
-      emitMarkRead({ senderId: selectedContact.user_id, receiverId: myId });
-      window.dispatchEvent(new CustomEvent('messages_count_refresh'));
+    if (isGroupContact && gid) {
+      joinGroupRoom(gid);
+      emitMarkRead({ senderId: `group_${gid}`, receiverId: myId, groupId: gid });
+    } else {
+      emitMarkRead({ senderId: targetContactId, receiverId: myId });
+    }
+    window.dispatchEvent(new CustomEvent('messages_count_refresh'));
 
-      let isMounted = true;
-      async function loadHistory() {
-        const history = await fetchChatHistory(myId, selectedContact.user_id);
+    let isMounted = true;
+    async function loadHistory() {
+      try {
+        const history = await fetchChatHistory(myId, targetContactId);
         window.dispatchEvent(new CustomEvent('messages_count_refresh'));
-        if (isMounted && Array.isArray(history) && history.length > 0) {
+        if (!isMounted) return;
+
+        // Ensure the active selected contact hasn't changed while fetching
+        if (String(selectedContactRef.current?.user_id) !== String(targetContactId)) {
+          return;
+        }
+
+        if (Array.isArray(history) && history.length > 0) {
           const formatted = history.map((m) => {
             const isMe = String(m.sender_id) === String(myId);
             let msgText = m.text;
@@ -408,33 +323,58 @@ export default function MessagesPage() {
             } catch {}
             return {
               id: m.id,
+              sender_id: m.sender_id,
+              receiver_id: m.receiver_id,
               sender: isMe ? 'me' : 'them',
               text: msgText,
               attachment: msgAttachment || null,
-              time: new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-              status: isMe ? (m.is_read ? 'read' : 'delivered') : undefined,
+              time: m.created_at
+                ? new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                : 'Just now',
+              status: isMe ? (m.status || (m.is_read ? 'read' : 'delivered')) : undefined,
             };
           });
           setMessages(formatted);
+        } else {
+          setMessages([]);
+        }
+      } catch (err) {
+        console.error('[loadHistory Error]:', err);
+        if (isMounted) setMessages([]);
+      } finally {
+        if (isMounted && String(selectedContactRef.current?.user_id) === String(targetContactId)) {
+          setLoadingMessages(false);
         }
       }
-      loadHistory();
-      return () => {
-        isMounted = false;
-      };
     }
-  }, [selectedContact, currentUserId, effectiveUserId]);
 
-  // 3. Socket Listeners for Real-time Messages & Read Receipts
+    loadHistory();
+
+    return () => {
+      isMounted = false;
+      if (isGroupContact && gid) {
+        leaveGroupRoom(gid);
+      }
+    };
+  }, [selectedContact?.user_id, currentUserId, effectiveUserId]);
+
+  // 3. Socket Listeners for Real-time Messages & Read Receipts (Strict Chat Isolation)
   useEffect(() => {
     const myId = effectiveUserId || currentUserId;
-    const unsubNewMsg = subscribeToNewMessages((newMsg) => {
-      const isCurrentChat =
-        selectedContact &&
-        (String(newMsg.sender_id) === String(selectedContact.user_id) ||
-          String(newMsg.receiver_id) === String(selectedContact.user_id));
+    if (!myId) return;
 
-      if (isCurrentChat) {
+    const unsubNewMsg = subscribeToNewMessages((newMsg) => {
+      const activeContact = selectedContactRef.current;
+
+      // STRICT CHAT ISOLATION:
+      // Only append to the current active chat window if this message is EXCLUSIVELY
+      // between the logged-in user (myId) and the currently open contact (activeContact.user_id)
+      const isForCurrentOpenChat =
+        activeContact &&
+        ((String(newMsg.sender_id) === String(activeContact.user_id) && String(newMsg.receiver_id) === String(myId)) ||
+         (String(newMsg.sender_id) === String(myId) && String(newMsg.receiver_id) === String(activeContact.user_id)));
+
+      if (isForCurrentOpenChat) {
         let msgText = newMsg.text;
         let msgAttachment = newMsg.attachment;
         try {
@@ -451,6 +391,8 @@ export default function MessagesPage() {
             ...prev,
             {
               id: newMsg.id || `msg_${Date.now()}`,
+              sender_id: newMsg.sender_id,
+              receiver_id: newMsg.receiver_id,
               sender: String(newMsg.sender_id) === String(myId) ? 'me' : 'them',
               text: msgText,
               attachment: msgAttachment || null,
@@ -459,33 +401,79 @@ export default function MessagesPage() {
             },
           ];
         });
-        if (myId) {
-          emitMarkRead({ senderId: selectedContact.user_id, receiverId: myId });
+
+        if (String(newMsg.sender_id) === String(activeContact.user_id)) {
+          emitMarkRead({ senderId: activeContact.user_id, receiverId: myId });
         }
       }
 
-      setConversations((prev) => {
-        const partnerId =
-          String(newMsg.sender_id) === String(myId)
-            ? newMsg.receiver_id
-            : newMsg.sender_id;
+      // Update sidebar conversation preview if message involves the logged-in user
+      const isForMe =
+        String(newMsg.receiver_id) === String(myId) || String(newMsg.sender_id) === String(myId);
 
-        return prev.map((c) => {
-          if (String(c.user_id) === String(partnerId)) {
-            const isSelected = String(selectedContact?.user_id) === String(c.user_id);
-            return {
-              ...c,
-              last_message_text: newMsg.text || (newMsg.attachment ? `📎 ${newMsg.attachment.name}` : 'New message'),
-              time: 'Just now',
-              unread_count: isSelected ? 0 : (Number(c.unread_count) || 0) + 1,
-            };
+      if (isForMe) {
+        const partnerId =
+          String(newMsg.sender_id) === String(myId) ? newMsg.receiver_id : newMsg.sender_id;
+
+        setConversations((prev) => {
+          const partnerExists = prev.some((c) => String(c.user_id) === String(partnerId));
+          const isSelected = String(selectedContactRef.current?.user_id) === String(partnerId);
+
+          let previewSnippet = newMsg.text;
+          try {
+            if (typeof previewSnippet === 'string' && previewSnippet.startsWith('{"') && previewSnippet.includes('"attachment"')) {
+              const parsed = JSON.parse(previewSnippet);
+              previewSnippet = parsed.text || (parsed.attachment ? `📎 ${parsed.attachment.name || 'File'}` : 'New message');
+            }
+          } catch {}
+
+          if (!partnerExists) {
+            // Re-fetch conversation list to get new user details
+            fetchConversations(myId).then((data) => {
+              if (Array.isArray(data)) {
+                setConversations(
+                  data.map((d) => ({
+                    user_id: d.user_id,
+                    name: d.name,
+                    role: d.designation || 'Member',
+                    category: d.category || 'Direct',
+                    last_message_text: d.last_message_text || 'New message',
+                    time: d.last_message_time
+                      ? new Date(d.last_message_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                      : 'Just now',
+                    unread_count: Number(d.unread_count) || 0,
+                    avatar_url: d.avatar_url,
+                    company_brand: d.company_brand,
+                    isRealDb: true,
+                  }))
+                );
+              }
+            });
+            return prev;
           }
-          return c;
+
+          return prev.map((c) => {
+            if (String(c.user_id) === String(partnerId)) {
+              return {
+                ...c,
+                last_message_text: previewSnippet || (newMsg.attachment ? `📎 ${newMsg.attachment.name || 'File'}` : 'New message'),
+                time: 'Just now',
+                unread_count: isSelected ? 0 : (Number(c.unread_count) || 0) + (String(newMsg.receiver_id) === String(myId) ? 1 : 0),
+              };
+            }
+            return c;
+          });
         });
-      });
+      }
     });
 
     const unsubSent = subscribeToSentMessage((confirmedMsg) => {
+      const activeContact = selectedContactRef.current;
+      // Only append to active messages if it was sent to the CURRENTLY selected contact!
+      if (!activeContact || String(confirmedMsg.receiver_id) !== String(activeContact.user_id)) {
+        return;
+      }
+
       setMessages((prev) => {
         const tempIdx = prev.findIndex(
           (m) =>
@@ -506,6 +494,8 @@ export default function MessagesPage() {
             ...prev,
             {
               id: confirmedMsg.id,
+              sender_id: confirmedMsg.sender_id,
+              receiver_id: confirmedMsg.receiver_id,
               sender: 'me',
               text: confirmedMsg.text,
               attachment: confirmedMsg.attachment || null,
@@ -519,21 +509,37 @@ export default function MessagesPage() {
     });
 
     const unsubRead = subscribeToMessagesRead(({ byUserId }) => {
-      if (selectedContact && String(selectedContact.user_id) === String(byUserId)) {
+      const activeContact = selectedContactRef.current;
+      if (activeContact && String(activeContact.user_id) === String(byUserId)) {
         setMessages((prev) =>
           prev.map((m) => (m.sender === 'me' ? { ...m, status: 'read' } : m))
         );
       }
     });
 
+    const unsubGroupRead = subscribeToGroupMessagesRead(({ groupId }) => {
+      const activeContact = selectedContactRef.current;
+      const activeGid = activeContact?.group_id || (String(activeContact?.user_id).startsWith('group_') ? String(activeContact.user_id).replace('group_', '') : null);
+      if (activeGid && String(activeGid) === String(groupId)) {
+        // Mark all my messages in this group as 'read' (Blue tick)
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.sender === 'me' ? { ...m, status: 'read', is_read: true } : m
+          )
+        );
+      }
+    });
+
     const unsubTyping = subscribeToTyping(({ senderId }) => {
-      if (selectedContact && String(senderId) === String(selectedContact.user_id)) {
+      const activeContact = selectedContactRef.current;
+      if (activeContact && String(senderId) === String(activeContact.user_id)) {
         setIsTyping(true);
       }
     });
 
     const unsubStopTyping = subscribeToStopTyping(({ senderId }) => {
-      if (selectedContact && String(senderId) === String(selectedContact.user_id)) {
+      const activeContact = selectedContactRef.current;
+      if (activeContact && String(senderId) === String(activeContact.user_id)) {
         setIsTyping(false);
       }
     });
@@ -542,10 +548,11 @@ export default function MessagesPage() {
       unsubNewMsg();
       unsubSent();
       unsubRead();
+      unsubGroupRead();
       unsubTyping();
       unsubStopTyping();
     };
-  }, [selectedContact, currentUserId, effectiveUserId]);
+  }, [effectiveUserId, currentUserId]);
 
   // 4. Send Message (Text + Optional Attachment)
   const sendMessagePayload = (text = '', attachment = null) => {
@@ -554,11 +561,18 @@ export default function MessagesPage() {
     if (!cleanText && !attachment) return;
 
     const myUserId = effectiveUserId || currentUserId;
+    if (!myUserId) {
+      toast.error('Please login to send messages');
+      return;
+    }
+
     const tempId = `temp_${Date.now()}`;
     const isReceiverOnline = onlineUserIds.includes(String(selectedContact.user_id));
 
     const optimisticMsg = {
       id: tempId,
+      sender_id: myUserId,
+      receiver_id: selectedContact.user_id,
       sender: 'me',
       text: cleanText,
       attachment: attachment || null,
@@ -581,12 +595,12 @@ export default function MessagesPage() {
     const socket = getSocket();
     if (socket && socket.connected) {
       emitSendMessage({
-        senderId: myUserId || 999,
+        senderId: myUserId,
         receiverId: selectedContact.user_id,
         text: cleanText,
         attachment: attachment,
       });
-    } else if (selectedContact.isRealDb && myUserId) {
+    } else {
       sendChatMessageHttp({
         senderId: myUserId,
         receiverId: selectedContact.user_id,
@@ -812,7 +826,9 @@ export default function MessagesPage() {
                 onClick={() => setActiveTab('All')}
               >
                 <span>All</span>
-                <span className="msg-tab-badge">{totalConversationsCount || 12}</span>
+                {totalConversationsCount > 0 && (
+                  <span className="msg-tab-badge">{totalConversationsCount}</span>
+                )}
               </button>
 
               <button
@@ -821,7 +837,9 @@ export default function MessagesPage() {
                 onClick={() => setActiveTab('Unread')}
               >
                 <span>Unread</span>
-                <span className="msg-tab-badge">{unreadConversationsCount || 12}</span>
+                {unreadConversationsCount > 0 && (
+                  <span className="msg-tab-badge">{unreadConversationsCount}</span>
+                )}
               </button>
 
               <button
@@ -830,6 +848,9 @@ export default function MessagesPage() {
                 onClick={() => setActiveTab('Direct')}
               >
                 <span>Direct</span>
+                {directCount > 0 && (
+                  <span className="msg-tab-badge msg-tab-badge-neutral">{directCount}</span>
+                )}
               </button>
 
               <button
@@ -838,6 +859,9 @@ export default function MessagesPage() {
                 onClick={() => setActiveTab('Group')}
               >
                 <span>Group</span>
+                {groupCount > 0 && (
+                  <span className="msg-tab-badge msg-tab-badge-neutral">{groupCount}</span>
+                )}
               </button>
 
               <button
@@ -846,65 +870,80 @@ export default function MessagesPage() {
                 onClick={() => setActiveTab('System')}
               >
                 <span>System</span>
+                {systemCount > 0 && (
+                  <span className="msg-tab-badge msg-tab-badge-neutral">{systemCount}</span>
+                )}
               </button>
             </div>
 
             {/* Conversations List Container */}
             <div className="msg-conversations-scroll">
-              {filteredContacts.map((contact, index) => {
-                const isSelected = String(selectedContact?.user_id) === String(contact.user_id);
-                const isOnline = onlineUserIds.includes(String(contact.user_id));
+              {loadingContacts ? (
+                <div className="msg-loading-contacts">Loading contacts...</div>
+              ) : filteredContacts.length === 0 ? (
+                <div className="msg-no-conversations-found">No contacts found</div>
+              ) : (
+                filteredContacts.map((contact, index) => {
+                  const isSelected = String(selectedContact?.user_id) === String(contact.user_id);
+                  const isOnline = onlineUserIds.includes(String(contact.user_id));
 
-                return (
-                  <div
-                    key={contact.user_id || index}
-                    className={`msg-conv-card ${isSelected ? 'active-selected' : ''}`}
-                    onClick={() => {
-                      setSelectedContact(contact);
-                      setMobileActiveScreen('chat');
-                    }}
-                  >
-                    {/* Avatar with Strictly Real Online Indicator */}
-                    <div className="msg-conv-avatar-wrap">
-                      <img
-                        src={contact.avatar_url || userAvatarRahul}
-                        alt={contact.name}
-                        className="msg-conv-avatar"
-                      />
-                      {isOnline && <span className="msg-online-indicator" />}
-                    </div>
-
-                    {/* Middle Info */}
-                    <div className="msg-conv-details">
-                      <div className="msg-conv-name-row">
-                        <span className="msg-conv-name">{contact.name}</span>
-                        {contact.verified && (
-                          <BsPatchCheckFill className="msg-verified-badge-icon" />
-                        )}
+                  return (
+                    <div
+                      key={contact.user_id || index}
+                      className={`msg-conv-card ${isSelected ? 'active-selected' : ''}`}
+                      onClick={() => {
+                        setSelectedContact(contact);
+                        setMobileActiveScreen('chat');
+                      }}
+                    >
+                      {/* Avatar with Strictly Real Online Indicator */}
+                      <div className="msg-conv-avatar-wrap">
+                        <img
+                          src={contact.avatar_url || userAvatarRahul}
+                          alt={contact.name}
+                          className="msg-conv-avatar"
+                          onError={(e) => {
+                            e.currentTarget.onerror = null;
+                            e.currentTarget.src = userAvatarRahul;
+                          }}
+                        />
+                        {isOnline && <span className="msg-online-indicator" />}
                       </div>
 
-                      <div className="msg-conv-role-row">
-                        {getRoleIcon(contact.role)}
-                        <span className="msg-conv-role-text">{contact.role || 'Partner'}</span>
+                      {/* Middle Info */}
+                      <div className="msg-conv-details">
+                        <div className="msg-conv-name-row">
+                          <span className="msg-conv-name">{contact.name}</span>
+                          {contact.verified && (
+                            <BsPatchCheckFill className="msg-verified-badge-icon" />
+                          )}
+                        </div>
+
+                        <div className="msg-conv-role-row">
+                          {getRoleIcon(contact.role)}
+                          <span className="msg-conv-role-text">{contact.role || 'Member'}</span>
+                        </div>
+
+                        <p className="msg-conv-last-message">{contact.last_message_text}</p>
                       </div>
 
-                      <p className="msg-conv-last-message">{contact.last_message_text}</p>
-                    </div>
+                      {/* Right Meta: Time, Real Unread Pill & Chevron */}
+                      <div className="msg-conv-meta">
+                        {contact.time ? (
+                          <span className="msg-conv-time">{contact.time}</span>
+                        ) : null}
 
-                    {/* Right Meta: Time, Real Unread Pill & Chevron */}
-                    <div className="msg-conv-meta">
-                      <span className="msg-conv-time">{contact.time || '10:24 AM'}</span>
-
-                      <div className="msg-conv-badge-arrow">
-                        {Number(contact.unread_count) > 0 && (
-                          <span className="msg-conv-unread-pill">{contact.unread_count}</span>
-                        )}
-                        <FiChevronRight className="msg-conv-chevron-svg" />
+                        <div className="msg-conv-badge-arrow">
+                          {Number(contact.unread_count) > 0 && (
+                            <span className="msg-conv-unread-pill">{contact.unread_count}</span>
+                          )}
+                          <FiChevronRight className="msg-conv-chevron-svg" />
+                        </div>
                       </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })
+              )}
             </div>
 
             {/* Mobile Bottom Navigation Bar (Image 1) */}
@@ -954,158 +993,250 @@ export default function MessagesPage() {
 
           {/* ════ PANEL 2: ACTIVE CHAT WINDOW (Width: 716px on desktop, 100% on mobile) ════ */}
           <main className="msg-right-panel">
-            {/* ── Profile Banner with Strict Online Status & Mobile Back Button ── */}
-            <div
-              className="msg-chat-profile-banner"
-              style={{
-                backgroundImage: `url(${chatBannerMountainBg})`,
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
-                backgroundRepeat: 'no-repeat',
-              }}
-            >
-              <div className="msg-banner-overlay" />
+            {selectedContact ? (
+              <>
+                {/* ── Profile Banner with Strict Online Status & Mobile Back Button ── */}
+                <div
+                  className="msg-chat-profile-banner"
+                  style={{
+                    backgroundImage: `url(${chatBannerMountainBg})`,
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
+                    backgroundRepeat: 'no-repeat',
+                  }}
+                >
+                  <div className="msg-banner-overlay" />
 
-              {/* Mobile Back Button (<) */}
-              <button
-                type="button"
-                className="msg-mobile-back-btn mobile-only-btn"
-                title="Back to conversations"
-                onClick={() => setMobileActiveScreen('list')}
-              >
-                <FiChevronLeft className="msg-mob-back-svg" />
-              </button>
+                  {/* Mobile Back Button (<) */}
+                  <button
+                    type="button"
+                    className="msg-mobile-back-btn mobile-only-btn"
+                    title="Back to conversations"
+                    onClick={() => setMobileActiveScreen('list')}
+                  >
+                    <FiChevronLeft className="msg-mob-back-svg" />
+                  </button>
 
-              <div className="msg-banner-content">
-                <div className="msg-banner-avatar-wrap">
-                  <img
-                    src={selectedContact?.avatar_url || userAvatarRahul}
-                    alt={selectedContact?.name || 'Rahul Sharma'}
-                    className="msg-banner-avatar"
-                  />
-                  {isContactOnline && <span className="msg-banner-online-indicator" />}
-                </div>
+                  <div
+                    className="msg-banner-content"
+                    style={{
+                      cursor:
+                        String(selectedContact?.user_id).startsWith('group_') ||
+                        selectedContact?.category === 'Group'
+                          ? 'pointer'
+                          : 'default',
+                    }}
+                    onClick={() => {
+                      if (
+                        String(selectedContact?.user_id).startsWith('group_') ||
+                        selectedContact?.category === 'Group'
+                      ) {
+                        setIsGroupMembersModalOpen(true);
+                      }
+                    }}
+                    title={
+                      String(selectedContact?.user_id).startsWith('group_') ||
+                      selectedContact?.category === 'Group'
+                        ? 'Click to view group members'
+                        : undefined
+                    }
+                  >
+                    <div className="msg-banner-avatar-wrap">
+                      <img
+                        src={selectedContact.avatar_url || userAvatarRahul}
+                        alt={selectedContact.name || 'User'}
+                        className="msg-banner-avatar"
+                        onError={(e) => {
+                          e.currentTarget.onerror = null;
+                          e.currentTarget.src = userAvatarRahul;
+                        }}
+                      />
+                      {isContactOnline && !String(selectedContact.user_id).startsWith('group_') && (
+                        <span className="msg-banner-online-indicator" />
+                      )}
+                    </div>
 
-                <div className="msg-banner-info">
-                  <div className="msg-banner-title-line">
-                    <h2 className="msg-banner-name">{selectedContact?.name || 'Rahul sharma'}</h2>
-                    <div className="msg-mob-crown-circle" title="Verified Member">
-                      <FaCrown className="msg-crown-icon" />
+                    <div className="msg-banner-info">
+                      <div className="msg-banner-title-line">
+                        <h2 className="msg-banner-name">{selectedContact.name || 'User'}</h2>
+                        {selectedContact.verified && (
+                          <div className="msg-mob-crown-circle" title="Verified Member">
+                            <FaCrown className="msg-crown-icon" />
+                          </div>
+                        )}
+                        {(String(selectedContact.user_id).startsWith('group_') ||
+                          selectedContact.category === 'Group') && (
+                          <span className="msg-group-pill-tag">Group</span>
+                        )}
+                      </div>
+
+                      <div className="msg-banner-badge-row">
+                        <div className="msg-banner-leader-badge">
+                          <span className="msg-medal-circle">
+                            {String(selectedContact.user_id).startsWith('group_') ||
+                            selectedContact.category === 'Group' ? (
+                              <FiUsers className="msg-leader-medal" />
+                            ) : (
+                              <BsAwardFill className="msg-leader-medal" />
+                            )}
+                          </span>
+                          <span className="msg-badge-text">
+                            {selectedContact.company_brand || (String(selectedContact.user_id).startsWith('group_') ? 'Fortaa Community' : 'Fortaa')}
+                          </span>
+                          <span className="msg-badge-divider">|</span>
+                          <span className="msg-badge-subtext">
+                            {selectedContact.role || 'Member'}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="msg-banner-status-row">
+                        {String(selectedContact.user_id).startsWith('group_') ||
+                        selectedContact.category === 'Group' ? (
+                          <span className="msg-banner-role-label" style={{ color: '#818cf8', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                            <FiUsers /> Tap to view members
+                          </span>
+                        ) : (
+                          <>
+                            <span className="msg-banner-role-label">
+                              {selectedContact.role || 'Business Partner'}
+                            </span>
+                            {/* Strictly Real Online / Offline Indicator */}
+                            {isContactOnline ? (
+                              <span className="msg-banner-online-text">
+                                <span className="msg-online-dot-inline" /> Online
+                              </span>
+                            ) : (
+                              <span className="msg-banner-offline-text">
+                                <span className="msg-offline-dot-inline" /> Offline
+                              </span>
+                            )}
+                          </>
+                        )}
+                      </div>
+
+                      {/* Location label */}
+                      <div className="msg-banner-location-row">
+                        <FiMapPin className="msg-location-icon" />
+                        <span>India</span>
+                      </div>
                     </div>
                   </div>
 
-                  <div className="msg-banner-badge-row">
-                    <div className="msg-banner-leader-badge">
-                      <span className="msg-medal-circle">
-                        <BsAwardFill className="msg-leader-medal" />
-                      </span>
-                      <span className="msg-badge-text">
-                        {selectedContact?.company_brand || 'Index Technology'}
-                      </span>
-                      <span className="msg-badge-divider">|</span>
-                      <span className="msg-badge-subtext">
-                        {selectedContact?.role || 'Silver Leader'}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="msg-banner-status-row">
-                    <span className="msg-banner-role-label">
-                      {selectedContact?.role || 'Business Partner'}
-                    </span>
-                    {/* Strictly Real Online / Offline Indicator */}
-                    {isContactOnline ? (
-                      <span className="msg-banner-online-text">
-                        <span className="msg-online-dot-inline" /> Online
-                      </span>
-                    ) : (
-                      <span className="msg-banner-offline-text">
-                        <span className="msg-offline-dot-inline" /> Offline
-                      </span>
+                  {/* Action Buttons on Right (Frame 358, 359, 360: Phone, Video, Three Dots) */}
+                  <div className="msg-banner-right-actions">
+                    {!String(selectedContact?.user_id).startsWith('group_') && selectedContact?.category !== 'Group' && (
+                      <>
+                        <button
+                          type="button"
+                          className="msg-banner-action-btn"
+                          title="Voice Call"
+                          onClick={() => toast('Starting voice call...')}
+                        >
+                          <FiPhone />
+                        </button>
+                        <button
+                          type="button"
+                          className="msg-banner-action-btn"
+                          title="Video Call"
+                          onClick={() => toast('Starting video call...')}
+                        >
+                          <FiVideo />
+                        </button>
+                      </>
                     )}
+                    <div className="msg-banner-menu-anchor" ref={groupMenuRef} style={{ position: 'relative' }}>
+                      <button
+                        type="button"
+                        className="msg-banner-action-btn"
+                        title="Options"
+                        onClick={() => setGroupMenuOpen((prev) => !prev)}
+                      >
+                        <BsThreeDotsVertical />
+                      </button>
+
+                      {groupMenuOpen && (
+                        <div className="msg-dropdown-menu">
+                          {String(selectedContact?.user_id).startsWith('group_') || selectedContact?.category === 'Group' ? (
+                            <>
+                              <button
+                                type="button"
+                                className="msg-dropdown-item highlight"
+                                onClick={() => {
+                                  setGroupMenuOpen(false);
+                                  setIsGroupMembersModalOpen(true);
+                                }}
+                              >
+                                <FiUsers />
+                                <span>View Group Members</span>
+                              </button>
+                              <button
+                                type="button"
+                                className="msg-dropdown-item"
+                                onClick={() => {
+                                  setGroupMenuOpen(false);
+                                  toast.success(`Group: ${selectedContact.name}`);
+                                }}
+                              >
+                                <FiShield />
+                                <span>Group Info</span>
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                              <button
+                                type="button"
+                                className="msg-dropdown-item"
+                                onClick={() => {
+                                  setGroupMenuOpen(false);
+                                  navigate(`/profile/${selectedContact.user_id}`);
+                                }}
+                              >
+                                <FiUsers />
+                                <span>View Profile</span>
+                              </button>
+                              <button
+                                type="button"
+                                className="msg-dropdown-item"
+                                onClick={() => {
+                                  setGroupMenuOpen(false);
+                                  toast('Notifications muted');
+                                }}
+                              >
+                                <FiAward />
+                                <span>Mute Chat</span>
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </div>
+                </div>
 
-                  {/* Location label (Image 2, 3, 4 - Frame 6) */}
-                  <div className="msg-banner-location-row">
-                    <FiMapPin className="msg-location-icon" />
-                    <span>Mumbai, India</span>
+                {/* ── Chat Toolbar (Date Pill) ── */}
+                {messages.length > 0 && (
+                  <div className="msg-chat-toolbar">
+                    <div className="msg-date-pill">Today</div>
                   </div>
-                </div>
-              </div>
+                )}
 
-              {/* Action Buttons on Right (Frame 358, 359, 360: Phone, Video, Three Dots) */}
-              <div className="msg-banner-right-actions">
-                <button
-                  type="button"
-                  className="msg-banner-action-btn"
-                  title="Voice Call"
-                  onClick={() => toast('Starting voice call...')}
-                >
-                  <FiPhone />
-                </button>
-                <button
-                  type="button"
-                  className="msg-banner-action-btn"
-                  title="Video Call"
-                  onClick={() => toast('Starting video call...')}
-                >
-                  <FiVideo />
-                </button>
-                <button
-                  type="button"
-                  className="msg-banner-action-btn"
-                  title="Options"
-                  onClick={() => toast('Chat settings')}
-                >
-                  <BsThreeDotsVertical />
-                </button>
-              </div>
-            </div>
-
-            {/* ── 3 Stats Cards on Mobile (Image 2 - Frame 289, 300, 290) ── */}
-            <div className="msg-mobile-stats-row mobile-only-stats">
-              {/* Card 1: Following */}
-              <div className="msg-mob-stat-card">
-                <div className="msg-mob-stat-icon-wrap">
-                  <BsPersonCheckFill className="msg-mob-stat-icon" />
-                </div>
-                <div className="msg-mob-stat-info">
-                  <span className="msg-mob-stat-num">3.9k</span>
-                  <span className="msg-mob-stat-title">Following</span>
-                </div>
-              </div>
-
-              {/* Card 2: Experience */}
-              <div className="msg-mob-stat-card">
-                <div className="msg-mob-stat-icon-wrap">
-                  <BsStarFill className="msg-mob-stat-icon" />
-                </div>
-                <div className="msg-mob-stat-info">
-                  <span className="msg-mob-stat-num">5 Years</span>
-                  <span className="msg-mob-stat-title">Experience</span>
-                </div>
-              </div>
-
-              {/* Card 3: Followers */}
-              <div className="msg-mob-stat-card">
-                <div className="msg-mob-stat-icon-wrap">
-                  <BsPeopleFill className="msg-mob-stat-icon" />
-                </div>
-                <div className="msg-mob-stat-info">
-                  <span className="msg-mob-stat-num">85</span>
-                  <span className="msg-mob-stat-title">Followers</span>
-                </div>
-              </div>
-            </div>
-
-            {/* ── Chat Toolbar (Date Pill) ── */}
-            <div className="msg-chat-toolbar">
-              <div className="msg-date-pill">12 Oct 2026</div>
-            </div>
-
-            {/* ── Messages Stream with Images, Videos, PDF, Voice Notes & WhatsApp Ticks ── */}
-            <div className="msg-chat-messages-area">
-              {messages.map((msg, idx) => {
+                {/* ── Messages Stream with Images, Videos, PDF, Voice Notes & WhatsApp Ticks ── */}
+                <div className="msg-chat-messages-area">
+                  {loadingMessages ? (
+                    <div className="msg-empty-chat-state">
+                      <p>Loading messages...</p>
+                    </div>
+                  ) : messages.length === 0 ? (
+                    <div className="msg-empty-chat-state">
+                      <div className="msg-empty-chat-icon-wrap">
+                        <FiMessageSquare className="msg-empty-chat-icon" />
+                      </div>
+                      <h3>No messages yet</h3>
+                      <p>Say hello to start the conversation with {selectedContact.name}!</p>
+                    </div>
+                  ) : (
+                    messages.map((msg, idx) => {
                 const isMe = msg.sender === 'me';
                 const status = msg.status || 'delivered';
 
@@ -1225,15 +1356,20 @@ export default function MessagesPage() {
                     </div>
                   </div>
                 );
-              })}
+              })
+            )}
 
-              {isTyping && (
-                <div className="msg-bubble-row msg-incoming">
-                  <img
-                    src={selectedContact?.avatar_url || userAvatarRahul}
-                    alt=""
-                    className="msg-message-avatar"
-                  />
+            {isTyping && (
+              <div className="msg-bubble-row msg-incoming">
+                <img
+                  src={selectedContact?.avatar_url || userAvatarRahul}
+                  alt=""
+                  className="msg-message-avatar"
+                  onError={(e) => {
+                    e.currentTarget.onerror = null;
+                    e.currentTarget.src = userAvatarRahul;
+                  }}
+                />
                   <div className="msg-bubble-content msg-typing-indicator-bubble">
                     <span className="msg-typing-dot" />
                     <span className="msg-typing-dot" />
@@ -1451,7 +1587,28 @@ export default function MessagesPage() {
                 </button>
               </div>
             )}
-          </main>
+          </>
+        ) : (
+          <div className="msg-no-contact-selected">
+            <FiMessageSquare className="msg-no-contact-icon" />
+            <h3>Your Messages</h3>
+            <p>Select a contact from the left to view your conversation or start a new message.</p>
+          </div>
+        )}
+
+        {/* Group Members Modal */}
+        <GroupMembersModal
+          isOpen={isGroupMembersModalOpen}
+          onClose={() => setIsGroupMembersModalOpen(false)}
+          group={selectedContact}
+          currentUserId={effectiveUserId || currentUserId}
+          onlineUserIds={onlineUserIds}
+          onSelectUserForChat={(userContact) => {
+            setSelectedContact(userContact);
+            setActiveTab('Direct');
+          }}
+        />
+      </main>
         </div>
       </div>
     </div>

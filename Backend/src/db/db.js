@@ -121,10 +121,32 @@ CREATE TABLE IF NOT EXISTS events (
 CREATE TABLE IF NOT EXISTS groups (
   id SERIAL PRIMARY KEY,
   name VARCHAR(200) NOT NULL,
-  members VARCHAR(50) NOT NULL,
+  members VARCHAR(50) DEFAULT '1 member',
   sub VARCHAR(100),
+  description TEXT,
+  category VARCHAR(100) DEFAULT 'Network Marketing',
+  icon_url TEXT,
+  created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
+
+ALTER TABLE groups ADD COLUMN IF NOT EXISTS description TEXT;
+ALTER TABLE groups ADD COLUMN IF NOT EXISTS category VARCHAR(100) DEFAULT 'Network Marketing';
+ALTER TABLE groups ADD COLUMN IF NOT EXISTS icon_url TEXT;
+ALTER TABLE groups ADD COLUMN IF NOT EXISTS created_by INTEGER REFERENCES users(id) ON DELETE SET NULL;
+
+-- Group Members Table (Tracks which user joined which group)
+CREATE TABLE IF NOT EXISTS group_members (
+  id SERIAL PRIMARY KEY,
+  group_id INTEGER NOT NULL REFERENCES groups(id) ON DELETE CASCADE,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  role VARCHAR(50) DEFAULT 'member',
+  joined_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(group_id, user_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_group_members_group ON group_members(group_id);
+CREATE INDEX IF NOT EXISTS idx_group_members_user ON group_members(user_id);
 
 -- Opportunities Table
 CREATE TABLE IF NOT EXISTS opportunities (
@@ -185,11 +207,16 @@ CREATE INDEX IF NOT EXISTS idx_post_likes_user ON post_likes(user_id);
 CREATE TABLE IF NOT EXISTS messages (
   id SERIAL PRIMARY KEY,
   sender_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  receiver_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  receiver_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+  group_id INTEGER REFERENCES groups(id) ON DELETE CASCADE,
   text TEXT NOT NULL,
   is_read BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
+
+ALTER TABLE messages ADD COLUMN IF NOT EXISTS group_id INTEGER REFERENCES groups(id) ON DELETE CASCADE;
+ALTER TABLE messages ALTER COLUMN receiver_id DROP NOT NULL;
+ALTER TABLE messages ADD COLUMN IF NOT EXISTS read_by INTEGER[] DEFAULT '{}';
 
 CREATE INDEX IF NOT EXISTS idx_messages_sender ON messages(sender_id);
 CREATE INDEX IF NOT EXISTS idx_messages_receiver ON messages(receiver_id);
