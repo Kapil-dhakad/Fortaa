@@ -85,7 +85,49 @@ const uploadDocument = multer({
   fileFilter: documentFileFilter,
 });
 
+// Video storage setup
+const videoStorage = multerS3({
+  s3: s3,
+  bucket: process.env.AWS_S3_BUCKET || 'fortaa-media-storage',
+  contentType: multerS3.AUTO_CONTENT_TYPE,
+  key: (req, file, cb) => {
+    const folder = req.query.folder || 'videos';
+    const ext = path.extname(file.originalname).toLowerCase() || '.mp4';
+    const cleanName = path
+      .basename(file.originalname, ext)
+      .replace(/[^a-zA-Z0-9_-]/g, '_');
+    const uniqueKey = `${folder}/${Date.now()}-${cleanName}${ext}`;
+    cb(null, uniqueKey);
+  },
+});
+
+const videoFileFilter = (req, file, cb) => {
+  const allowedMimeTypes = [
+    'video/mp4',
+    'video/webm',
+    'video/quicktime',
+    'video/x-msvideo',
+    'video/x-matroska',
+    'video/ogg',
+    'video/3gpp',
+    'video/mpeg',
+  ];
+
+  if (allowedMimeTypes.includes(file.mimetype) || (file.mimetype && file.mimetype.startsWith('video/'))) {
+    cb(null, true);
+  } else {
+    cb(new Error('Invalid file format. Only MP4, WebM, MOV, and AVI videos are allowed!'), false);
+  }
+};
+
+const uploadVideo = multer({
+  storage: videoStorage,
+  limits: { fileSize: 100 * 1024 * 1024 }, // 100MB limit for videos
+  fileFilter: videoFileFilter,
+});
+
 module.exports = {
   uploadImage,
   uploadDocument,
+  uploadVideo,
 };

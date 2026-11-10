@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { FaCheck, FaUsers, FaUserFriends, FaRegAddressCard, FaShieldAlt } from 'react-icons/fa';
+import { FaCheck, FaUsers, FaUserFriends, FaRegAddressCard, FaShieldAlt, FaRegThumbsUp, FaThumbsUp, FaRegComment } from 'react-icons/fa';
+import { RiShareForwardLine } from 'react-icons/ri';
 import './UserDashboard.css';
 import UserHeader from '../../components/layout/UserHeader';
 import UserSidebar from '../../components/layout/UserSidebar';
@@ -12,9 +13,10 @@ import AboutAccountModal from '../../components/posts/AboutAccountModal';
 import InstagramPostModal from '../../components/posts/InstagramPostModal';
 import InviteTeamModal from '../../components/modals/InviteTeamModal';
 import JoinGroupModal from '../../components/modals/JoinGroupModal';
+import NotificationDropdown from '../../components/notifications/NotificationDropdown';
 
 // Upload & Dashboard APIs
-import { uploadSingleImage } from '../../services/upload.service';
+import { uploadSingleImage, uploadSingleVideo } from '../../services/upload.service';
 import {
   fetchDashboardOverview,
   fetchPosts,
@@ -129,11 +131,15 @@ export default function UserDashboard() {
   const [submittingPost, setSubmittingPost] = useState(false);
   const [postImageFile, setPostImageFile] = useState(null);
   const [postImagePreview, setPostImagePreview] = useState(null);
+  const [postVideoFile, setPostVideoFile] = useState(null);
+  const [postVideoPreview, setPostVideoPreview] = useState(null);
   const photoInputRef = useRef(null);
+  const videoInputRef = useRef(null);
   const postInputRef = useRef(null);
 
   const [unreadMsgCount, setUnreadMsgCount] = useState(0);
   const [unreadNotifCount, setUnreadNotifCount] = useState(0);
+  const [notifOpen, setNotifOpen] = useState(false);
 
   // Sync real-time message and notification counts for mobile header
   useEffect(() => {
@@ -302,9 +308,32 @@ export default function UserDashboard() {
     if (!file) return;
     setPostImageFile(file);
     setPostImagePreview(URL.createObjectURL(file));
+    setPostVideoFile(null);
+    setPostVideoPreview(null);
   };
 
-  // Submit Post to Backend (supports description only or with photo)
+  // Handle Video File Pick (Max 100MB)
+  const handleVideoSelect = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 100 * 1024 * 1024) {
+      toast.error('Video size should not exceed 100MB');
+      return;
+    }
+    setPostVideoFile(file);
+    setPostVideoPreview(URL.createObjectURL(file));
+    setPostImageFile(null);
+    setPostImagePreview(null);
+  };
+
+  const isPostVideo = (p) => {
+    if (!p) return false;
+    if (p.media_type === 'video' || p.video_url) return true;
+    if (p.image_url && /\.(mp4|webm|mov|mkv|avi)(\?.*)?$/i.test(p.image_url)) return true;
+    return false;
+  };
+
+  // Submit Post to Backend (supports description only, with photo, or with video)
   const handleCreatePost = async () => {
     if (!postText.trim()) {
       toast.error('Please enter a description for your post');
@@ -313,15 +342,25 @@ export default function UserDashboard() {
 
     setSubmittingPost(true);
     try {
-      let uploadedUrl = null;
+      let uploadedImageUrl = null;
+      let uploadedVideoUrl = null;
+
       if (postImageFile) {
-        uploadedUrl = await uploadSingleImage(postImageFile, 'posts');
+        uploadedImageUrl = await uploadSingleImage(postImageFile, 'posts');
+      } else if (postVideoFile) {
+        uploadedVideoUrl = await uploadSingleVideo(postVideoFile, 'posts');
+        if (!uploadedVideoUrl) {
+          setSubmittingPost(false);
+          return;
+        }
       }
 
       const createdPost = await submitPost({
         content: postText.trim(),
         tags: '#Fortaa #NetworkMarketing #GrowTogether',
-        imageUrl: uploadedUrl,
+        imageUrl: uploadedImageUrl,
+        videoUrl: uploadedVideoUrl,
+        mediaType: uploadedVideoUrl ? 'video' : 'image',
         authorName: profile.name,
         authorRole: profile.role,
         authorAvatar: profile.avatarUrl || null,
@@ -332,12 +371,14 @@ export default function UserDashboard() {
       setPostText('');
       setPostImageFile(null);
       setPostImagePreview(null);
+      setPostVideoFile(null);
+      setPostVideoPreview(null);
       setIsCreatePostModalOpen(false);
       setStats((prev) => ({
         ...prev,
         totalPosts: (Number(prev.totalPosts) || 0) + 1,
       }));
-      toast.success('Post published successfully! 🚀');
+      toast.success(uploadedVideoUrl ? 'Video post published successfully! 🚀' : 'Post published successfully! 🚀');
     } catch (err) {
       toast.error(err.message || 'Failed to publish post');
     } finally {
@@ -798,13 +839,54 @@ export default function UserDashboard() {
                   </div>
                 )}
 
-                {/* Hidden File Input for Image Upload */}
+                {/* Video Preview if attached */}
+                {postVideoPreview && (
+                  <div style={{ position: 'relative', margin: '8px 12px', borderRadius: '8px', overflow: 'hidden', background: '#000' }}>
+                    <video
+                      src={postVideoPreview}
+                      controls
+                      playsInline
+                      style={{ width: '100%', maxHeight: '200px', display: 'block', borderRadius: '8px' }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPostVideoFile(null);
+                        setPostVideoPreview(null);
+                      }}
+                      style={{
+                        position: 'absolute',
+                        top: '6px',
+                        right: '6px',
+                        background: 'rgba(0,0,0,0.7)',
+                        color: '#fff',
+                        border: 'none',
+                        borderRadius: '50%',
+                        width: '24px',
+                        height: '24px',
+                        cursor: 'pointer',
+                        fontSize: '12px',
+                      }}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                )}
+
+                {/* Hidden File Inputs for Image & Video */}
                 <input
                   type="file"
                   ref={photoInputRef}
                   accept="image/*"
                   style={{ display: 'none' }}
                   onChange={handlePhotoSelect}
+                />
+                <input
+                  type="file"
+                  ref={videoInputRef}
+                  accept="video/mp4,video/webm,video/quicktime,video/x-msvideo,video/x-matroska,video/*"
+                  style={{ display: 'none' }}
+                  onChange={handleVideoSelect}
                 />
 
                 <div className="ud-cp-actions-row">
@@ -816,7 +898,11 @@ export default function UserDashboard() {
                     >
                       📷 Photo
                     </button>
-                    <button type="button" className="ud-cp-tag" onClick={() => toast('Video upload coming soon!')}>
+                    <button
+                      type="button"
+                      className="ud-cp-tag"
+                      onClick={() => videoInputRef.current?.click()}
+                    >
                       🎥 Video
                     </button>
                     <button type="button" className="ud-cp-tag" onClick={() => toast('Poll feature coming soon!')}>
@@ -912,8 +998,23 @@ export default function UserDashboard() {
                         <p className="ud-post-text">{post.content}</p>
                         {post.tags && <p className="ud-post-tags">{post.tags}</p>}
 
-                        {/* Post Image banner if uploaded */}
-                        {post.image_url && (
+                        {/* Post Media (Video or Image) */}
+                        {isPostVideo(post) ? (
+                          <div
+                            className="ud-post-image-box"
+                            style={{ background: '#000', borderRadius: '12px', overflow: 'hidden' }}
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <video
+                              src={post.video_url || post.image_url}
+                              controls
+                              playsInline
+                              preload="metadata"
+                              className="ud-post-img"
+                              style={{ width: '100%', maxHeight: '420px', objectFit: 'contain', background: '#000', display: 'block' }}
+                            />
+                          </div>
+                        ) : post.image_url ? (
                           <div className="ud-post-image-box">
                             <img
                               src={post.image_url}
@@ -924,7 +1025,7 @@ export default function UserDashboard() {
                               <img src={logoTextImg} alt="FORTAA" className="ud-post-logo-badge-img" />
                             </div>
                           </div>
-                        )}
+                        ) : null}
                       </div>
 
                       {/* Post Reactions & Action Bar */}
@@ -956,21 +1057,28 @@ export default function UserDashboard() {
                           className={`ud-interact-btn ${post.has_liked ? 'liked-active' : ''}`}
                           onClick={() => handleLike(post.id)}
                         >
-                          {post.has_liked ? '👍 Liked' : '👍 Like'}
+                          {post.has_liked ? (
+                            <FaThumbsUp size={15} color="#3A23D5" />
+                          ) : (
+                            <FaRegThumbsUp size={15} />
+                          )}
+                          <span>{post.has_liked ? 'Liked' : 'Like'}</span>
                         </button>
                         <button
                           type="button"
                           className={`ud-interact-btn ${openCommentsPostId === post.id ? 'active' : ''}`}
                           onClick={() => setOpenCommentsPostId(openCommentsPostId === post.id ? null : post.id)}
                         >
-                          💬 Comment
+                          <FaRegComment size={15} />
+                          <span>Comment</span>
                         </button>
                         <button
                           type="button"
                           className="ud-interact-btn"
                           onClick={() => setShareModalPost(post)}
                         >
-                          ↗️ Share
+                          <RiShareForwardLine size={17} />
+                          <span>Share</span>
                         </button>
                       </div>
 
@@ -1325,15 +1433,26 @@ export default function UserDashboard() {
                 <img src={whatsappIconImg} alt="WhatsApp" className="ud-mob-action-img" />
               </button>
 
-              <button
-                type="button"
-                className="ud-mob-icon-btn"
-                title="Notifications"
-                onClick={() => toast(`${unreadNotifCount} New Notifications`, { icon: '🔔' })}
-              >
-                <img src={bellIconImg} alt="Notifications" className="ud-mob-action-img" />
-                {unreadNotifCount > 0 && <span className="ud-mob-red-badge">{unreadNotifCount}</span>}
-              </button>
+              <div style={{ position: 'relative' }}>
+                <button
+                  type="button"
+                  className="ud-mob-icon-btn badge-btn"
+                  title="Notifications"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setNotifOpen((prev) => !prev);
+                  }}
+                >
+                  <img src={bellIconImg} alt="Notifications" className="ud-mob-action-img" />
+                  {unreadNotifCount > 0 && <span className="ud-mob-red-badge">{unreadNotifCount}</span>}
+                </button>
+                <NotificationDropdown
+                  isOpen={notifOpen}
+                  onClose={() => setNotifOpen(false)}
+                  currentUserId={profile.id || storedUser.id}
+                  onNotificationCountChange={setUnreadNotifCount}
+                />
+              </div>
 
               <button
                 type="button"
@@ -1391,14 +1510,79 @@ export default function UserDashboard() {
               />
             </div>
 
+            {/* Mobile Media Preview if attached */}
+            {postImagePreview && (
+              <div style={{ position: 'relative', margin: '6px 12px 10px', borderRadius: '8px', overflow: 'hidden' }}>
+                <img
+                  src={postImagePreview}
+                  alt="Preview"
+                  style={{ width: '100%', maxHeight: '160px', objectFit: 'cover', borderRadius: '8px', display: 'block' }}
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPostImageFile(null);
+                    setPostImagePreview(null);
+                  }}
+                  style={{
+                    position: 'absolute',
+                    top: '6px',
+                    right: '6px',
+                    background: 'rgba(0,0,0,0.6)',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: '50%',
+                    width: '22px',
+                    height: '22px',
+                    cursor: 'pointer',
+                    fontSize: '11px',
+                  }}
+                >
+                  ✕
+                </button>
+              </div>
+            )}
+            {postVideoPreview && (
+              <div style={{ position: 'relative', margin: '6px 12px 10px', borderRadius: '8px', overflow: 'hidden', background: '#000' }}>
+                <video
+                  src={postVideoPreview}
+                  controls
+                  playsInline
+                  style={{ width: '100%', maxHeight: '180px', display: 'block', borderRadius: '8px' }}
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPostVideoFile(null);
+                    setPostVideoPreview(null);
+                  }}
+                  style={{
+                    position: 'absolute',
+                    top: '6px',
+                    right: '6px',
+                    background: 'rgba(0,0,0,0.7)',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: '50%',
+                    width: '22px',
+                    height: '22px',
+                    cursor: 'pointer',
+                    fontSize: '11px',
+                  }}
+                >
+                  ✕
+                </button>
+              </div>
+            )}
+
             <div className="ud-mob-cp-pills">
               <button type="button" className="ud-mob-cp-pill" onClick={() => photoInputRef.current?.click()}>
                 <span>📷</span>
                 <span>Photo</span>
               </button>
 
-              <button type="button" className="ud-mob-cp-pill" onClick={() => toast('Video upload coming soon!')}>
-                <span>🔴</span>
+              <button type="button" className="ud-mob-cp-pill" onClick={() => videoInputRef.current?.click()}>
+                <span>📹</span>
                 <span>Video</span>
               </button>
 
@@ -1551,11 +1735,27 @@ export default function UserDashboard() {
                       </div>
                     )}
 
-                    {post.image_url && (
+                    {/* Post Media (Video or Image) */}
+                    {isPostVideo(post) ? (
+                      <div
+                        className="ud-mob-post-banner-wrap"
+                        style={{ background: '#000', borderRadius: '12px', overflow: 'hidden' }}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <video
+                          src={post.video_url || post.image_url}
+                          controls
+                          playsInline
+                          preload="metadata"
+                          className="ud-mob-post-banner-img"
+                          style={{ width: '100%', maxHeight: '380px', objectFit: 'contain', background: '#000', display: 'block' }}
+                        />
+                      </div>
+                    ) : post.image_url ? (
                       <div className="ud-mob-post-banner-wrap">
                         <img src={post.image_url} alt="Post content" className="ud-mob-post-banner-img" />
                       </div>
-                    )}
+                    ) : null}
                   </div>
 
                   {/* Reactions Bar */}
@@ -1587,7 +1787,11 @@ export default function UserDashboard() {
                         fontWeight: post.has_liked ? '700' : '500',
                       }}
                     >
-                      <span>{post.has_liked ? '❤️' : '👍'}</span>
+                      {post.has_liked ? (
+                        <FaThumbsUp size={14} color="#5A2CE4" />
+                      ) : (
+                        <FaRegThumbsUp size={14} />
+                      )}
                       <span>{post.has_liked ? 'Liked' : 'Like'}</span>
                     </button>
                     <button
@@ -1595,7 +1799,7 @@ export default function UserDashboard() {
                       className={`ud-mob-post-action-btn ${openCommentsPostId === post.id ? 'active' : ''}`}
                       onClick={() => setOpenCommentsPostId(openCommentsPostId === post.id ? null : post.id)}
                     >
-                      <span>💬</span>
+                      <FaRegComment size={14} />
                       <span>Comment</span>
                     </button>
                     <button
@@ -1603,7 +1807,7 @@ export default function UserDashboard() {
                       className="ud-mob-post-action-btn"
                       onClick={() => setShareModalPost(post)}
                     >
-                      <span>↗</span>
+                      <RiShareForwardLine size={15} />
                       <span>Share</span>
                     </button>
                   </div>
@@ -1774,6 +1978,29 @@ export default function UserDashboard() {
                 </div>
               )}
 
+              {/* Video Preview if attached */}
+              {postVideoPreview && (
+                <div className="ud-cpm-preview-box" style={{ background: '#000' }}>
+                  <video
+                    src={postVideoPreview}
+                    controls
+                    playsInline
+                    style={{ width: '100%', maxHeight: '200px', display: 'block', borderRadius: '8px' }}
+                  />
+                  <button
+                    type="button"
+                    className="ud-cpm-remove-preview"
+                    onClick={() => {
+                      setPostVideoFile(null);
+                      setPostVideoPreview(null);
+                    }}
+                    title="Remove video"
+                  >
+                    ✕
+                  </button>
+                </div>
+              )}
+
               {/* Toolbar */}
               <div className="ud-cpm-tools-row">
                 <span className="ud-cpm-tools-label">Add to your post:</span>
@@ -1788,7 +2015,7 @@ export default function UserDashboard() {
                   <button
                     type="button"
                     className="ud-cpm-tool-btn"
-                    onClick={() => toast('Video upload coming soon!')}
+                    onClick={() => videoInputRef.current?.click()}
                   >
                     🎥 Video
                   </button>

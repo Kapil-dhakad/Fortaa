@@ -6,6 +6,8 @@ import UserHeader from '../../components/layout/UserHeader';
 import UserSidebar from '../../components/layout/UserSidebar';
 import PostComments from '../../components/posts/PostComments';
 import ShareModal from '../../components/posts/ShareModal';
+import { FaRegThumbsUp, FaThumbsUp, FaRegComment } from 'react-icons/fa';
+import { RiShareForwardLine } from 'react-icons/ri';
 
 // User, Follow & Dashboard Services
 import { fetchUserProfile, updateUserProfile as apiUpdateUserProfile } from '../../services/user.service';
@@ -1377,15 +1379,36 @@ export default function ProfilePage() {
                           <div className="prof-post-body">
                             <p className="prof-post-caption">{post.content}</p>
                             {post.tags && <p className="prof-post-tags">{post.tags}</p>}
-                            {post.image_url && (
-                              <div className="prof-post-media-box">
-                                <img
-                                  src={post.image_url}
-                                  alt="Post media"
-                                  className="prof-post-img"
-                                />
-                              </div>
-                            )}
+                            {(() => {
+                              const isVideo = post.media_type === 'video' || post.video_url || (post.image_url && /\.(mp4|webm|mov|mkv|avi)(\?.*)?$/i.test(post.image_url));
+                              const mediaSrc = post.video_url || post.image_url;
+                              if (!mediaSrc) return null;
+
+                              if (isVideo) {
+                                return (
+                                  <div className="prof-post-media-box" style={{ background: '#000', borderRadius: '12px', overflow: 'hidden' }}>
+                                    <video
+                                      src={mediaSrc}
+                                      controls
+                                      playsInline
+                                      preload="metadata"
+                                      className="prof-post-img"
+                                      style={{ width: '100%', maxHeight: '420px', objectFit: 'contain', background: '#000', display: 'block' }}
+                                    />
+                                  </div>
+                                );
+                              }
+
+                              return (
+                                <div className="prof-post-media-box">
+                                  <img
+                                    src={mediaSrc}
+                                    alt="Post media"
+                                    className="prof-post-img"
+                                  />
+                                </div>
+                              );
+                            })()}
                           </div>
 
                           <div className="prof-post-metrics-row">
@@ -1408,21 +1431,28 @@ export default function ProfilePage() {
                               className={`prof-action-btn ${post.has_liked ? 'liked-active' : ''}`}
                               onClick={() => handleLike(post.id)}
                             >
-                              👍 {post.has_liked ? 'Liked' : 'Like'}
+                              {post.has_liked ? (
+                                <FaThumbsUp size={15} color="#3A23D5" />
+                              ) : (
+                                <FaRegThumbsUp size={15} />
+                              )}
+                              <span>{post.has_liked ? 'Liked' : 'Like'}</span>
                             </button>
                             <button
                               type="button"
                               className={`prof-action-btn ${openCommentsPostId === post.id ? 'active' : ''}`}
                               onClick={() => setOpenCommentsPostId(openCommentsPostId === post.id ? null : post.id)}
                             >
-                              💬 Comment
+                              <FaRegComment size={15} />
+                              <span>Comment</span>
                             </button>
                             <button
                               type="button"
                               className="prof-action-btn"
                               onClick={() => setShareModalPost(post)}
                             >
-                              ↗️ Share
+                              <RiShareForwardLine size={16} />
+                              <span>Share</span>
                             </button>
                           </div>
 
@@ -1465,54 +1495,44 @@ export default function ProfilePage() {
 
                 {/* ── TAB 2: NETWORK (Team / Downline) ── */}
                 {activeTab === 'Network' && (
-                  <div className="prof-post-card" style={{ padding: '24px' }}>
+                  <div className="prof-post-card prof-tab-content-card">
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px' }}>
-                      <h4 style={{ fontSize: '18px', fontWeight: '700', color: '#1F1735' }}>
+                      <h4 className="prof-tab-content-title" style={{ marginBottom: 0 }}>
                         My Network Team ({socialCounts.networkCount})
                       </h4>
                       <span style={{ fontSize: '13px', color: '#5A2CE4', fontWeight: '600' }}>Active Downline</span>
                     </div>
 
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                    <div className="prof-following-list">
                       {[
                         { name: 'Amit Verma', role: 'Diamond Leader', id: 'NS294812', team: '45 members' },
                         { name: 'Sneha Patel', role: 'Platinum Leader', id: 'NS819234', team: '32 members' },
                         { name: 'Vikas Kumar', role: 'Gold Leader', id: 'NS381023', team: '18 members' },
                         { name: 'Neha Gupta', role: 'Silver Leader', id: 'NS491028', team: '12 members' },
                       ].map((member, mIdx) => (
-                        <div
-                          key={mIdx}
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                            padding: '12px 16px',
-                            background: '#F9F8FD',
-                            borderRadius: '12px',
-                            border: '1px solid #ECE8F7',
-                          }}
-                        >
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <div key={mIdx} className="prof-following-card prof-follower-card">
+                          <div className="prof-following-user-row">
                             <img
                               src={userAvatarImg}
                               alt={member.name}
-                              style={{ width: '42px', height: '42px', borderRadius: '50%' }}
+                              className="prof-following-avatar"
                             />
-                            <div>
-                              <div style={{ fontWeight: '700', fontSize: '15px', color: '#1F1735' }}>{member.name}</div>
-                              <div style={{ fontSize: '12px', color: '#8E8A9F' }}>
+                            <div className="prof-following-info">
+                              <div className="prof-following-name">{member.name}</div>
+                              <div className="prof-following-role">
                                 {member.role} • ID: {member.id} • {member.team}
                               </div>
                             </div>
                           </div>
-                          <button
-                            type="button"
-                            className="prof-btn-purple-sm"
-                            style={{ padding: '6px 14px', fontSize: '12px' }}
-                            onClick={() => toast(`Viewing team details of ${member.name}`)}
-                          >
-                            View Team
-                          </button>
+                          <div className="prof-following-actions">
+                            <button
+                              type="button"
+                              className="prof-btn-purple-sm prof-btn-action-single"
+                              onClick={() => toast(`Viewing team details of ${member.name}`)}
+                            >
+                              View Team
+                            </button>
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -1521,49 +1541,43 @@ export default function ProfilePage() {
 
                 {/* ── TAB 3: FOLLOWERS (Real Database Followers) ── */}
                 {activeTab === 'Followers' && (
-                  <div className="prof-post-card" style={{ padding: '24px' }}>
-                    <h4 style={{ fontSize: '18px', fontWeight: '700', color: '#1F1735', marginBottom: '18px' }}>
+                  <div className="prof-post-card prof-tab-content-card">
+                    <h4 className="prof-tab-content-title">
                       Followers ({followersList.length})
                     </h4>
 
                     {followersList.length > 0 ? (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                      <div className="prof-following-list">
                         {followersList.map((follower) => (
-                          <div
-                            key={follower.id}
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'space-between',
-                              padding: '12px 16px',
-                              background: '#F9F8FD',
-                              borderRadius: '12px',
-                              border: '1px solid #ECE8F7',
-                            }}
-                          >
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                          <div key={follower.id} className="prof-following-card prof-follower-card">
+                            <div className="prof-following-user-row">
                               <img
-                                src={userAvatarImg}
+                                src={follower.avatar_url || userAvatarImg}
                                 alt={follower.name}
-                                style={{ width: '42px', height: '42px', borderRadius: '50%' }}
+                                className="prof-following-avatar"
+                                onError={(e) => {
+                                  e.currentTarget.onerror = null;
+                                  e.currentTarget.src = userAvatarImg;
+                                }}
                               />
-                              <div>
-                                <div style={{ fontWeight: '700', fontSize: '15px', color: '#1F1735' }}>
+                              <div className="prof-following-info">
+                                <div className="prof-following-name" title={follower.name}>
                                   {follower.name}
                                 </div>
-                                <div style={{ fontSize: '12px', color: '#8E8A9F' }}>
+                                <div className="prof-following-role">
                                   {follower.designation || 'Leader'} • {follower.company_brand || 'Fortaa'}
                                 </div>
                               </div>
                             </div>
-                            <button
-                              type="button"
-                              className="prof-btn-purple-sm"
-                              style={{ padding: '6px 14px', fontSize: '12px' }}
-                              onClick={() => toast(`Opening profile of ${follower.name}`)}
-                            >
-                              View Profile
-                            </button>
+                            <div className="prof-following-actions">
+                              <button
+                                type="button"
+                                className="prof-btn-purple-sm prof-btn-action-single"
+                                onClick={() => toast(`Opening profile of ${follower.name}`)}
+                              >
+                                View Profile
+                              </button>
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -1581,58 +1595,41 @@ export default function ProfilePage() {
 
                 {/* ── TAB 4: FOLLOWING (Real Database Following with Unfollow) ── */}
                 {activeTab === 'Following' && (
-                  <div className="prof-post-card" style={{ padding: '24px' }}>
-                    <h4 style={{ fontSize: '18px', fontWeight: '700', color: '#1F1735', marginBottom: '18px' }}>
+                  <div className="prof-post-card prof-tab-content-card">
+                    <h4 className="prof-tab-content-title">
                       Following ({followingList.length})
                     </h4>
 
                     {followingList.length > 0 ? (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                      <div className="prof-following-list">
                         {followingList.map((user) => {
                           const isPending = user.follow_status === 'pending';
                           return (
-                            <div
-                              key={user.id}
-                              style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'space-between',
-                                padding: '12px 18px',
-                                background: '#FFFFFF',
-                                borderRadius: '10px',
-                                border: '1px solid #D9D2EE',
-                                transition: 'all 0.15s ease',
-                              }}
-                            >
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                            <div key={user.id} className="prof-following-card">
+                              <div className="prof-following-user-row">
                                 <img
                                   src={user.avatar_url || userAvatarImg}
                                   alt={user.name}
-                                  style={{ width: '42px', height: '42px', borderRadius: '50%', objectFit: 'cover' }}
+                                  className="prof-following-avatar"
+                                  onError={(e) => {
+                                    e.currentTarget.onerror = null;
+                                    e.currentTarget.src = userAvatarImg;
+                                  }}
                                 />
-                                <div>
-                                  <div style={{ fontWeight: '600', fontSize: '15px', color: '#232356' }}>
+                                <div className="prof-following-info">
+                                  <div className="prof-following-name" title={user.name}>
                                     {user.name}
                                   </div>
-                                  <div style={{ fontSize: '12px', color: '#6B6B8A' }}>
+                                  <div className="prof-following-role">
                                     {user.designation || 'Business Leader'}
                                   </div>
                                 </div>
                               </div>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                              <div className="prof-following-actions">
                                 <button
                                   type="button"
                                   onClick={() => navigate(`/messages?userId=${user.id}`)}
-                                  style={{
-                                    background: '#FFFFFF',
-                                    border: '1.5px solid #8B2CF5',
-                                    borderRadius: '6px',
-                                    color: '#8B2CF5',
-                                    fontWeight: '500',
-                                    fontSize: '12px',
-                                    padding: '6px 16px',
-                                    cursor: 'pointer',
-                                  }}
+                                  className="prof-btn-action prof-btn-msg"
                                 >
                                   Message
                                 </button>
@@ -1641,18 +1638,7 @@ export default function ProfilePage() {
                                     type="button"
                                     onClick={() => handleCancelRequestFromProfile(user.id, user.name)}
                                     title="Click to cancel request"
-                                    style={{
-                                      background: '#FFFFFF',
-                                      border: '1.5px solid #9D4EDD',
-                                      borderRadius: '6px',
-                                      color: '#9D4EDD',
-                                      fontWeight: '500',
-                                      fontSize: '12px',
-                                      padding: '6px 16px',
-                                      cursor: 'pointer',
-                                      minWidth: '85px',
-                                      textAlign: 'center',
-                                    }}
+                                    className="prof-btn-action prof-btn-pending"
                                   >
                                     Pending
                                   </button>
@@ -1661,18 +1647,7 @@ export default function ProfilePage() {
                                     type="button"
                                     onClick={() => handleUnfollowFromProfile(user.id, user.name)}
                                     title="Click to unfollow"
-                                    style={{
-                                      background: '#FFFFFF',
-                                      border: '1.5px solid #9D4EDD',
-                                      borderRadius: '6px',
-                                      color: '#9D4EDD',
-                                      fontWeight: '500',
-                                      fontSize: '12px',
-                                      padding: '6px 16px',
-                                      cursor: 'pointer',
-                                      minWidth: '85px',
-                                      textAlign: 'center',
-                                    }}
+                                    className="prof-btn-action prof-btn-following"
                                   >
                                     Following
                                   </button>
@@ -1704,59 +1679,50 @@ export default function ProfilePage() {
 
                 {/* ── TAB 5: GROUPS ── */}
                 {activeTab === 'Groups' && (
-                  <div className="prof-post-card" style={{ padding: '24px' }}>
-                    <h4 style={{ fontSize: '18px', fontWeight: '700', color: '#1F1735', marginBottom: '18px' }}>
+                  <div className="prof-post-card prof-tab-content-card">
+                    <h4 className="prof-tab-content-title">
                       Joined Groups (3)
                     </h4>
 
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                    <div className="prof-following-list">
                       {[
                         { name: 'Success Mindset & Motivation', members: '12.4K members', topic: 'Personal Growth' },
                         { name: 'Network Marketing Tips & Strategy', members: '5.7K members', topic: 'Direct Selling' },
                         { name: 'Health & Wellness Products Hub', members: '8.2K members', topic: 'Product Insights' },
                       ].map((grp, gIdx) => (
-                        <div
-                          key={gIdx}
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                            padding: '12px 16px',
-                            background: '#F9F8FD',
-                            borderRadius: '12px',
-                            border: '1px solid #ECE8F7',
-                          }}
-                        >
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <div key={gIdx} className="prof-following-card prof-follower-card">
+                          <div className="prof-following-user-row">
                             <div
                               style={{
-                                width: '42px',
-                                height: '42px',
+                                width: '44px',
+                                height: '44px',
                                 borderRadius: '10px',
                                 background: '#EDE9FE',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
                                 fontSize: '20px',
+                                flexShrink: 0,
                               }}
                             >
                               👥
                             </div>
-                            <div>
-                              <div style={{ fontWeight: '700', fontSize: '15px', color: '#1F1735' }}>{grp.name}</div>
-                              <div style={{ fontSize: '12px', color: '#8E8A9F' }}>
+                            <div className="prof-following-info">
+                              <div className="prof-following-name">{grp.name}</div>
+                              <div className="prof-following-role">
                                 {grp.members} • {grp.topic}
                               </div>
                             </div>
                           </div>
-                          <button
-                            type="button"
-                            className="prof-btn-purple-sm"
-                            style={{ padding: '6px 14px', fontSize: '12px' }}
-                            onClick={() => toast.success(`Viewing ${grp.name}`)}
-                          >
-                            Open Group
-                          </button>
+                          <div className="prof-following-actions">
+                            <button
+                              type="button"
+                              className="prof-btn-purple-sm prof-btn-action-single"
+                              onClick={() => toast.success(`Viewing ${grp.name}`)}
+                            >
+                              Open Group
+                            </button>
+                          </div>
                         </div>
                       ))}
                     </div>

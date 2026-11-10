@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { uploadImage, uploadDocument } = require('../middleware/upload.middleware');
+const { uploadImage, uploadDocument, uploadVideo } = require('../middleware/upload.middleware');
 
 /**
  * @route   POST /api/upload/image
@@ -93,6 +93,38 @@ router.post('/document', (req, res) => {
     return res.status(200).json({
       success: true,
       message: 'Document uploaded successfully',
+      url: req.file.location,
+      key: req.file.key,
+      size: req.file.size,
+      mimetype: req.file.mimetype,
+    });
+  });
+});
+
+/**
+ * @route   POST /api/upload/video
+ * @desc    Upload video for post or reel
+ * @query   ?folder=videos | posts
+ */
+router.post('/video', (req, res) => {
+  uploadVideo.single('file')(req, res, (err) => {
+    if (err) {
+      return res.status(400).json({
+        success: false,
+        message: err.message || 'Video upload failed',
+      });
+    }
+
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: 'No video file provided in form field "file"',
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'Video uploaded successfully',
       url: req.file.location,
       key: req.file.key,
       size: req.file.size,

@@ -250,7 +250,7 @@ async function getPosts(req, res) {
 // 3. Create a New Post
 async function createPost(req, res) {
   try {
-    const { content, tags, imageUrl, authorName, authorRole, authorAvatar, userId } = req.body;
+    const { content, tags, imageUrl, videoUrl, mediaType, authorName, authorRole, authorAvatar, userId } = req.body;
 
     if (!content || !content.trim()) {
       return res.status(400).json({ success: false, message: 'Post content cannot be empty' });
@@ -259,16 +259,18 @@ async function createPost(req, res) {
     const postAuthor = authorName || 'Kapil Dhakad';
     const postRole = authorRole || 'Senior Leader';
     const postAvatar = authorAvatar || null;
-    const postImage = imageUrl || null;
+    const postVideo = videoUrl || (mediaType === 'video' ? imageUrl : null);
+    const postImage = postVideo ? null : (imageUrl || null);
+    const postMediaType = mediaType || (postVideo ? 'video' : 'image');
     const postTags = tags || '#Fortaa #NetworkMarketing';
     const postUserId = userId || req.userId || null;
 
     if (db.isDBConnected()) {
       const result = await db.query(
-        `INSERT INTO posts (user_id, author_name, author_role, author_avatar, content, tags, image_url, likes_count, comments_count)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, 0, 0)
+        `INSERT INTO posts (user_id, author_name, author_role, author_avatar, content, tags, image_url, video_url, media_type, likes_count, comments_count)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 0, 0)
          RETURNING *`,
-        [postUserId, postAuthor, postRole, postAvatar, content.trim(), postTags, postImage]
+        [postUserId, postAuthor, postRole, postAvatar, content.trim(), postTags, postImage, postVideo, postMediaType]
       );
       return res.status(201).json({
         success: true,
@@ -287,6 +289,8 @@ async function createPost(req, res) {
       content: content.trim(),
       tags: postTags,
       image_url: postImage,
+      video_url: postVideo,
+      media_type: postMediaType,
       likes_count: 0,
       comments_count: 0,
       created_at: new Date().toISOString(),

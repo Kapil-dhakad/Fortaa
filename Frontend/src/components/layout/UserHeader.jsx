@@ -316,15 +316,26 @@ export default function UserHeader({
               <img src={whatsappIconImg} alt="WhatsApp" className="ud-mob-action-img" />
             </button>
 
-            <button
-              type="button"
-              className="ud-mob-icon-btn badge-btn"
-              title="Notifications"
-              onClick={() => setNotifOpen((prev) => !prev)}
-            >
-              <img src={bellIconImg} alt="Notifications" className="ud-mob-action-img" />
-              {realNotifCount > 0 && <span className="ud-mob-red-badge">{realNotifCount}</span>}
-            </button>
+            <div style={{ position: 'relative' }}>
+              <button
+                type="button"
+                className="ud-mob-icon-btn badge-btn"
+                title="Notifications"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setNotifOpen((prev) => !prev);
+                }}
+              >
+                <img src={bellIconImg} alt="Notifications" className="ud-mob-action-img" />
+                {realNotifCount > 0 && <span className="ud-mob-red-badge">{realNotifCount}</span>}
+              </button>
+              <NotificationDropdown
+                isOpen={notifOpen}
+                onClose={() => setNotifOpen(false)}
+                currentUserId={currentUserId}
+                onNotificationCountChange={setRealNotifCount}
+              />
+            </div>
 
             <button
               type="button"

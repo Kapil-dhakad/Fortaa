@@ -51,6 +51,35 @@ export async function uploadSingleImage(file, folder = 'images') {
 }
 
 /**
+ * Upload single video to S3 via backend
+ * @param {File} file - The file object from <input type="file" />
+ * @param {string} folder - Destination subfolder (e.g. 'videos', 'posts')
+ * @returns {Promise<string|null>} S3 public video URL or null
+ */
+export async function uploadSingleVideo(file, folder = 'videos') {
+  if (!file) return null;
+
+  const toastId = toast.loading('Uploading video (this may take a few moments)...');
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await fetch(`${API_BASE}/video?folder=${encodeURIComponent(folder)}`, {
+      method: 'POST',
+      body: formData,
+    });
+
+    const data = await handleUploadResponse(response, 'Video upload failed');
+
+    toast.success('Video uploaded successfully! 🎬', { id: toastId });
+    return data.url;
+  } catch (error) {
+    toast.error(error.message || 'Failed to upload video', { id: toastId });
+    return null;
+  }
+}
+
+/**
  * Upload multiple images to S3
  * @param {FileList|File[]} files - Array or FileList of image files
  * @param {string} folder - Destination subfolder

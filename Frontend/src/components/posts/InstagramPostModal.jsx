@@ -264,36 +264,55 @@ export default function InstagramPostModal({
         aria-modal="true"
       >
         {/* ── LEFT: MEDIA / VISUAL VIEWPORT ── */}
-        <div
-          className={`ipm-media-col ${!post.image_url ? 'ipm-text-canvas' : ''}`}
-          onDoubleClick={handleDoubleClickMedia}
-        >
-          {post.image_url ? (
-            <div className="ipm-image-wrapper">
-              <img
-                src={post.image_url}
-                alt="Post media"
-                className="ipm-post-image"
-              />
-              <div className="ipm-watermark-pill">
-                <img src={logoTextImg} alt="FORTAA" className="ipm-watermark-logo" />
-              </div>
-            </div>
-          ) : (
-            <div className="ipm-typography-card">
-              <div className="ipm-typo-watermark">FORTAA</div>
-              <p className="ipm-typo-content">"{post.content}"</p>
-              {post.tags && <p className="ipm-typo-tags">{post.tags}</p>}
-            </div>
-          )}
+        {(() => {
+          const isVideo = post.media_type === 'video' || post.video_url || (post.image_url && /\.(mp4|webm|mov|mkv|avi)(\?.*)?$/i.test(post.image_url));
+          const mediaSrc = post.video_url || post.image_url;
+          const hasMedia = Boolean(mediaSrc);
 
-          {/* Double Click Heart Animation */}
-          {showHeartAnim && (
-            <div className="ipm-heart-pop-anim">
-              <FaHeart />
+          return (
+            <div
+              className={`ipm-media-col ${!hasMedia ? 'ipm-text-canvas' : ''}`}
+              onDoubleClick={handleDoubleClickMedia}
+            >
+              {hasMedia ? (
+                <div className="ipm-image-wrapper" style={{ background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  {isVideo ? (
+                    <video
+                      src={mediaSrc}
+                      controls
+                      autoPlay
+                      playsInline
+                      className="ipm-post-image"
+                      style={{ width: '100%', height: '100%', objectFit: 'contain', background: '#000' }}
+                    />
+                  ) : (
+                    <img
+                      src={post.image_url}
+                      alt="Post media"
+                      className="ipm-post-image"
+                    />
+                  )}
+                  <div className="ipm-watermark-pill">
+                    <img src={logoTextImg} alt="FORTAA" className="ipm-watermark-logo" />
+                  </div>
+                </div>
+              ) : (
+                <div className="ipm-typography-card">
+                  <div className="ipm-typo-watermark">FORTAA</div>
+                  <p className="ipm-typo-content">"{post.content}"</p>
+                  {post.tags && <p className="ipm-typo-tags">{post.tags}</p>}
+                </div>
+              )}
+
+              {/* Double Click Heart Animation */}
+              {showHeartAnim && (
+                <div className="ipm-heart-pop-anim">
+                  <FaHeart />
+                </div>
+              )}
             </div>
-          )}
-        </div>
+          );
+        })()}
 
         {/* ── RIGHT: HEADER, CAPTION, COMMENTS & INTERACTION ── */}
         <div className="ipm-content-col">

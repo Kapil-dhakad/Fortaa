@@ -46,7 +46,7 @@ export default function NotificationDropdown({
     };
   }, [isOpen, currentUserId, onNotificationCountChange]);
 
-  // Click outside to close
+  // Click outside to close (supporting mouse and touch)
   useEffect(() => {
     function handleClickOutside(e) {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
@@ -55,9 +55,11 @@ export default function NotificationDropdown({
     }
     if (isOpen) {
       document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('touchstart', handleClickOutside, { passive: true });
     }
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
     };
   }, [isOpen, onClose]);
 
@@ -161,15 +163,26 @@ export default function NotificationDropdown({
           <h3 className="notif-title">Notifications</h3>
           {unreadTotal > 0 && <span className="notif-pill-count">{unreadTotal}</span>}
         </div>
-        {unreadTotal > 0 && (
+        <div className="notif-header-actions" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {unreadTotal > 0 && (
+            <button
+              type="button"
+              className="notif-mark-read-btn"
+              onClick={handleMarkAllRead}
+            >
+              Mark all read
+            </button>
+          )}
           <button
             type="button"
-            className="notif-mark-read-btn"
-            onClick={handleMarkAllRead}
+            className="notif-header-close-btn"
+            onClick={onClose}
+            title="Close notifications"
+            aria-label="Close notifications"
           >
-            Mark all read
+            ✕
           </button>
-        )}
+        </div>
       </div>
 
       {/* Body */}

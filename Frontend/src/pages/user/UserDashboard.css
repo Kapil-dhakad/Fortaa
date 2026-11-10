@@ -1278,20 +1278,22 @@
   background: transparent;
   border: none;
   font-family: 'Inter', sans-serif;
-  font-size: 10px;
-  font-weight: 300;
+  font-size: 13.5px;
+  font-weight: 500;
   color: #232356;
   cursor: pointer;
-  padding: 4px 0;
-  border-radius: 4px;
+  padding: 6px 12px;
+  border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 4px;
+  gap: 6px;
+  transition: all 0.15s ease;
 }
 
 .ud-interact-btn:hover {
   background: #F8FAFC;
+  color: #5A2CE4;
 }
 
 .ud-interact-btn.active,
@@ -3715,12 +3717,15 @@
     border: none !important;
     display: inline-flex !important;
     align-items: center !important;
-    gap: 4px !important;
+    justify-content: center !important;
+    gap: 6px !important;
     font-family: 'Inter', sans-serif !important;
-    font-size: 10px !important;
-    font-weight: 400 !important;
+    font-size: 13px !important;
+    font-weight: 500 !important;
     color: #232356 !important;
     cursor: pointer !important;
+    padding: 6px 8px !important;
+    border-radius: 6px !important;
   }
 
   /* Comment Preview */
