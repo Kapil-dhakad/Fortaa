@@ -22,12 +22,12 @@ export async function sendFollowRequest(targetUserId, currentUserId) {
 /**
  * Accept incoming Follow Request
  */
-export async function acceptFollowRequest(requesterId, currentUserId) {
+export async function acceptFollowRequest(requesterId, currentUserId, notificationId = null) {
   try {
     const res = await fetch(`${BASE_URL}/accept/${requesterId}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ currentUserId }),
+      body: JSON.stringify({ currentUserId, notificationId }),
     });
     return await res.json();
   } catch (err) {
@@ -39,12 +39,12 @@ export async function acceptFollowRequest(requesterId, currentUserId) {
 /**
  * Reject / Decline incoming Follow Request
  */
-export async function rejectFollowRequest(requesterId, currentUserId) {
+export async function rejectFollowRequest(requesterId, currentUserId, notificationId = null) {
   try {
     const res = await fetch(`${BASE_URL}/reject/${requesterId}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ currentUserId }),
+      body: JSON.stringify({ currentUserId, notificationId }),
     });
     return await res.json();
   } catch (err) {

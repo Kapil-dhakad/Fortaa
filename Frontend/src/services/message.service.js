@@ -62,3 +62,22 @@ export async function fetchUnreadMessageCount(userId) {
   }
 }
 
+/**
+ * Delete message via HTTP fallback (deleteForEveryone OR deleteForMe)
+ */
+export async function deleteChatMessageHttp(messageId, userId, deleteForEveryone = false) {
+  try {
+    if (!messageId) return false;
+    const res = await fetch(`${API_BASE}/delete/${messageId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId, deleteForEveryone }),
+    });
+    const data = await res.json();
+    return data.success;
+  } catch (err) {
+    console.error('deleteChatMessageHttp error:', err);
+    return false;
+  }
+}
+

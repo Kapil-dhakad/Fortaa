@@ -139,6 +139,7 @@
   margin-right: 16px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
   transition: all 0.2s ease;
+  position: relative;
 }
 
 .ud-search-wrapper:focus-within {
@@ -172,6 +173,164 @@
 .ud-search-input::placeholder {
   color: #94A3B8;
   font-size: 11.5px;
+}
+
+/* ───────────────── LIVE SEARCH DROPDOWN ───────────────── */
+.ud-search-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  background: #FFFFFF;
+  border-radius: 12px;
+  box-shadow: 0 12px 32px rgba(30, 27, 75, 0.16);
+  border: 1px solid #E2E8F0;
+  z-index: 99999;
+  overflow: hidden;
+  max-height: 380px;
+  display: flex;
+  flex-direction: column;
+  touch-action: manipulation;
+  -webkit-overflow-scrolling: touch;
+  animation: udSearchDropIn 0.18s ease-out;
+}
+
+@keyframes udSearchDropIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.ud-search-dropdown-header {
+  padding: 8px 14px;
+  background: #F8FAFC;
+  border-bottom: 1px solid #EEF2F6;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: #64748B;
+}
+
+.ud-search-count {
+  font-size: 11px;
+  color: #94A3B8;
+  font-weight: 500;
+}
+
+.ud-search-dropdown-list {
+  overflow-y: auto;
+  max-height: 280px;
+}
+
+.ud-search-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  border-bottom: 1px solid #F8FAFC;
+}
+
+.ud-search-dropdown-item:last-child {
+  border-bottom: none;
+}
+
+.ud-search-dropdown-item:hover {
+  background: #F3EEFE;
+}
+
+.ud-search-item-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  border: 1.5px solid #E2E8F0;
+}
+
+.ud-search-item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.ud-search-item-name {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #1E1B4B;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ud-search-item-role {
+  font-size: 11.5px;
+  color: #64748B;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ud-search-item-arrow {
+  color: #94A3B8;
+  font-size: 14px;
+  transition: transform 0.15s ease;
+}
+
+.ud-search-dropdown-item:hover .ud-search-item-arrow {
+  transform: translateX(3px);
+  color: #5A2CE4;
+}
+
+.ud-search-dropdown-footer {
+  padding: 10px 14px;
+  background: #FAF8FE;
+  border-top: 1px solid #EEF2F6;
+  font-size: 12px;
+  font-weight: 600;
+  color: #5A2CE4;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transition: background 0.15s ease;
+}
+
+.ud-search-dropdown-footer:hover {
+  background: #F3EEFE;
+}
+
+.ud-search-no-results {
+  padding: 24px 16px;
+  text-align: center;
+  color: #64748B;
+  font-size: 13px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: center;
+}
+
+.ud-search-view-all-btn {
+  background: #5A2CE4;
+  color: #FFFFFF;
+  border: none;
+  border-radius: 8px;
+  padding: 7px 16px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
 }
 
 /* ───────────────── TOPBAR RIGHT ACTIONS ───────────────── */
@@ -665,40 +824,85 @@
   opacity: 0.9;
 }
 
-/* Sidebar Bottom Brand Footer (Icon only when collapsed, expands on hover) */
+/* Sidebar Bottom Brand Footer (Same white capsule as top logo, revealed on hover/mobile) */
 .ud-brand-logo-card-bottom {
-  margin-top: 10px;
-  flex-shrink: 0;
-  width: 48px;
-  min-width: 48px;
-  padding: 4px;
-  border: none;
-  background: transparent;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  transition: all 0.25s ease;
-}
-
-.ud-brand-logo-card-bottom .ud-logo-text-wrap {
   display: none;
   opacity: 0;
+  margin: 10px auto 0;
+  flex-shrink: 0;
+  width: 152px;
+  min-width: 152px;
+  max-width: 152px;
+  height: 42px;
+  min-height: 42px;
+  max-height: 42px;
+  background: #FFFFFF !important;
+  border: none !important;
+  border-radius: 5px;
+  padding: 0;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.14);
+  transition: opacity 0.25s ease;
+  overflow: hidden;
+  position: relative;
 }
 
 .ud-sidebar-left:hover .ud-brand-logo-card-bottom,
-.ud-sidebar-left.is-hovered .ud-brand-logo-card-bottom {
-  width: 175px;
-  min-width: 175px;
-  border: 1.5px solid #6B109F;
-  padding: 4px 8px;
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 8px;
+.ud-sidebar-left.is-hovered .ud-brand-logo-card-bottom,
+.ud-sidebar-left.mobile-open .ud-brand-logo-card-bottom {
+  display: block;
+  opacity: 1;
+}
+
+.ud-sidebar-left:hover .ud-brand-logo-card-bottom .ud-brand-logo,
+.ud-sidebar-left.is-hovered .ud-brand-logo-card-bottom .ud-brand-logo,
+.ud-sidebar-left.mobile-open .ud-brand-logo-card-bottom .ud-brand-logo {
+  display: block;
+  width: 152px;
+  height: 42px;
+  position: relative;
+}
+
+.ud-sidebar-left:hover .ud-brand-logo-card-bottom .ud-logo-icon,
+.ud-sidebar-left.is-hovered .ud-brand-logo-card-bottom .ud-logo-icon,
+.ud-sidebar-left.mobile-open .ud-brand-logo-card-bottom .ud-logo-icon {
+  position: absolute;
+  left: 6px;
+  top: 7px;
+  width: 28px;
+  height: 28px;
 }
 
 .ud-sidebar-left:hover .ud-brand-logo-card-bottom .ud-logo-text-wrap,
-.ud-sidebar-left.is-hovered .ud-brand-logo-card-bottom .ud-logo-text-wrap {
-  display: flex;
+.ud-sidebar-left.is-hovered .ud-brand-logo-card-bottom .ud-logo-text-wrap,
+.ud-sidebar-left.mobile-open .ud-brand-logo-card-bottom .ud-logo-text-wrap {
+  display: block;
   opacity: 1;
+}
+
+.ud-brand-logo-card-bottom .ud-logo-word {
+  position: absolute;
+  width: 96px;
+  height: 18px;
+  left: 38px;
+  top: 6px;
+  object-fit: contain;
+  display: block;
+}
+
+.ud-brand-logo-card-bottom .ud-logo-tagline {
+  position: absolute;
+  width: 110px;
+  height: 12px;
+  left: 38px;
+  top: 24px;
+  font-family: 'Inter', sans-serif;
+  font-style: normal;
+  font-weight: 500;
+  font-size: 8.5px;
+  line-height: 12px;
+  color: #232356 !important;
+  white-space: nowrap;
+  display: block;
 }
 
 /* Sidebar Social Icons (Visible on hover) */
@@ -924,6 +1128,7 @@
     padding: 0 10px !important;
     gap: 8px !important;
     box-sizing: border-box !important;
+    position: relative !important;
   }
 
   .ud-mob-search-icon {

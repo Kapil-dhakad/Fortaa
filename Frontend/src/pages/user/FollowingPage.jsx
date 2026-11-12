@@ -153,13 +153,17 @@ export default function FollowingPage() {
 
   // Handle Send Request (if user was unfollowed / none)
   const handleSendRequest = async (targetUserId, targetName) => {
-    setFollowingList((prev) =>
-      prev.map((u) => (u.id === targetUserId ? { ...u, follow_status: 'pending' } : u))
-    );
-    toast.success(`Follow request sent to ${targetName}!`);
-
     try {
-      await sendFollowRequest(targetUserId, currentUserId);
+      const res = await sendFollowRequest(targetUserId, currentUserId);
+      const newStatus = res?.status || 'pending';
+      setFollowingList((prev) =>
+        prev.map((u) => (u.id === targetUserId ? { ...u, follow_status: newStatus } : u))
+      );
+      if (newStatus === 'accepted') {
+        toast.success(`You are now following ${targetName}!`);
+      } else {
+        toast.success(`Follow request sent to ${targetName}!`);
+      }
     } catch (err) {
       console.error('Send request error:', err);
     }

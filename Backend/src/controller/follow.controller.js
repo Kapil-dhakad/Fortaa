@@ -27,12 +27,17 @@ async function sendFollowRequest(req, res) {
       });
     }
 
-    // Check target user
-    const targetRes = await db.query('SELECT id, name FROM users WHERE id = $1', [targetUserId]);
+    // Check target user & privacy settings
+    const targetRes = await db.query(
+      "SELECT id, name, COALESCE(profile_visibility, 'public') as profile_visibility FROM users WHERE id = $1",
+      [targetUserId]
+    );
     if (targetRes.rows.length === 0) {
       return res.status(404).json({ success: false, message: 'Target user not found' });
     }
     const targetName = targetRes.rows[0].name;
+    const profileVisibility = targetRes.rows[0].profile_visibility || 'public';
+    const isPrivateAccount = profileVisibility !== 'public'; // 'connections' or 'private'
 
     // Check follower user info
     const followerRes = await db.query('SELECT id, name, avatar_url FROM users WHERE id = $1', [followerId]);
@@ -54,57 +59,113 @@ async function sendFollowRequest(req, res) {
       });
     }
 
-    // Insert follow request as 'pending'
-    const insertRes = await db.query(
-      'INSERT INTO follows (follower_id, following_id, status) VALUES ($1, $2, $3) RETURNING id',
-      [followerId, targetUserId, 'pending']
-    );
-    const followId = insertRes.rows[0].id;
+    if (isPrivateAccount) {
+      // 🔒 PRIVATE ACCOUNT / CONNECTIONS ONLY: Status is 'pending'
+      const insertRes = await db.query(
+        'INSERT INTO follows (follower_id, following_id, status) VALUES ($1, $2, $3) RETURNING id',
+        [followerId, targetUserId, 'pending']
+      );
+      const followId = insertRes.rows[0].id;
 
-    // Create Notification for target user
-    await db.query(
-      `INSERT INTO notifications (user_id, actor_id, actor_name, actor_avatar, type, message, ref_id)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-      [
-        targetUserId,
-        followerId,
-        followerName,
-        followerAvatar,
-        'follow_request',
-        `${followerName} sent you a follow request.`,
-        followId,
-      ]
-    );
+      // Create Notification for target user with Accept/Decline action
+      await db.query(
+        `INSERT INTO notifications (user_id, actor_id, actor_name, actor_avatar, type, message, ref_id)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+        [
+          targetUserId,
+          followerId,
+          followerName,
+          followerAvatar,
+          'follow_request',
+          `${followerName} sent you a follow request.`,
+          followId,
+        ]
+      );
 
-    // Real-time socket notification to target user
-    try {
-      const io = req.app?.get('io') || getIO();
-      if (io) {
-        const payload = {
-          requesterId: followerId,
-          requesterName: followerName,
-          requesterAvatar: followerAvatar,
-          message: `${followerName} sent you a follow request.`,
-          type: 'follow_request',
-        };
-        const targetRoom = `room_${String(targetUserId).trim()}`;
-        io.to(targetRoom).emit('follow_request_received', payload);
-        io.to(targetRoom).emit('new_notification', payload);
-        io.to(targetRoom).emit('follow_updated', { followerId, targetUserId, status: 'pending' });
-        io.to(`room_${targetUserId}`).emit('follow_request_received', payload);
-        io.to(`room_${targetUserId}`).emit('new_notification', payload);
-        io.to(`room_${targetUserId}`).emit('follow_updated', { followerId, targetUserId, status: 'pending' });
-        io.to(`room_${followerId}`).emit('follow_updated', { followerId, targetUserId, status: 'pending' });
+      // Real-time socket notification to target user
+      try {
+        const io = req.app?.get('io') || getIO();
+        if (io) {
+          const payload = {
+            requesterId: followerId,
+            requesterName: followerName,
+            requesterAvatar: followerAvatar,
+            message: `${followerName} sent you a follow request.`,
+            type: 'follow_request',
+            ref_id: followId,
+          };
+          const targetRoom = `room_${String(targetUserId).trim()}`;
+          io.to(targetRoom).emit('follow_request_received', payload);
+          io.to(targetRoom).emit('new_notification', payload);
+          io.to(targetRoom).emit('follow_updated', { followerId, targetUserId, status: 'pending' });
+          io.to(`room_${targetUserId}`).emit('follow_request_received', payload);
+          io.to(`room_${targetUserId}`).emit('new_notification', payload);
+          io.to(`room_${targetUserId}`).emit('follow_updated', { followerId, targetUserId, status: 'pending' });
+          io.to(`room_${followerId}`).emit('follow_updated', { followerId, targetUserId, status: 'pending' });
+        }
+      } catch (sockErr) {
+        console.warn('Socket notification error:', sockErr.message);
       }
-    } catch (sockErr) {
-      console.warn('Socket notification error:', sockErr.message);
-    }
 
-    return res.status(200).json({
-      success: true,
-      status: 'pending',
-      message: `Follow request sent to ${targetName}`,
-    });
+      return res.status(200).json({
+        success: true,
+        status: 'pending',
+        isPrivate: true,
+        message: `Follow request sent to ${targetName}`,
+      });
+    } else {
+      // 🌐 PUBLIC ACCOUNT: Direct follow, status is 'accepted' immediately
+      const insertRes = await db.query(
+        'INSERT INTO follows (follower_id, following_id, status) VALUES ($1, $2, $3) RETURNING id',
+        [followerId, targetUserId, 'accepted']
+      );
+      const followId = insertRes.rows[0].id;
+
+      // Create Notification for target user (New Follower)
+      await db.query(
+        `INSERT INTO notifications (user_id, actor_id, actor_name, actor_avatar, type, message, ref_id)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+        [
+          targetUserId,
+          followerId,
+          followerName,
+          followerAvatar,
+          'new_follower',
+          `${followerName} started following you.`,
+          followId,
+        ]
+      );
+
+      // Real-time socket notification
+      try {
+        const io = req.app?.get('io') || getIO();
+        if (io) {
+          const payload = {
+            requesterId: followerId,
+            requesterName: followerName,
+            requesterAvatar: followerAvatar,
+            message: `${followerName} started following you.`,
+            type: 'new_follower',
+            ref_id: followId,
+          };
+          const targetRoom = `room_${String(targetUserId).trim()}`;
+          io.to(targetRoom).emit('new_notification', payload);
+          io.to(targetRoom).emit('follow_updated', { followerId, targetUserId, status: 'accepted' });
+          io.to(`room_${targetUserId}`).emit('new_notification', payload);
+          io.to(`room_${targetUserId}`).emit('follow_updated', { followerId, targetUserId, status: 'accepted' });
+          io.to(`room_${followerId}`).emit('follow_updated', { followerId, targetUserId, status: 'accepted' });
+        }
+      } catch (sockErr) {
+        console.warn('Socket notification error:', sockErr.message);
+      }
+
+      return res.status(200).json({
+        success: true,
+        status: 'accepted',
+        isPrivate: false,
+        message: `You are now following ${targetName}`,
+      });
+    }
   } catch (error) {
     console.error('sendFollowRequest error:', error);
     return res.status(500).json({ success: false, message: 'Failed to send follow request' });
@@ -131,19 +192,37 @@ async function acceptFollowRequest(req, res) {
       });
     }
 
+    const notificationId = parseInt(req.body.notificationId, 10) || null;
+
     // Update follow status to 'accepted'
     const updateRes = await db.query(
       "UPDATE follows SET status = 'accepted' WHERE follower_id = $1 AND following_id = $2 RETURNING id",
       [requesterId, currentUserId]
     );
 
-    if (updateRes.rows.length === 0) {
-      return res.status(404).json({ success: false, message: 'Follow request not found' });
+    let followId = updateRes.rows[0]?.id;
+    if (!followId) {
+      try {
+        const insertRes = await db.query(
+          `INSERT INTO follows (follower_id, following_id, status)
+           VALUES ($1, $2, 'accepted')
+           ON CONFLICT (follower_id, following_id) DO UPDATE SET status = 'accepted'
+           RETURNING id`,
+          [requesterId, currentUserId]
+        );
+        followId = insertRes.rows[0]?.id || 1;
+      } catch (upsertErr) {
+        console.warn('Upsert follow warning:', upsertErr.message);
+        followId = 1;
+      }
     }
 
     // Mark the follow_request notification as read
+    if (notificationId) {
+      await db.query("UPDATE notifications SET is_read = true WHERE id = $1", [notificationId]);
+    }
     await db.query(
-      "UPDATE notifications SET is_read = true WHERE user_id = $1 AND actor_id = $2 AND type = 'follow_request'",
+      "UPDATE notifications SET is_read = true WHERE user_id = $1 AND (actor_id = $2 OR type = 'follow_request')",
       [currentUserId, requesterId]
     );
 
@@ -153,19 +232,21 @@ async function acceptFollowRequest(req, res) {
     const currentUserAvatar = currentUserRes.rows[0]?.avatar_url || '';
 
     // Create Notification for the requester that their request was accepted
-    await db.query(
-      `INSERT INTO notifications (user_id, actor_id, actor_name, actor_avatar, type, message, ref_id)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-      [
-        requesterId,
-        currentUserId,
-        currentUserName,
-        currentUserAvatar,
-        'follow_accepted',
-        `${currentUserName} accepted your follow request.`,
-        updateRes.rows[0].id,
-      ]
-    );
+    try {
+      await db.query(
+        `INSERT INTO notifications (user_id, actor_id, actor_name, actor_avatar, type, message, ref_id)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+        [
+          requesterId,
+          currentUserId,
+          currentUserName,
+          currentUserAvatar,
+          'follow_accepted',
+          `${currentUserName} accepted your follow request.`,
+          followId,
+        ]
+      );
+    } catch {}
 
     // Return updated counts
     const followerCountRes = await db.query(
@@ -214,7 +295,13 @@ async function rejectFollowRequest(req, res) {
     const requesterId = parseInt(req.params.requesterId, 10);
     const currentUserId = parseInt(req.body.currentUserId || req.query.currentUserId || req.userId, 10);
 
+    const notificationId = parseInt(req.body.notificationId, 10) || null;
+
     if (!requesterId || isNaN(requesterId) || !currentUserId || isNaN(currentUserId)) {
+      if (notificationId && db.isDBConnected()) {
+        await db.query("UPDATE notifications SET is_read = true WHERE id = $1", [notificationId]);
+        return res.status(200).json({ success: true, message: 'Follow request rejected' });
+      }
       return res.status(400).json({ success: false, message: 'Invalid user IDs' });
     }
 
@@ -224,13 +311,16 @@ async function rejectFollowRequest(req, res) {
 
     // Delete follow row
     await db.query(
-      "DELETE FROM follows WHERE follower_id = $1 AND following_id = $2 AND status = 'pending'",
+      "DELETE FROM follows WHERE (follower_id = $1 AND following_id = $2) OR (follower_id = $2 AND following_id = $1)",
       [requesterId, currentUserId]
     );
 
-    // Remove or mark notification
+    // Keep notification in history - mark as read
+    if (notificationId) {
+      await db.query("UPDATE notifications SET is_read = true WHERE id = $1", [notificationId]);
+    }
     await db.query(
-      "DELETE FROM notifications WHERE user_id = $1 AND actor_id = $2 AND type = 'follow_request'",
+      "UPDATE notifications SET is_read = true WHERE user_id = $1 AND actor_id = $2 AND type = 'follow_request'",
       [currentUserId, requesterId]
     );
 

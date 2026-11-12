@@ -2,6 +2,8 @@ const userModel = require('../model/user.model');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const db = require('../db/db');
+const { sendWelcomeEmail } = require('../services/email.service');
+const { sendWhatsAppWelcomeMessage } = require('../services/whatsapp.service');
 
 /**
  * Register User with 4-step onboarding data
@@ -104,6 +106,23 @@ async function registerUser(req, res) {
       sameSite: 'lax',
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
+
+    // Send Welcome Email & WhatsApp message asynchronously (non-blocking)
+    try {
+      if (user.email) {
+        sendWelcomeEmail(user.email, user.name).catch((emErr) =>
+          console.warn('[Welcome Email Warning]:', emErr.message)
+        );
+      }
+      const mobileToSend = user.whatsapp_number || user.mobile_number || mobileNumber || whatsappNumber;
+      if (mobileToSend) {
+        sendWhatsAppWelcomeMessage(mobileToSend, user.name).catch((waErr) =>
+          console.warn('[Welcome WhatsApp Warning]:', waErr.message)
+        );
+      }
+    } catch (msgErr) {
+      console.warn('[Welcome notifications warning]:', msgErr.message);
+    }
 
     return res.status(201).json({
       success: true,
@@ -405,7 +424,7 @@ async function getUserProfile(req, res) {
       const result = await db.query(
         `SELECT id, member_id, account_type, name, username, email, mobile_number, dob, gender,
                 location, skills, experience, bio, designation, company_brand, business_name, avatar_url,
-                website_social, created_at
+                website_social, COALESCE(profile_visibility, 'public') as profile_visibility, created_at
          FROM users WHERE id = $1`,
         [userId]
       );
@@ -424,6 +443,7 @@ async function getUserProfile(req, res) {
         email: 'dhakadkapil350@gmail.com',
         designation: 'Senior Leader',
         company_brand: 'Forever Living',
+        profile_visibility: 'public',
       },
     });
   } catch (error) {
@@ -460,7 +480,11 @@ async function updateUserProfile(req, res) {
       whatsappNumber,
       referralId,
       govtIdUrl,
+      profileVisibility,
+      profile_visibility,
     } = req.body;
+
+    const visibilityVal = profileVisibility || profile_visibility || null;
 
     if (db.isDBConnected()) {
       const updateRes = await db.query(
@@ -481,11 +505,12 @@ async function updateUserProfile(req, res) {
              designation = COALESCE($14, designation),
              whatsapp_number = COALESCE($15, whatsapp_number),
              referral_id = COALESCE($16, referral_id),
-             govt_id_url = COALESCE($17, govt_id_url)
-         WHERE id = $18
+             govt_id_url = COALESCE($17, govt_id_url),
+             profile_visibility = COALESCE($18, profile_visibility)
+         WHERE id = $19
          RETURNING id, member_id, account_type, name, username, email, mobile_number, whatsapp_number, dob, gender,
                    location, skills, experience, bio, designation, company_brand, business_name, business_category,
-                   referral_id, govt_id_url, avatar_url`,
+                   referral_id, govt_id_url, avatar_url, COALESCE(profile_visibility, 'public') as profile_visibility`,
         [
           name || null,
           username || null,
@@ -504,6 +529,7 @@ async function updateUserProfile(req, res) {
           whatsappNumber || null,
           referralId || null,
           govtIdUrl || null,
+          visibilityVal,
           userId,
         ]
       );

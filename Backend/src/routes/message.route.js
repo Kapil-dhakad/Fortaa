@@ -8,6 +8,7 @@ const {
   getChatHistory,
   sendMessageHttp,
   getUnreadMessagesCount,
+  deleteMessage,
 } = require('../controller/message.controller');
 
 // Local storage for chat media (photos, videos, documents)
@@ -48,5 +49,6 @@ router.get('/unread-count/:userId', getUnreadMessagesCount);
 router.get('/conversations/:userId', getConversations);
 router.get('/history/:userId/:otherUserId', getChatHistory);
 router.post('/send', sendMessageHttp);
+router.post('/delete/:messageId', deleteMessage);
 
 module.exports = router;

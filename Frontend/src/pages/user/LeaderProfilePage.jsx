@@ -34,7 +34,6 @@ import {
   FaGem,
   FaChevronLeft,
   FaThumbsUp,
-  FaShare,
 } from 'react-icons/fa';
 import {
   HiChatAlt2,
@@ -47,14 +46,12 @@ import {
   HiLightBulb,
   HiTrendingUp,
   HiSpeakerphone,
-  HiRefresh,
   HiUserAdd,
-  HiCalendar,
   HiSparkles,
 } from 'react-icons/hi';
 import { MdLanguage, MdCampaign } from 'react-icons/md';
 import { BsThreeDotsVertical, BsGrid3X3Gap } from 'react-icons/bs';
-import { FiShare2 } from 'react-icons/fi';
+import { FiShare2, FiLock } from 'react-icons/fi';
 
 // Assets
 import leaderHeroBg from '../../assets/leader_hero_wave_bg.png';
@@ -225,19 +222,25 @@ export default function LeaderProfilePage() {
         specialization: l.skills || l.specialization || '',
         language: l.language || '',
         website: l.website || l.website_social || '',
+        profile_visibility: l.profile_visibility || 'public',
         joinedDate: l.created_at ? 'Joined ' + new Date(l.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : '',
       };
     }
     // Check preset map
     if (id && PRESET_LEADERS[id]) {
-      return PRESET_LEADERS[id];
+      return { ...PRESET_LEADERS[id], profile_visibility: 'public' };
     }
-    return PRESET_LEADERS['default'];
+    return { ...PRESET_LEADERS['default'], profile_visibility: 'public' };
   });
 
   const cleanQuote = (leader.quote || leader.bio || '')
     .replace(/^["'“”«»]+|["'“”«»]+$/g, '')
     .trim();
+
+  // Privacy and access calculation
+  const isOwnProfile = Number(currentUserId) === Number(leader.id || id);
+  const isAccountPrivate = (leader.profile_visibility || 'public') !== 'public';
+  const canViewContent = isOwnProfile || !isAccountPrivate || followStatus === 'accepted';
 
   // Load dynamic profile, actual user posts, social counts, and top leaders
   useEffect(() => {
@@ -272,6 +275,7 @@ export default function LeaderProfilePage() {
               level: fetched.designation || prev.level || 'Leader',
               levelTitle: fetched.designation || prev.levelTitle || 'Leader',
               website: fetched.website_social || prev.website || '',
+              profile_visibility: fetched.profile_visibility || prev.profile_visibility || 'public',
               joinedDate: joined || prev.joinedDate,
             }));
           }
@@ -352,7 +356,7 @@ export default function LeaderProfilePage() {
     return () => {
       isMounted = false;
     };
-  }, [id, leader.id, currentUserId]);
+  }, [id, leader.id, leader.name, currentUserId]);
 
   // Handle follow / unfollow / cancel request
   const handleFollowToggle = async () => {
@@ -385,12 +389,16 @@ export default function LeaderProfilePage() {
       }
     } else {
       updateCachedFollowStatus(targetId, 'pending');
-      toast.success(`Follow request sent to ${targetName}! 🎉`);
       try {
         if (!isNaN(Number(targetId))) {
           const res = await sendFollowRequest(Number(targetId), currentUserId);
           if (res?.status) {
             updateCachedFollowStatus(targetId, res.status);
+            if (res.status === 'accepted') {
+              toast.success(`You are now following ${targetName}! 🎉`);
+            } else {
+              toast.success(`Follow request sent to ${targetName}! ⏳`);
+            }
           }
         }
       } catch (err) {
@@ -630,7 +638,18 @@ export default function LeaderProfilePage() {
               ))}
             </div>
 
-            {/* THREE COLUMNS GRID */}
+            {/* THREE COLUMNS GRID OR PRIVATE ACCOUNT STATE */}
+            {!canViewContent ? (
+              <div className="lp-private-account-card">
+                <div className="lp-private-lock-circle">
+                  <FiLock size={44} color="#7C3AED" />
+                </div>
+                <h3 className="lp-private-title">This Account is Private</h3>
+                <p className="lp-private-desc">
+                  Follow this account to see their photos, videos, and network activity.
+                </p>
+              </div>
+            ) : (
             <div className="lp-columns-grid">
 
               {/* LEFT COLUMN: About Leader & Featured Opportunities */}
@@ -1058,6 +1077,7 @@ export default function LeaderProfilePage() {
               </div>
 
             </div>
+            )}
 
           </div>
         </div>
@@ -1220,7 +1240,8 @@ export default function LeaderProfilePage() {
           </div>
 
           {/* Instagram Story Highlights (Dynamic Circular Badges Row) */}
-          <div className="lp-mob-ig-highlights-scroll">
+          {canViewContent && (
+            <div className="lp-mob-ig-highlights-scroll">
             <div
               className="lp-mob-ig-highlight-item"
               onClick={() => setMobileActiveTab('Achievements')}
@@ -1284,11 +1305,24 @@ export default function LeaderProfilePage() {
                   <span className="lp-mob-ig-highlight-name">{skill}</span>
                 </div>
               ))}
-          </div>
+            </div>
+          )}
         </div>
 
-        {/* Instagram Profile Tabs Navigation Bar */}
-        <div className="lp-mob-ig-tabs-bar">
+        {!canViewContent ? (
+          <div className="lp-private-account-card lp-mob-private-card">
+            <div className="lp-private-lock-circle">
+              <FiLock size={36} color="#7C3AED" />
+            </div>
+            <h3 className="lp-private-title">This Account is Private</h3>
+            <p className="lp-private-desc">
+              Follow this account to see their photos, videos, and posts.
+            </p>
+          </div>
+        ) : (
+          <>
+            {/* Instagram Profile Tabs Navigation Bar */}
+            <div className="lp-mob-ig-tabs-bar">
           <button
             type="button"
             className={`lp-mob-ig-tab-btn ${mobileActiveTab === 'Posts' ? 'active' : ''}`}
@@ -1518,6 +1552,8 @@ export default function LeaderProfilePage() {
             </div>
           )}
         </div>
+        </>
+        )}
       </div>
 
       {/* Mobile Bottom Navigation */}

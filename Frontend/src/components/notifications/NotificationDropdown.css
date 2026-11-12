@@ -9,7 +9,7 @@
   border-radius: 14px;
   border: 1px solid #E8E5F5;
   box-shadow: 0 12px 36px rgba(15, 7, 50, 0.14);
-  z-index: 300;
+  z-index: 99999;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -79,8 +79,10 @@
 
 /* List Body */
 .notif-list-body {
-  max-height: 420px;
+  max-height: 380px;
   overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
   display: flex;
   flex-direction: column;
 }
@@ -230,10 +232,15 @@
   color: #FFFFFF;
   border: none;
   border-radius: 6px;
-  padding: 5px 14px;
+  padding: 6px 14px;
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  position: relative;
+  z-index: 2;
   transition: opacity 0.15s ease, transform 0.15s ease;
 }
 
@@ -242,21 +249,34 @@
   transform: translateY(-1px);
 }
 
+.notif-btn-accept:active {
+  transform: scale(0.96);
+}
+
 .notif-btn-decline {
   background: #F1EFF7;
   color: #555068;
   border: 1px solid #E2DDF0;
   border-radius: 6px;
-  padding: 5px 12px;
+  padding: 6px 12px;
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  position: relative;
+  z-index: 2;
   transition: all 0.15s ease;
 }
 
 .notif-btn-decline:hover {
   background: #E8E4F2;
   color: #232356;
+}
+
+.notif-btn-decline:active {
+  transform: scale(0.96);
 }
 
 .notif-badge-accepted {

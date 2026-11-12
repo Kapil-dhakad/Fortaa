@@ -24,7 +24,14 @@ export default function SignUpPage() {
   const [verifyingOtp, setVerifyingOtp] = useState(false);
   const [resendTimer, setResendTimer] = useState(0);
 
-  // Resend Countdown Timer
+  // WhatsApp / Mobile OTP state
+  const [showMobileOtpInput, setShowMobileOtpInput] = useState(false);
+  const [mobileOtp, setMobileOtp] = useState('');
+  const [sendingMobileOtp, setSendingMobileOtp] = useState(false);
+  const [verifyingMobileOtp, setVerifyingMobileOtp] = useState(false);
+  const [mobileResendTimer, setMobileResendTimer] = useState(0);
+
+  // Resend Countdown Timer (Email)
   useEffect(() => {
     let interval = null;
     if (resendTimer > 0) {
@@ -34,6 +41,17 @@ export default function SignUpPage() {
     }
     return () => clearInterval(interval);
   }, [resendTimer]);
+
+  // Resend Countdown Timer (WhatsApp)
+  useEffect(() => {
+    let interval = null;
+    if (mobileResendTimer > 0) {
+      interval = setInterval(() => {
+        setMobileResendTimer((prev) => prev - 1);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [mobileResendTimer]);
 
   // Field-level error messages
   const [fieldErrors, setFieldErrors] = useState({
@@ -192,6 +210,63 @@ export default function SignUpPage() {
       toast.error(err.message || 'Verification failed');
     } finally {
       setVerifyingOtp(false);
+    }
+  };
+
+  // Send WhatsApp / Mobile OTP
+  const handleSendMobileOtp = async () => {
+    const phone = formData.whatsappNumber || formData.mobileNumber;
+    if (!phone || phone.length < 10) {
+      toast.error('Please enter a valid 10-digit mobile number in Personal Details.');
+      return;
+    }
+    setSendingMobileOtp(true);
+    try {
+      const res = await fetch('/api/users/send-whatsapp-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mobile: phone }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.message || 'Failed to send WhatsApp OTP');
+      }
+      setShowMobileOtpInput(true);
+      setMobileResendTimer(30);
+      toast.success(data.message || 'Verification code sent to your WhatsApp!');
+    } catch (err) {
+      toast.error(err.message || 'Error sending WhatsApp OTP');
+    } finally {
+      setSendingMobileOtp(false);
+    }
+  };
+
+  // Verify WhatsApp / Mobile OTP
+  const handleVerifyMobileOtp = async () => {
+    const phone = formData.whatsappNumber || formData.mobileNumber;
+    if (!mobileOtp.trim() || mobileOtp.trim().length < 6) {
+      toast.error('Please enter the complete 6-digit WhatsApp code');
+      return;
+    }
+    setVerifyingMobileOtp(true);
+    try {
+      const res = await fetch('/api/users/verify-whatsapp-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mobile: phone, otp: mobileOtp.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.message || 'Invalid code');
+      }
+      handleChange('mobileVerified', true);
+      setShowMobileOtpInput(false);
+      setMobileOtp('');
+      toast.success('Mobile verified successfully via WhatsApp! ✓');
+    } catch (err) {
+      toast.error(err.message || 'Verification failed');
+    } finally {
+      setVerifyingMobileOtp(false);
     }
   };
 
@@ -1262,33 +1337,78 @@ export default function SignUpPage() {
               <p className="step-subheading">Verify your identity to complete the registration process.</p>
 
               <div className="verification-list">
-                {/* Mobile Verification */}
+                {/* Mobile / WhatsApp Verification */}
                 <div className={`verify-item-card ${formData.mobileVerified ? 'verified-card' : ''}`}>
-                  <div className="verify-left">
-                    <div className="verify-icon-box">
-                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <rect x="5" y="2" width="14" height="20" rx="2" ry="2" />
-                        <line x1="12" y1="18" x2="12.01" y2="18" />
-                      </svg>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: 16, flexWrap: 'wrap' }}>
+                    <div className="verify-left">
+                      <div className="verify-icon-box" style={{ background: '#ECFDF5', color: '#10B981' }}>
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <rect x="5" y="2" width="14" height="20" rx="2" ry="2" />
+                          <line x1="12" y1="18" x2="12.01" y2="18" />
+                        </svg>
+                      </div>
+                      <div className="verify-info">
+                        <h4>Mobile Verification (WhatsApp)</h4>
+                        <p>{formData.mobileVerified ? 'Your mobile number is verified ✓' : 'We will send a 6-digit verification code to your WhatsApp'}</p>
+                        <div className="verify-val">+91 {formData.whatsappNumber || formData.mobileNumber || '9876543210'}</div>
+                      </div>
                     </div>
-                    <div className="verify-info">
-                      <h4>Mobile Verification</h4>
-                      <p>{formData.mobileVerified ? 'Your mobile number is verified ✓' : 'Click verify to confirm your mobile number'}</p>
-                      <div className="verify-val">+91 {formData.mobileNumber || '9076543520'}</div>
-                    </div>
+                    
+                    {!formData.mobileVerified ? (
+                      !showMobileOtpInput && (
+                        <button
+                          type="button"
+                          className="btn-verify-action"
+                          onClick={handleSendMobileOtp}
+                          disabled={sendingMobileOtp}
+                        >
+                          {sendingMobileOtp ? 'Sending...' : 'Verify'}
+                        </button>
+                      )
+                    ) : (
+                      <button type="button" className="btn-verify-action verified">
+                        Verified ✓
+                      </button>
+                    )}
                   </div>
-                  <button
-                    type="button"
-                    className={`btn-verify-action ${formData.mobileVerified ? 'verified' : ''}`}
-                    onClick={() => {
-                      if (!formData.mobileVerified) {
-                        handleChange('mobileVerified', true);
-                        toast.success('Mobile number verified successfully! ✓');
-                      }
-                    }}
-                  >
-                    {formData.mobileVerified ? 'Verified ✓' : 'Verify'}
-                  </button>
+
+                  {/* Inline WhatsApp OTP Input Box */}
+                  {showMobileOtpInput && !formData.mobileVerified && (
+                    <div className="email-otp-drawer">
+                      <div style={{ fontSize: '13px', fontWeight: 600, color: '#4B5563', marginBottom: 8 }}>
+                        Enter the 6-digit code sent to WhatsApp <span style={{ color: '#059669' }}>+91 {formData.whatsappNumber || formData.mobileNumber}</span>:
+                      </div>
+                      <div className="email-otp-row">
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          maxLength={6}
+                          placeholder="••••••"
+                          className="email-otp-input"
+                          value={mobileOtp}
+                          onChange={(e) => setMobileOtp(e.target.value.replace(/\D/g, ''))}
+                          autoFocus
+                        />
+                        <button
+                          type="button"
+                          className="btn-otp-submit"
+                          onClick={handleVerifyMobileOtp}
+                          disabled={verifyingMobileOtp || mobileOtp.length !== 6}
+                        >
+                          {verifyingMobileOtp ? 'Verifying...' : 'Verify Code'}
+                        </button>
+                        <button
+                          type="button"
+                          className="btn-otp-resend"
+                          onClick={handleSendMobileOtp}
+                          disabled={mobileResendTimer > 0 || sendingMobileOtp}
+                          title={mobileResendTimer > 0 ? `Please wait ${mobileResendTimer}s before requesting a new code` : 'Resend WhatsApp code'}
+                        >
+                          {mobileResendTimer > 0 ? `Resend (${mobileResendTimer}s)` : 'Resend'}
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Email Verification */}

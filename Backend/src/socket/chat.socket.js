@@ -242,6 +242,120 @@ function setupChatSocket(io) {
       }
     });
 
+    // Message Reaction (WhatsApp emoji reaction sync)
+    socket.on('message_reaction', async (payload) => {
+      try {
+        const { messageId, emoji, senderId, receiverId, groupId } = payload || {};
+        if (!messageId) return;
+
+        let updatedReactions = {};
+        if (db.isDBConnected()) {
+          try {
+            const msgRes = await db.query('SELECT reactions FROM messages WHERE id = $1', [Number(messageId)]);
+            if (msgRes.rows.length > 0 && msgRes.rows[0].reactions) {
+              const raw = msgRes.rows[0].reactions;
+              updatedReactions = typeof raw === 'object' ? { ...raw } : JSON.parse(raw || '{}');
+            }
+            if (emoji) {
+              updatedReactions[String(senderId)] = emoji;
+            } else {
+              delete updatedReactions[String(senderId)];
+            }
+            await db.query('UPDATE messages SET reactions = $1 WHERE id = $2', [JSON.stringify(updatedReactions), Number(messageId)]);
+          } catch (rErr) {
+            console.warn('[message_reaction DB error]:', rErr.message);
+          }
+        } else {
+          if (emoji) {
+            updatedReactions[String(senderId)] = emoji;
+          }
+        }
+
+        const reactionEvent = {
+          messageId: Number(messageId),
+          emoji,
+          senderId: Number(senderId),
+          reactions: updatedReactions,
+          receiverId: receiverId ? Number(receiverId) : null,
+          groupId: groupId || null,
+        };
+
+        if (groupId || (receiverId && String(receiverId).startsWith('group_'))) {
+          const gid = groupId || parseInt(String(receiverId).replace('group_', ''), 10);
+          io.to(`group_${gid}`).emit('message_reaction', reactionEvent);
+        } else if (receiverId) {
+          io.to(`room_${String(receiverId)}`).emit('message_reaction', reactionEvent);
+        }
+        if (senderId) {
+          io.to(`room_${String(senderId)}`).emit('message_reaction', reactionEvent);
+        }
+      } catch (err) {
+        console.error('[Socket message_reaction error]:', err);
+      }
+    });
+
+    // Delete Message (WhatsApp delete for everyone / me)
+    socket.on('delete_message', async (payload) => {
+      try {
+        const { messageId, deleteForEveryone, deleteForMe, senderId, receiverId, groupId } = payload || {};
+        if (!messageId) return;
+
+        if (deleteForEveryone) {
+          if (db.isDBConnected()) {
+            try {
+              await db.query(
+                `UPDATE messages
+                 SET is_deleted = TRUE, text = '🚫 This message was deleted'
+                 WHERE id = $1`,
+                [Number(messageId)]
+              );
+            } catch (dErr) {
+              console.warn('[Socket delete_message DB error]:', dErr.message);
+            }
+          }
+
+          const deleteEvent = {
+            messageId: Number(messageId),
+            deleteForEveryone: true,
+            senderId: Number(senderId),
+          };
+
+          if (groupId || (receiverId && String(receiverId).startsWith('group_'))) {
+            const gid = groupId || parseInt(String(receiverId).replace('group_', ''), 10);
+            io.to(`group_${gid}`).emit('message_deleted', deleteEvent);
+          } else if (receiverId) {
+            io.to(`room_${String(receiverId)}`).emit('message_deleted', deleteEvent);
+          }
+          if (senderId) {
+            io.to(`room_${String(senderId)}`).emit('message_deleted', deleteEvent);
+          }
+        } else if (deleteForMe || !deleteForEveryone) {
+          // Delete for me: persist userId in deleted_for array in database
+          if (db.isDBConnected() && senderId) {
+            try {
+              await db.query(
+                `UPDATE messages
+                 SET deleted_for = array_append(COALESCE(deleted_for, '{}'), $1)
+                 WHERE id = $2 AND NOT ($1 = ANY(COALESCE(deleted_for, '{}')));`,
+                [Number(senderId), Number(messageId)]
+              );
+            } catch (dErr) {
+              console.warn('[Socket delete_for_me DB error]:', dErr.message);
+            }
+          }
+
+          if (senderId) {
+            io.to(`room_${String(senderId)}`).emit('message_deleted_for_me', {
+              messageId: Number(messageId),
+              userId: Number(senderId),
+            });
+          }
+        }
+      } catch (err) {
+        console.error('[Socket delete_message error]:', err);
+      }
+    });
+
     // ==========================================
     // 📞 1-on-1 AUDIO & VIDEO CALLING (WebRTC)
     // ==========================================

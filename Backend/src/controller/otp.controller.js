@@ -159,7 +159,153 @@ async function verifyEmailOtp(req, res) {
   }
 }
 
+// In-memory WhatsApp OTP storage: phone -> { otp, expiresAt, attempts, createdAt }
+const whatsappOtpStore = new Map();
+
+// Periodic cleanup of expired WhatsApp OTPs
+setInterval(() => {
+  const now = Date.now();
+  for (const [phone, record] of whatsappOtpStore.entries()) {
+    if (record.expiresAt < now) {
+      whatsappOtpStore.delete(phone);
+    }
+  }
+}, 15 * 60 * 1000);
+
+const { sendWhatsAppOtp: sendWhatsAppOtpMessage, formatPhoneNumber } = require('../services/whatsapp.service');
+
+/**
+ * POST /api/users/send-whatsapp-otp
+ * Body: { mobile || mobileNumber || phone }
+ */
+async function sendWhatsAppOtp(req, res) {
+  try {
+    const rawMobile = req.body.mobile || req.body.mobileNumber || req.body.phone || '';
+    const cleanDigits = rawMobile.toString().replace(/\D/g, '');
+
+    if (!cleanDigits || cleanDigits.length < 10) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide a valid 10-digit mobile number',
+      });
+    }
+
+    const standardPhone = formatPhoneNumber(cleanDigits);
+
+    // Rate-limiting check: 30 seconds
+    const existing = whatsappOtpStore.get(standardPhone);
+    if (existing && existing.createdAt && Date.now() - existing.createdAt < 30 * 1000) {
+      const waitSeconds = Math.ceil((30 * 1000 - (Date.now() - existing.createdAt)) / 1000);
+      return res.status(429).json({
+        success: false,
+        message: `Please wait ${waitSeconds} seconds before requesting a new WhatsApp code`,
+      });
+    }
+
+    // Generate secure 6-digit OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+    // Store in WhatsApp OTP store
+    whatsappOtpStore.set(standardPhone, {
+      otp,
+      expiresAt: Date.now() + 10 * 60 * 1000,
+      createdAt: Date.now(),
+      attempts: 0,
+    });
+
+    // Send WhatsApp OTP via Meta WhatsApp Cloud API (or simulation)
+    const result = await sendWhatsAppOtpMessage(standardPhone, otp);
+
+    return res.status(200).json({
+      success: true,
+      message: 'Verification code sent to your WhatsApp successfully',
+      simulated: result.simulated || false,
+    });
+  } catch (error) {
+    console.error('[sendWhatsAppOtp Error]:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to send WhatsApp verification code. Please try again.',
+      error: error.message,
+    });
+  }
+}
+
+/**
+ * POST /api/users/verify-whatsapp-otp
+ * Body: { mobile || mobileNumber || phone, otp }
+ */
+async function verifyWhatsAppOtp(req, res) {
+  try {
+    const rawMobile = req.body.mobile || req.body.mobileNumber || req.body.phone || '';
+    const cleanDigits = rawMobile.toString().replace(/\D/g, '');
+    const cleanOtp = (req.body.otp || '').toString().trim();
+
+    if (!cleanDigits || !cleanOtp) {
+      return res.status(400).json({
+        success: false,
+        message: 'Mobile number and OTP code are required',
+      });
+    }
+
+    const standardPhone = formatPhoneNumber(cleanDigits);
+    const record = whatsappOtpStore.get(standardPhone);
+
+    if (!record) {
+      return res.status(400).json({
+        success: false,
+        message: 'No verification code found for this mobile number. Please request a new code.',
+      });
+    }
+
+    // Check expiration
+    if (Date.now() > record.expiresAt) {
+      whatsappOtpStore.delete(standardPhone);
+      return res.status(400).json({
+        success: false,
+        message: 'Verification code has expired. Please request a new code.',
+      });
+    }
+
+    // Max 5 attempts
+    if (record.attempts >= 5) {
+      whatsappOtpStore.delete(standardPhone);
+      return res.status(429).json({
+        success: false,
+        message: 'Too many incorrect attempts. Please request a new code.',
+      });
+    }
+
+    // Verify match
+    if (record.otp !== cleanOtp) {
+      record.attempts += 1;
+      const remaining = 5 - record.attempts;
+      return res.status(400).json({
+        success: false,
+        message: `Incorrect WhatsApp code. ${remaining} attempt(s) remaining.`,
+      });
+    }
+
+    // Success: remove used OTP
+    whatsappOtpStore.delete(standardPhone);
+
+    return res.status(200).json({
+      success: true,
+      message: 'Mobile number verified successfully via WhatsApp! ✓',
+    });
+  } catch (error) {
+    console.error('[verifyWhatsAppOtp Error]:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to verify WhatsApp code. Please try again.',
+      error: error.message,
+    });
+  }
+}
+
 module.exports = {
   sendEmailOtp,
   verifyEmailOtp,
+  sendWhatsAppOtp,
+  verifyWhatsAppOtp,
 };

@@ -26,7 +26,8 @@ async function getConversations(req, res) {
             ORDER BY m.created_at DESC
           ) as rn
         FROM messages m
-        WHERE m.sender_id = $1 OR m.receiver_id = $1
+        WHERE (m.sender_id = $1 OR m.receiver_id = $1)
+          AND NOT ($1 = ANY(COALESCE(m.deleted_for, '{}')))
       )
       SELECT 
         rm.id as last_message_id,
@@ -45,7 +46,8 @@ async function getConversations(req, res) {
       LEFT JOIN (
         SELECT sender_id, COUNT(*) as count 
         FROM messages 
-        WHERE receiver_id = $1 AND is_read = FALSE 
+        WHERE receiver_id = $1 AND is_read = FALSE
+          AND NOT ($1 = ANY(COALESCE(deleted_for, '{}')))
         GROUP BY sender_id
       ) unread ON unread.sender_id = u.id
       WHERE rm.rn = 1
@@ -200,15 +202,18 @@ async function getChatHistory(req, res) {
           m.created_at, 
           m.is_read,
           COALESCE(m.read_by, '{}') as read_by,
+          COALESCE(m.reactions, '{}'::jsonb) as reactions,
+          COALESCE(m.is_deleted, FALSE) as is_deleted,
           u.name as sender_name, 
           u.avatar_url as sender_avatar,
           COALESCE((SELECT COUNT(*)::int FROM group_members WHERE group_id = $1 AND user_id != m.sender_id), 0) as required_readers
         FROM messages m
         LEFT JOIN users u ON u.id = m.sender_id
         WHERE m.group_id = $1
+          AND NOT ($2 = ANY(COALESCE(m.deleted_for, '{}')))
         ORDER BY m.created_at ASC;
       `;
-      const groupHistoryRes = await db.query(groupHistoryQuery, [groupId]);
+      const groupHistoryRes = await db.query(groupHistoryQuery, [groupId, userId || 0]);
       const formatted = groupHistoryRes.rows.map((r) => {
         let msgText = r.text;
         let attachment = null;
@@ -231,6 +236,11 @@ async function getChatHistory(req, res) {
           msgStatus = 'sent'; // Grey single tick
         }
 
+        let parsedReactions = {};
+        try {
+          parsedReactions = typeof r.reactions === 'object' ? r.reactions : JSON.parse(r.reactions || '{}');
+        } catch {}
+
         return {
           id: r.id,
           sender_id: r.sender_id,
@@ -242,6 +252,8 @@ async function getChatHistory(req, res) {
           is_read: msgStatus === 'read',
           status: msgStatus,
           read_by: r.read_by || [],
+          reactions: parsedReactions || {},
+          is_deleted: Boolean(r.is_deleted),
         };
       });
       return res.status(200).json({ success: true, messages: formatted });
@@ -275,12 +287,15 @@ async function getChatHistory(req, res) {
       }
     } catch {}
 
-    // Fetch messages in chronological order
+    // Fetch messages in chronological order (excluding messages deleted by current user)
     const historyQuery = `
-      SELECT id, sender_id, receiver_id, text, is_read, created_at
+      SELECT id, sender_id, receiver_id, text, is_read, created_at,
+             COALESCE(reactions, '{}'::jsonb) as reactions,
+             COALESCE(is_deleted, FALSE) as is_deleted
       FROM messages
-      WHERE (sender_id = $1 AND receiver_id = $2)
-         OR (sender_id = $2 AND receiver_id = $1)
+      WHERE ((sender_id = $1 AND receiver_id = $2)
+         OR (sender_id = $2 AND receiver_id = $1))
+        AND NOT ($1 = ANY(COALESCE(deleted_for, '{}')))
       ORDER BY created_at ASC;
     `;
 
@@ -296,10 +311,18 @@ async function getChatHistory(req, res) {
           attachment = parsed.attachment || null;
         }
       } catch {}
+
+      let parsedReactions = {};
+      try {
+        parsedReactions = typeof r.reactions === 'object' ? r.reactions : JSON.parse(r.reactions || '{}');
+      } catch {}
+
       return {
         ...r,
         text: displayText,
         attachment,
+        reactions: parsedReactions || {},
+        is_deleted: Boolean(r.is_deleted),
       };
     });
 
@@ -394,10 +417,49 @@ async function getUnreadMessagesCount(req, res) {
   }
 }
 
+/**
+ * Delete message (Delete for everyone OR Delete for me)
+ */
+async function deleteMessage(req, res) {
+  try {
+    const messageId = parseInt(req.params.messageId, 10);
+    const userId = parseInt(req.body.userId || req.userId || req.query.userId, 10);
+    const { deleteForEveryone } = req.body;
+
+    if (!messageId || isNaN(messageId)) {
+      return res.status(400).json({ success: false, message: 'Valid messageId required' });
+    }
+
+    if (!db.isDBConnected()) {
+      return res.status(200).json({ success: true, message: 'Deleted' });
+    }
+
+    if (deleteForEveryone) {
+      await db.query(
+        `UPDATE messages SET is_deleted = TRUE, text = '🚫 This message was deleted' WHERE id = $1`,
+        [messageId]
+      );
+    } else if (userId) {
+      await db.query(
+        `UPDATE messages
+         SET deleted_for = array_append(COALESCE(deleted_for, '{}'), $1)
+         WHERE id = $2 AND NOT ($1 = ANY(COALESCE(deleted_for, '{}')));`,
+        [userId, messageId]
+      );
+    }
+
+    return res.status(200).json({ success: true, message: 'Message deleted successfully' });
+  } catch (error) {
+    console.error('[deleteMessage Error]:', error);
+    return res.status(500).json({ success: false, message: 'Failed to delete message' });
+  }
+}
+
 module.exports = {
   getConversations,
   getChatHistory,
   sendMessageHttp,
   getUnreadMessagesCount,
+  deleteMessage,
 };
 

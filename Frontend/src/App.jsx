@@ -15,6 +15,9 @@ import LeadersPage from './pages/user/LeadersPage';
 import LeaderProfilePage from './pages/user/LeaderProfilePage';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminUserDashboard from './pages/admin/AdminUserDashboard';
+import PromotionsPage from './pages/user/PromotionsPage';
+import SettingsPage from './pages/user/SettingsPage';
+import GroupsPage from './pages/user/GroupsPage';
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -110,6 +113,9 @@ export default function App() {
         <Route path="/leader-profile" element={<LeaderProfilePage />} />
         <Route path="/network" element={<LeadersPage />} />
         <Route path="/messages" element={<MessagesPage />} />
+        <Route path="/promotions" element={<PromotionsPage />} />
+        <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/groups" element={<GroupsPage />} />
         <Route path="/dashboard" element={<UserDashboard />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/dashboard/profile" element={<ProfilePage />} />

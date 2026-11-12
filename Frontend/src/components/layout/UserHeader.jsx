@@ -79,12 +79,88 @@ export default function UserHeader({
     return () => window.removeEventListener('fortaa_user_synced', handleUserSynced);
   }, []);
 
-  const [notifOpen, setNotifOpen] = useState(false);
+  const [desktopNotifOpen, setDesktopNotifOpen] = useState(false);
+  const [mobileNotifOpen, setMobileNotifOpen] = useState(false);
   const [realNotifCount, setRealNotifCount] = useState(0);
   const [realMessageCount, setRealMessageCount] = useState(0);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const profileDropdownRef = useRef(null);
   const mobProfileDropdownRef = useRef(null);
+
+  // Live User Search State
+  const [internalSearch, setInternalSearch] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [searchDropdownOpen, setSearchDropdownOpen] = useState(false);
+  const searchDropdownRef = useRef(null);
+  const mobSearchDropdownRef = useRef(null);
+
+  const effectiveSearchText = searchQuery !== undefined ? searchQuery : internalSearch;
+
+  const handleSearchChange = (val) => {
+    if (onSearchChange) {
+      onSearchChange(val);
+    } else {
+      setInternalSearch(val);
+    }
+  };
+
+  // Query leaders for live user autocomplete
+  useEffect(() => {
+    const q = (effectiveSearchText || '').trim().toLowerCase();
+    if (!q) {
+      setSearchResults([]);
+      setSearchDropdownOpen(false);
+      return;
+    }
+
+    let isMounted = true;
+    fetch('/api/dashboard/leaders')
+      .then((res) => res.json())
+      .then((data) => {
+        if (!isMounted) return;
+        const list = data?.leaders || [];
+        const matches = list.filter((u) => {
+          const matchName = (u.name || '').toLowerCase().includes(q);
+          const matchRole = (u.role || u.designation || '').toLowerCase().includes(q);
+          const matchCompany = (u.company_brand || '').toLowerCase().includes(q);
+          const matchUsername = (u.username || '').toLowerCase().includes(q);
+          return matchName || matchRole || matchCompany || matchUsername;
+        });
+        setSearchResults(matches.slice(0, 6));
+        setSearchDropdownOpen(true);
+      })
+      .catch(() => {});
+
+    return () => {
+      isMounted = false;
+    };
+  }, [effectiveSearchText]);
+
+  // Close search dropdown on click outside
+  useEffect(() => {
+    function handleSearchClickOutside(event) {
+      const isDesktop = searchDropdownRef.current?.contains(event.target);
+      const isMobile = mobSearchDropdownRef.current?.contains(event.target);
+      const isSearchInput = event.target?.closest?.('.ud-search-wrapper, .ud-mob-search-wrap');
+      if (!isDesktop && !isMobile && !isSearchInput) {
+        setSearchDropdownOpen(false);
+      }
+    }
+    if (searchDropdownOpen) {
+      document.addEventListener('mousedown', handleSearchClickOutside);
+      document.addEventListener('touchstart', handleSearchClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleSearchClickOutside);
+      document.removeEventListener('touchstart', handleSearchClickOutside);
+    };
+  }, [searchDropdownOpen]);
+
+  // Handle clicking a searched leader
+  const handleSelectLeader = (leader) => {
+    setSearchDropdownOpen(false);
+    navigate(`/leaders/${leader.id}`, { state: { leader } });
+  };
 
   // Close profile dropdown on outside click
   useEffect(() => {
@@ -153,7 +229,8 @@ export default function UserHeader({
           <div
             style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}
             onClick={() => {
-              setNotifOpen(true);
+              setDesktopNotifOpen(true);
+              setMobileNotifOpen(true);
               toast.dismiss(t.id);
             }}
           >
@@ -218,8 +295,11 @@ export default function UserHeader({
 
   const handleFormSubmit = (e) => {
     e.preventDefault();
+    setSearchDropdownOpen(false);
     if (onSearchSubmit) {
-      onSearchSubmit(searchQuery);
+      onSearchSubmit(effectiveSearchText);
+    } else if (effectiveSearchText?.trim()) {
+      navigate(`/leaders?search=${encodeURIComponent(effectiveSearchText.trim())}`);
     }
   };
 
@@ -259,9 +339,81 @@ export default function UserHeader({
             type="text"
             className="ud-search-input"
             placeholder="Search people, posts, companies, products, opportunities..."
-            value={searchQuery !== undefined ? searchQuery : undefined}
-            onChange={(e) => onSearchChange?.(e.target.value)}
+            value={effectiveSearchText}
+            onChange={(e) => handleSearchChange(e.target.value)}
+            onFocus={() => {
+              if (effectiveSearchText?.trim() && searchResults.length > 0) {
+                setSearchDropdownOpen(true);
+              }
+            }}
           />
+
+          {/* Live Search Autocomplete Dropdown */}
+          {searchDropdownOpen && (
+            <div className="ud-search-dropdown" ref={searchDropdownRef}>
+              {searchResults.length > 0 ? (
+                <>
+                  <div className="ud-search-dropdown-header">
+                    <span>PEOPLE & LEADERS</span>
+                    <span className="ud-search-count">{searchResults.length} found</span>
+                  </div>
+                  <div className="ud-search-dropdown-list">
+                    {searchResults.map((person) => (
+                      <div
+                        key={person.id}
+                        className="ud-search-dropdown-item"
+                        onMouseDown={(e) => e.stopPropagation()}
+                        onTouchStart={(e) => e.stopPropagation()}
+                        onClick={() => handleSelectLeader(person)}
+                      >
+                        <img
+                          src={person.avatar_url || userAvatarImg}
+                          alt={person.name}
+                          className="ud-search-item-avatar"
+                        />
+                        <div className="ud-search-item-info">
+                          <span className="ud-search-item-name">{person.name}</span>
+                          <span className="ud-search-item-role">
+                            {person.role || person.designation || 'Business Leader'}
+                            {person.company_brand ? ` • ${person.company_brand}` : ''}
+                          </span>
+                        </div>
+                        <span className="ud-search-item-arrow">→</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div
+                    className="ud-search-dropdown-footer"
+                    onMouseDown={(e) => e.stopPropagation()}
+                    onTouchStart={(e) => e.stopPropagation()}
+                    onClick={() => {
+                      setSearchDropdownOpen(false);
+                      navigate(`/leaders?search=${encodeURIComponent(effectiveSearchText.trim())}`);
+                    }}
+                  >
+                    <span>View all leaders matching "{effectiveSearchText}"</span>
+                    <span>→</span>
+                  </div>
+                </>
+              ) : effectiveSearchText.trim().length >= 2 ? (
+                <div className="ud-search-no-results">
+                  <span>No leaders found matching "{effectiveSearchText}"</span>
+                  <button
+                    type="button"
+                    className="ud-search-view-all-btn"
+                    onMouseDown={(e) => e.stopPropagation()}
+                    onTouchStart={(e) => e.stopPropagation()}
+                    onClick={() => {
+                      setSearchDropdownOpen(false);
+                      navigate(`/leaders?search=${encodeURIComponent(effectiveSearchText.trim())}`);
+                    }}
+                  >
+                    Search in Directory
+                  </button>
+                </div>
+              ) : null}
+            </div>
+          )}
         </form>
 
         {/* Topbar Actions & Profile Pill */}
@@ -271,14 +423,14 @@ export default function UserHeader({
               type="button"
               className="ud-icon-circle-btn ud-notif-btn"
               title="Notifications"
-              onClick={() => setNotifOpen((prev) => !prev)}
+              onClick={() => setDesktopNotifOpen((prev) => !prev)}
             >
               <img src={bellIconImg} alt="Notifications" className="ud-header-action-icon" />
               {realNotifCount > 0 && <span className="ud-badge-count">{realNotifCount}</span>}
             </button>
             <NotificationDropdown
-              isOpen={notifOpen}
-              onClose={() => setNotifOpen(false)}
+              isOpen={desktopNotifOpen}
+              onClose={() => setDesktopNotifOpen(false)}
               currentUserId={currentUserId}
               onNotificationCountChange={setRealNotifCount}
             />
@@ -335,6 +487,42 @@ export default function UserHeader({
 
                 <button
                   type="button"
+                  className="ud-profile-dropdown-btn"
+                  onClick={() => {
+                    setProfileMenuOpen(false);
+                    navigate('/profile');
+                  }}
+                >
+                  <span className="ud-dropdown-icon">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                      <circle cx="12" cy="7" r="4" />
+                    </svg>
+                  </span>
+                  <span>My Profile</span>
+                </button>
+
+                <button
+                  type="button"
+                  className="ud-profile-dropdown-btn"
+                  onClick={() => {
+                    setProfileMenuOpen(false);
+                    navigate('/settings');
+                  }}
+                >
+                  <span className="ud-dropdown-icon">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="12" cy="12" r="3" />
+                      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                    </svg>
+                  </span>
+                  <span>Settings</span>
+                </button>
+
+                <div className="ud-profile-dropdown-divider" />
+
+                <button
+                  type="button"
                   className="ud-profile-dropdown-btn ud-dropdown-logout-btn"
                   onClick={handleLogout}
                   onMouseDown={(e) => e.stopPropagation()}
@@ -383,15 +571,15 @@ export default function UserHeader({
                 title="Notifications"
                 onClick={(e) => {
                   e.stopPropagation();
-                  setNotifOpen((prev) => !prev);
+                  setMobileNotifOpen((prev) => !prev);
                 }}
               >
                 <img src={bellIconImg} alt="Notifications" className="ud-mob-action-img" />
                 {realNotifCount > 0 && <span className="ud-mob-red-badge">{realNotifCount}</span>}
               </button>
               <NotificationDropdown
-                isOpen={notifOpen}
-                onClose={() => setNotifOpen(false)}
+                isOpen={mobileNotifOpen}
+                onClose={() => setMobileNotifOpen(false)}
                 currentUserId={currentUserId}
                 onNotificationCountChange={setRealNotifCount}
               />
@@ -436,6 +624,42 @@ export default function UserHeader({
 
                   <button
                     type="button"
+                    className="ud-profile-dropdown-btn"
+                    onClick={() => {
+                      setProfileMenuOpen(false);
+                      navigate('/profile');
+                    }}
+                  >
+                    <span className="ud-dropdown-icon">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                        <circle cx="12" cy="7" r="4" />
+                      </svg>
+                    </span>
+                    <span>My Profile</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    className="ud-profile-dropdown-btn"
+                    onClick={() => {
+                      setProfileMenuOpen(false);
+                      navigate('/settings');
+                    }}
+                  >
+                    <span className="ud-dropdown-icon">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="12" cy="12" r="3" />
+                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                      </svg>
+                    </span>
+                    <span>Settings</span>
+                  </button>
+
+                  <div className="ud-profile-dropdown-divider" />
+
+                  <button
+                    type="button"
                     className="ud-profile-dropdown-btn ud-dropdown-logout-btn"
                     onClick={handleLogout}
                     onMouseDown={(e) => e.stopPropagation()}
@@ -474,9 +698,81 @@ export default function UserHeader({
             type="text"
             className="ud-mob-search-input"
             placeholder="Search people, posts, companies, products, opportunities..."
-            value={searchQuery !== undefined ? searchQuery : undefined}
-            onChange={(e) => onSearchChange?.(e.target.value)}
+            value={effectiveSearchText}
+            onChange={(e) => handleSearchChange(e.target.value)}
+            onFocus={() => {
+              if (effectiveSearchText?.trim() && searchResults.length > 0) {
+                setSearchDropdownOpen(true);
+              }
+            }}
           />
+
+          {/* Live Mobile Search Autocomplete Dropdown */}
+          {searchDropdownOpen && (
+            <div className="ud-search-dropdown" ref={mobSearchDropdownRef}>
+              {searchResults.length > 0 ? (
+                <>
+                  <div className="ud-search-dropdown-header">
+                    <span>PEOPLE & LEADERS</span>
+                    <span className="ud-search-count">{searchResults.length} found</span>
+                  </div>
+                  <div className="ud-search-dropdown-list">
+                    {searchResults.map((person) => (
+                      <div
+                        key={person.id}
+                        className="ud-search-dropdown-item"
+                        onMouseDown={(e) => e.stopPropagation()}
+                        onTouchStart={(e) => e.stopPropagation()}
+                        onClick={() => handleSelectLeader(person)}
+                      >
+                        <img
+                          src={person.avatar_url || userAvatarImg}
+                          alt={person.name}
+                          className="ud-search-item-avatar"
+                        />
+                        <div className="ud-search-item-info">
+                          <span className="ud-search-item-name">{person.name}</span>
+                          <span className="ud-search-item-role">
+                            {person.role || person.designation || 'Business Leader'}
+                            {person.company_brand ? ` • ${person.company_brand}` : ''}
+                          </span>
+                        </div>
+                        <span className="ud-search-item-arrow">→</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div
+                    className="ud-search-dropdown-footer"
+                    onMouseDown={(e) => e.stopPropagation()}
+                    onTouchStart={(e) => e.stopPropagation()}
+                    onClick={() => {
+                      setSearchDropdownOpen(false);
+                      navigate(`/leaders?search=${encodeURIComponent(effectiveSearchText.trim())}`);
+                    }}
+                  >
+                    <span>View all leaders matching "{effectiveSearchText}"</span>
+                    <span>→</span>
+                  </div>
+                </>
+              ) : effectiveSearchText.trim().length >= 2 ? (
+                <div className="ud-search-no-results">
+                  <span>No leaders found matching "{effectiveSearchText}"</span>
+                  <button
+                    type="button"
+                    className="ud-search-view-all-btn"
+                    onMouseDown={(e) => e.stopPropagation()}
+                    onTouchStart={(e) => e.stopPropagation()}
+                    onClick={() => {
+                      setSearchDropdownOpen(false);
+                      navigate(`/leaders?search=${encodeURIComponent(effectiveSearchText.trim())}`);
+                    }}
+                  >
+                    Search in Directory
+                  </button>
+                </div>
+              ) : null}
+            </div>
+          )}
         </form>
       </header>
     </>

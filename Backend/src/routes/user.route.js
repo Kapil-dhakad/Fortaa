@@ -14,7 +14,12 @@ const {
   getUserTeam,
 } = require('../controller/user.controller');
 const { handleGoogleAuth } = require('../controller/googleAuth.controller');
-const { sendEmailOtp, verifyEmailOtp } = require('../controller/otp.controller');
+const {
+  sendEmailOtp,
+  verifyEmailOtp,
+  sendWhatsAppOtp,
+  verifyWhatsAppOtp,
+} = require('../controller/otp.controller');
 const { validateGoogleAuth, validateRegistration } = require('../validators/auth.validator');
 const authMiddleware = require('../middleware/auth.middleware');
 
@@ -26,6 +31,8 @@ router.post('/login', loginUser);
 router.post('/google-login', validateGoogleAuth, handleGoogleAuth);
 router.post('/send-email-otp', sendEmailOtp);
 router.post('/verify-email-otp', verifyEmailOtp);
+router.post('/send-whatsapp-otp', sendWhatsAppOtp);
+router.post('/verify-whatsapp-otp', verifyWhatsAppOtp);
 router.get('/me', authMiddleware, getMe);
 router.post('/logout', logoutUser);
 

@@ -1942,3 +1942,56 @@
     margin-top: 3px;
   }
 }
+
+/* ====================================================================
+   🔒 INSTAGRAM-STYLE PRIVATE ACCOUNT NOTICE
+   ==================================================================== */
+.lp-private-account-card {
+  background: #FFFFFF;
+  border-radius: 16px;
+  border: 1px solid #E2E8F0;
+  box-shadow: 0 4px 20px -2px rgba(124, 58, 237, 0.05);
+  padding: 60px 24px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin: 20px 0 40px 0;
+  width: 100%;
+}
+
+.lp-private-lock-circle {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: #F5F3FF;
+  border: 2px dashed #C4B5FD;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+.lp-private-title {
+  font-size: 22px;
+  font-weight: 800;
+  color: #0F172A;
+  margin: 0 0 8px 0;
+  letter-spacing: -0.3px;
+}
+
+.lp-private-desc {
+  font-size: 15px;
+  color: #64748B;
+  max-width: 420px;
+  margin: 0 auto;
+  line-height: 1.5;
+}
+
+.lp-private-account-card.lp-mob-private-card {
+  margin: 16px 0;
+  padding: 44px 20px;
+  border-radius: 14px;
+}
+

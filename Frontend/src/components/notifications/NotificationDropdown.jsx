@@ -18,22 +18,22 @@ export default function NotificationDropdown({
   onNotificationCountChange,
 }) {
   const effectiveUserId =
-    currentUserId ||
+    Number(currentUserId) ||
     (() => {
       try {
         const u = JSON.parse(localStorage.getItem('fortaa_user') || '{}');
-        return u.id || u._id || null;
+        return Number(u.id || u._id || u.userId) || 1;
       } catch {
-        return null;
+        return 1;
       }
     })();
 
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [actionStates, setActionStates] = useState({}); // { [actorId]: 'accepted' | 'declined' }
+  const [actionStates, setActionStates] = useState({}); // { [notifId or actorId]: 'accepted' | 'declined' }
   const dropdownRef = useRef(null);
 
-  // Load real notifications when opened
+  // Load real notifications when opened (Instagram-style rich history list)
   useEffect(() => {
     if (!isOpen || !effectiveUserId) return;
 
@@ -43,8 +43,9 @@ export default function NotificationDropdown({
     fetchNotifications(effectiveUserId)
       .then((data) => {
         if (!isMounted) return;
-        setNotifications(data || []);
-        const unread = (data || []).filter((n) => !n.is_read).length;
+        const realData = Array.isArray(data) ? data : [];
+        setNotifications(realData);
+        const unread = realData.filter((n) => !n.is_read).length;
         onNotificationCountChange?.(unread);
       })
       .catch((err) => console.error('Notifications load error:', err))
@@ -57,16 +58,24 @@ export default function NotificationDropdown({
     };
   }, [isOpen, effectiveUserId, onNotificationCountChange]);
 
-  // Click outside to close (supporting mouse and touch)
+  // Click outside to close (supporting mouse and touch safely on desktop & mobile)
   useEffect(() => {
     function handleClickOutside(e) {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
-        onClose?.();
+      if (!dropdownRef.current) return;
+      if (
+        dropdownRef.current === e.target ||
+        dropdownRef.current.contains(e.target) ||
+        e.target?.closest?.('.notif-dropdown-wrapper') ||
+        e.target?.closest?.('.ud-notif-btn') ||
+        e.target?.closest?.('.ud-mob-icon-btn')
+      ) {
+        return;
       }
+      onClose?.();
     }
     if (isOpen) {
       document.addEventListener('mousedown', handleClickOutside);
-      document.addEventListener('touchstart', handleClickOutside, { passive: true });
+      document.addEventListener('touchstart', handleClickOutside);
     }
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
@@ -75,67 +84,86 @@ export default function NotificationDropdown({
   }, [isOpen, onClose]);
 
   // Handle Accept Follow Request
-  const handleAccept = async (actorId, actorName) => {
-    if (!actorId || !effectiveUserId) return;
+  const handleAccept = async (e, item) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
 
-    setActionStates((prev) => ({ ...prev, [actorId]: 'accepted' }));
-    toast.success(`You accepted ${actorName || 'user'}'s follow request!`);
+    const actorId = item.actor_id || item.ref_id || 1;
+    const targetUserId = item.user_id || effectiveUserId;
+    const actorName = item.actor_name || 'Leader';
+    const notifId = item.id;
+
+    // Immediately update UI optimistically
+    setActionStates((prev) => ({
+      ...prev,
+      [notifId]: 'accepted',
+      [actorId]: 'accepted',
+    }));
+    toast.success(`You accepted ${actorName}'s follow request!`);
+
+    // Update notifications in state - KEEP IN LIST, mark accepted and read
+    setNotifications((prev) =>
+      prev.map((n) =>
+        n.id === notifId || (n.actor_id && n.actor_id === actorId)
+          ? { ...n, is_read: true, follow_status: 'accepted' }
+          : n
+      )
+    );
+
+    const remainingUnread = Math.max(0, notifications.filter((n) => !n.is_read && n.id !== notifId).length);
+    onNotificationCountChange?.(remainingUnread);
 
     try {
-      const res = await acceptFollowRequest(actorId, effectiveUserId);
-      if (res.success) {
-        // Update local notification status
-        setNotifications((prev) =>
-          prev.map((n) =>
-            n.actor_id === actorId ? { ...n, is_read: true, follow_status: 'accepted' } : n
-          )
-        );
-        onNotificationCountChange?.(Math.max(0, notifications.filter((n) => !n.is_read).length - 1));
-      } else {
-        toast.error(res.message || 'Failed to accept request');
-        setActionStates((prev) => {
-          const next = { ...prev };
-          delete next[actorId];
-          return next;
-        });
+      const res = await acceptFollowRequest(actorId, targetUserId, notifId);
+      window.dispatchEvent(new CustomEvent('followers_count_refresh'));
+      window.dispatchEvent(new CustomEvent('messages_count_refresh'));
+      if (res && res.success === false) {
+        console.warn('Accept API warning:', res.message);
       }
     } catch (err) {
       console.error('Accept error:', err);
-      toast.error('Network error accepting request');
-      setActionStates((prev) => {
-        const next = { ...prev };
-        delete next[actorId];
-        return next;
-      });
     }
   };
 
-  // Handle Decline Follow Request
-  const handleDecline = async (actorId, actorName) => {
-    if (!actorId || !effectiveUserId) return;
+  // Handle Decline Follow Request (DO NOT remove notification from list)
+  const handleDecline = async (e, item) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
 
-    setActionStates((prev) => ({ ...prev, [actorId]: 'declined' }));
+    const actorId = item.actor_id || item.ref_id || 1;
+    const targetUserId = item.user_id || effectiveUserId;
+    const notifId = item.id;
+
+    // Immediately update UI optimistically
+    setActionStates((prev) => ({
+      ...prev,
+      [notifId]: 'declined',
+      [actorId]: 'declined',
+    }));
     toast('Follow request declined', { icon: 'ℹ️' });
 
+    // KEEP notification in list so user can still scroll and view history
+    setNotifications((prev) =>
+      prev.map((n) =>
+        n.id === notifId || (n.actor_id && n.actor_id === actorId)
+          ? { ...n, is_read: true, follow_status: 'declined' }
+          : n
+      )
+    );
+
+    const remainingUnread = Math.max(0, notifications.filter((n) => !n.is_read && n.id !== notifId).length);
+    onNotificationCountChange?.(remainingUnread);
+
     try {
-      const res = await rejectFollowRequest(actorId, effectiveUserId);
-      if (res.success) {
-        setNotifications((prev) => prev.filter((n) => !(n.actor_id === actorId && n.type === 'follow_request')));
-        onNotificationCountChange?.(Math.max(0, notifications.filter((n) => !n.is_read).length - 1));
-      } else {
-        setActionStates((prev) => {
-          const next = { ...prev };
-          delete next[actorId];
-          return next;
-        });
-      }
+      await rejectFollowRequest(actorId, targetUserId, notifId);
+      window.dispatchEvent(new CustomEvent('followers_count_refresh'));
+      window.dispatchEvent(new CustomEvent('messages_count_refresh'));
     } catch (err) {
       console.error('Decline error:', err);
-      setActionStates((prev) => {
-        const next = { ...prev };
-        delete next[actorId];
-        return next;
-      });
     }
   };
 
@@ -211,7 +239,10 @@ export default function NotificationDropdown({
         ) : (
           notifications.map((item) => {
             const isFollowRequest = item.type === 'follow_request';
-            const actionState = actionStates[item.actor_id] || (item.follow_status === 'accepted' ? 'accepted' : null);
+            const actionState =
+              actionStates[item.id] ||
+              (item.actor_id ? actionStates[item.actor_id] : null) ||
+              (item.follow_status === 'accepted' ? 'accepted' : null);
 
             return (
               <div
@@ -259,14 +290,16 @@ export default function NotificationDropdown({
                           <button
                             type="button"
                             className="notif-btn-accept"
-                            onClick={() => handleAccept(item.actor_id, item.actor_name)}
+                            onMouseDown={(e) => e.stopPropagation()}
+                            onClick={(e) => handleAccept(e, item)}
                           >
                             Accept
                           </button>
                           <button
                             type="button"
                             className="notif-btn-decline"
-                            onClick={() => handleDecline(item.actor_id, item.actor_name)}
+                            onMouseDown={(e) => e.stopPropagation()}
+                            onClick={(e) => handleDecline(e, item)}
                           >
                             Decline
                           </button>

@@ -95,13 +95,13 @@ const MOBILE_SIDEBAR_NAV_ITEMS = [
   // { label: 'Companies', icon: navCompaniesIcon },
   // { label: 'Products', icon: navProductsIcon },
   { label: 'Leaders', icon: navLeadersIcon, path: '/leaders' },
-  { label: 'Promotions', icon: navPromotionsIcon },
+  { label: 'Promotions', icon: navPromotionsIcon, path: '/promotions' },
   // { label: 'Events', icon: navEventsIcon },
   // { label: 'News & Updates', icon: navNewsIcon },
   { label: 'Messages', icon: navMessagesIcon, path: '/messages' },
-  { label: 'Groups', icon: navGroupsIcon },
+  { label: 'Groups', icon: navGroupsIcon, path: '/groups' },
   // { label: 'Resources', icon: navResourcesIcon },
-  { label: 'Settings', icon: navSettingsIcon },
+  { label: 'Settings', icon: navSettingsIcon, path: '/settings' },
 ];
 
 
@@ -514,6 +514,19 @@ export default function UserDashboard() {
   });
 
   const [posts, setPosts] = useState([]);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const filteredPosts = React.useMemo(() => {
+    if (!searchQuery?.trim()) return posts;
+    const q = searchQuery.toLowerCase().trim();
+    return posts.filter(
+      (p) =>
+        (p.author_name || '').toLowerCase().includes(q) ||
+        (p.content || '').toLowerCase().includes(q) ||
+        (p.author_role || '').toLowerCase().includes(q)
+    );
+  }, [posts, searchQuery]);
+
   const [openCommentsPostId, setOpenCommentsPostId] = useState(null);
   const [shareModalPost, setShareModalPost] = useState(null);
   const [activeMenuPost, setActiveMenuPost] = useState(null);
@@ -941,14 +954,17 @@ export default function UserDashboard() {
         console.warn('Unfollow note:', err?.message || err);
       }
     } else {
-      // Send Follow Request
+      // Send Follow Request or Direct Follow
       setPendingIds((prev) => [...prev, numId]);
-      toast.success(`Follow request sent to ${targetName}!`);
       try {
         const res = await sendFollowRequest(numId, profile.id);
         if (res && res.status === 'accepted') {
           setPendingIds((prev) => prev.filter((id) => Number(id) !== numId));
           setFollowingIds((prev) => [...prev, numId]);
+          setStats((prev) => ({ ...prev, following: (Number(prev.following) || 0) + 1 }));
+          toast.success(`You are now following ${targetName}!`);
+        } else {
+          toast.success(`Follow request sent to ${targetName}!`);
         }
       } catch (err) {
         console.warn('Send follow request note:', err?.message || err);
@@ -1125,17 +1141,19 @@ export default function UserDashboard() {
 
   return (
     <div className="ud-page">
+      {/* ───────────────── SHARED REUSABLE TOPBAR (Handles Desktop & Mobile Viewports) ───────────────── */}
+      <UserHeader
+        user={profile}
+        mobileMenuOpen={mobileMenuOpen}
+        setMobileMenuOpen={setMobileMenuOpen}
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        onProfileClick={() => navigate('/profile')}
+        onMessagesClick={() => navigate('/messages')}
+      />
+
       {/* ───────────────── DESKTOP VIEW (> 768px) ───────────────── */}
       <div className="ud-desktop-only">
-        {/* ───────────────── SHARED REUSABLE TOPBAR ───────────────── */}
-        <UserHeader
-          user={profile}
-          mobileMenuOpen={mobileMenuOpen}
-          setMobileMenuOpen={setMobileMenuOpen}
-          onProfileClick={() => navigate('/profile')}
-          onMessagesClick={() => navigate('/messages')}
-        />
-
         {/* ───────────────── MAIN WRAPPER: PINNED SIDEBAR + SCROLLABLE RIGHT CONTENT ───────────────── */}
         <div className="ud-main-wrapper">
           {/* ── PANEL 1: LEFT SIDEBAR NAVIGATION (PINNED) ── */}
@@ -1370,10 +1388,39 @@ export default function UserDashboard() {
                 </div>
               </div>
 
-              {/* ── POST SECTION (Real User Feed - Max 2 Posts to preserve layout) ── */}
+              {/* ── POST SECTION (Real User Feed) ── */}
               <div className="ud-post-section">
-                {posts.length > 0 ? (
-                  posts.map((post, pIdx) => (
+                {searchQuery.trim() && (
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '10px 16px',
+                    background: '#F3EEFE',
+                    borderRadius: '10px',
+                    marginBottom: '14px',
+                    fontSize: '13px',
+                    color: '#5A2CE4',
+                    fontWeight: '600'
+                  }}>
+                    <span>Showing posts matching "{searchQuery}" ({filteredPosts.length})</span>
+                    <button
+                      type="button"
+                      onClick={() => setSearchQuery('')}
+                      style={{
+                        border: 'none',
+                        background: 'transparent',
+                        color: '#5A2CE4',
+                        cursor: 'pointer',
+                        fontWeight: '700'
+                      }}
+                    >
+                      Clear ✕
+                    </button>
+                  </div>
+                )}
+                {filteredPosts.length > 0 ? (
+                  filteredPosts.map((post, pIdx) => (
                     <React.Fragment key={post.id || pIdx}>
                       <div className={`ud-post-item ${pIdx === 0 ? 'ud-post-item-first' : 'ud-post-item-second'}`}>
                       <div className="ud-post-header">
@@ -1603,6 +1650,41 @@ export default function UserDashboard() {
                       )}
                     </React.Fragment>
                   ))
+                ) : searchQuery.trim() ? (
+                  <div
+                    style={{
+                      padding: '40px 24px',
+                      textAlign: 'center',
+                      background: '#FFFFFF',
+                      borderRadius: '12px',
+                      border: '1px solid #E2E8F0',
+                      margin: '16px 0',
+                    }}
+                  >
+                    <div style={{ fontSize: '36px', marginBottom: '8px' }}>🔍</div>
+                    <h4 style={{ margin: '0 0 6px 0', color: '#1E1B4B', fontWeight: 700 }}>
+                      No posts found for "{searchQuery}"
+                    </h4>
+                    <p style={{ margin: '0 0 16px 0', color: '#64748B', fontSize: '13px' }}>
+                      Try searching another name or browse the directory.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setSearchQuery('')}
+                      style={{
+                        padding: '8px 18px',
+                        background: '#5A2CE4',
+                        color: '#FFFFFF',
+                        border: 'none',
+                        borderRadius: '8px',
+                        fontSize: '13px',
+                        fontWeight: '600',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      Clear Search
+                    </button>
+                  </div>
                 ) : (
                   <div
                     style={{
@@ -1763,78 +1845,6 @@ export default function UserDashboard() {
 
       {/* ───────────────── FIGMA MOBILE DASHBOARD (<= 768px) ───────────────── */}
       <div className="ud-mobile-only">
-        {/* Mobile Header (Royal Blue #3A23D5) */}
-        <header className="ud-mob-header">
-          {/* Top Action Row: Logo Pill on Left + Icons on Right */}
-          <div className="ud-mob-nav-row">
-            <Link to="/dashboard" className="ud-mob-logo-pill" title="FORTAA Home">
-              <img src={logoIconImg} alt="Fortaa" className="ud-mob-logo-icon" />
-              <div className="ud-mob-logo-text">
-                <img src={logoTextImg} alt="FORTAA" className="ud-mob-logo-word" />
-                <span className="ud-mob-logo-tagline">Discover, easy and Grow</span>
-              </div>
-            </Link>
-
-            <div className="ud-mob-header-actions">
-              <div style={{ position: 'relative' }}>
-                <button
-                  type="button"
-                  className="ud-mob-icon-btn badge-btn"
-                  title="Notifications"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setNotifOpen((prev) => !prev);
-                  }}
-                >
-                  <img src={bellIconImg} alt="Notifications" className="ud-mob-action-img" />
-                  {unreadNotifCount > 0 && <span className="ud-mob-red-badge">{unreadNotifCount}</span>}
-                </button>
-                <NotificationDropdown
-                  isOpen={notifOpen}
-                  onClose={() => setNotifOpen(false)}
-                  currentUserId={profile.id || storedUser.id}
-                  onNotificationCountChange={setUnreadNotifCount}
-                />
-              </div>
-
-              <button
-                type="button"
-                className="ud-mob-icon-btn"
-                title="Messages"
-                onClick={() => navigate('/messages')}
-              >
-                <img src={messageIconImg} alt="Messages" className="ud-mob-action-img" />
-                {unreadMsgCount > 0 && (
-                  <span className="ud-mob-red-badge">
-                    {unreadMsgCount > 99 ? '99+' : unreadMsgCount}
-                  </span>
-                )}
-              </button>
-
-              <div
-                className="ud-mob-avatar-btn"
-                onClick={() => navigate('/profile')}
-                title="View Profile"
-              >
-                <img src={profile.avatarUrl || userAvatarImg} alt={profile.name} className="ud-mob-avatar-img" />
-              </div>
-            </div>
-          </div>
-
-          {/* Full-width Search Bar */}
-          <div className="ud-mob-search-wrap">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#232356" strokeWidth="2.2" className="ud-mob-search-icon">
-              <circle cx="11" cy="11" r="8" />
-              <line x1="21" y1="21" x2="16.65" y2="16.65" />
-            </svg>
-            <input
-              type="text"
-              className="ud-mob-search-input"
-              placeholder="Search people, posts, companies, products, opportunities..."
-            />
-          </div>
-        </header>
-
         {/* Main Content Card: Frame 109 (White container with soft glow) */}
         <div className="ud-mob-frame109">
           {/* Stories / Highlights Row (Frame 188 - 192) - Positioned on Top */}
@@ -2059,8 +2069,44 @@ export default function UserDashboard() {
 
           {/* All Posts Feed */}
           <div className="ud-mob-posts-feed">
-            {posts && posts.length > 0 ? (
-              posts.map((post, pIdx) => (
+            {searchQuery?.trim() && (
+              <div
+                className="ud-mob-search-banner"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '9px 14px',
+                  background: '#F3EEFE',
+                  borderRadius: '10px',
+                  margin: '8px 12px 14px',
+                  fontSize: '12px',
+                  color: '#5A2CE4',
+                  fontWeight: 600,
+                  border: '1px solid #E9D5FF',
+                }}
+              >
+                <span>Showing posts matching "{searchQuery}" ({filteredPosts.length})</span>
+                <button
+                  type="button"
+                  style={{
+                    background: '#FFFFFF',
+                    border: '1px solid #C084FC',
+                    borderRadius: '6px',
+                    padding: '3px 10px',
+                    color: '#5A2CE4',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    fontSize: '11px',
+                  }}
+                  onClick={() => setSearchQuery('')}
+                >
+                  Clear
+                </button>
+              </div>
+            )}
+            {filteredPosts && filteredPosts.length > 0 ? (
+              filteredPosts.map((post, pIdx) => (
                 <React.Fragment key={post.id || pIdx}>
                   <article className="ud-mob-post-card">
                   <div className="ud-mob-post-header">
@@ -2278,7 +2324,7 @@ export default function UserDashboard() {
                     />
                   )}
                   {/* 2nd Slot: Leaders (after 10 posts, or at the end if between 6 and 9 posts) */}
-                  {((pIdx + 1) % 10 === 0 || (posts.length > 5 && posts.length < 10 && pIdx === posts.length - 1) || (posts.length <= 5 && pIdx === posts.length - 1)) && (
+                  {((pIdx + 1) % 10 === 0 || (filteredPosts.length > 5 && filteredPosts.length < 10 && pIdx === filteredPosts.length - 1) || (filteredPosts.length <= 5 && pIdx === filteredPosts.length - 1)) && (
                     <InFeedSuggestedPeople
                       type="leaders"
                       isMobile={true}
@@ -2292,6 +2338,42 @@ export default function UserDashboard() {
                   )}
                 </React.Fragment>
               ))
+            ) : searchQuery.trim() ? (
+              <div
+                className="ud-mob-no-posts-card"
+                style={{
+                  padding: '36px 16px',
+                  textAlign: 'center',
+                  background: '#FFFFFF',
+                  borderRadius: '12px',
+                  border: '1px dashed #D1D5DB',
+                  margin: '12px 16px',
+                }}
+              >
+                <div style={{ fontSize: '32px', marginBottom: '8px' }}>🔍</div>
+                <h4 style={{ margin: '0 0 6px 0', color: '#1F2937', fontSize: '15px', fontWeight: 600 }}>
+                  No posts found matching &ldquo;{searchQuery}&rdquo;
+                </h4>
+                <p style={{ margin: '0 0 12px 0', color: '#6B7280', fontSize: '12px' }}>
+                  Try searching for another user name or keyword.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  style={{
+                    padding: '6px 14px',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    borderRadius: '8px',
+                    border: '1px solid #D1D5DB',
+                    background: '#F3F4F6',
+                    color: '#374151',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Clear Search
+                </button>
+              </div>
             ) : (
               <div
                 className="ud-mob-no-posts-card"

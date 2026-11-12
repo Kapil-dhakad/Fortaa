@@ -32,13 +32,13 @@ const NAV_ITEMS = [
   // { label: 'Companies', icon: navCompaniesIcon },
   // { label: 'Products', icon: navProductsIcon },
   { label: 'Leaders', icon: navLeadersIcon, path: '/leaders' },
-  { label: 'Promotions', icon: navPromotionsIcon },
+  { label: 'Promotions', icon: navPromotionsIcon, path: '/promotions' },
   // { label: 'Events', icon: navEventsIcon },
   // { label: 'News & Updates', icon: navNewsIcon },
   { label: 'Messages', icon: navMessagesIcon, path: '/messages' },
-  { label: 'Groups', icon: navGroupsIcon },
+  { label: 'Groups', icon: navGroupsIcon, path: '/groups' },
   // { label: 'Resources', icon: navResourcesIcon },
-  { label: 'Settings', icon: navSettingsIcon },
+  { label: 'Settings', icon: navSettingsIcon, path: '/settings' },
 ];
 
 export default function UserSidebar({

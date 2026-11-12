@@ -489,13 +489,17 @@ export default function LeadersPage() {
         console.error(err);
       }
     } else {
-      // Send Request immediately to prevent UI lag
+      // Send Request / Follow
       updateFollowMap({ [targetId]: 'pending' });
-      toast.success(`Follow request sent to ${targetName}! 🎉`);
       try {
         const res = await sendFollowRequest(targetId, currentUserId);
         if (res?.status) {
           updateFollowMap({ [targetId]: res.status });
+          if (res.status === 'accepted') {
+            toast.success(`You are now following ${targetName}! 🎉`);
+          } else {
+            toast.success(`Follow request sent to ${targetName}! ⏳`);
+          }
         }
       } catch (err) {
         console.error(err);

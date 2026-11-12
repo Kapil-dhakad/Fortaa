@@ -22,6 +22,7 @@ import {
   fetchConversations,
   fetchChatHistory,
   sendChatMessageHttp,
+  deleteChatMessageHttp,
 } from '../../services/message.service';
 
 // React Icons
@@ -42,6 +43,12 @@ import {
   FiAward,
   FiMessageSquare,
   FiShield,
+  FiChevronDown,
+  FiInfo,
+  FiCornerUpLeft,
+  FiCopy,
+  FiCornerUpRight,
+  FiTrash2,
 } from 'react-icons/fi';
 import {
   BsSliders,
@@ -53,6 +60,7 @@ import {
   BsPersonCheckFill,
   BsFileEarmarkPdfFill,
   BsThreeDots,
+  BsPinAngle,
 } from 'react-icons/bs';
 import {
   IoSend,
@@ -79,7 +87,7 @@ const POPULAR_EMOJIS = [
 export default function MessagesPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const preselectUserId = searchParams.get('userId');
+  const preselectUserId = searchParams.get('userId') || (searchParams.get('groupId') ? `group_${searchParams.get('groupId')}` : null);
 
   const [currentUser] = useState(() => {
     try {
@@ -119,6 +127,209 @@ export default function MessagesPage() {
     () => (preselectUserId ? 'chat' : 'list')
   );
   const [mobileAttachmentOpen, setMobileAttachmentOpen] = useState(false);
+
+  // WhatsApp Message Action Dropdown & Reactions state
+  const [activeMenuMsgId, setActiveMenuMsgId] = useState(null);
+  const [menuOpenUpward, setMenuOpenUpward] = useState(false);
+  const [reactions, setReactions] = useState({}); // { [msgId]: { [userId]: emoji } }
+  const [replyingTo, setReplyingTo] = useState(null);
+  const [pinnedMessageId, setPinnedMessageId] = useState(null);
+  const [infoModalMsg, setInfoModalMsg] = useState(null);
+  const [forwardModalMsg, setForwardModalMsg] = useState(null);
+  const [forwardSearchQuery, setForwardSearchQuery] = useState('');
+  const [deleteModalMsg, setDeleteModalMsg] = useState(null);
+  const [showMoreEmojisMsgId, setShowMoreEmojisMsgId] = useState(null);
+
+  // Helper to extract all emoji reactions on a message
+  const getMsgReactionList = (msgId) => {
+    const r = reactions[msgId];
+    if (!r) return [];
+    if (typeof r === 'string') return [r];
+    if (typeof r === 'object') return Object.values(r).filter(Boolean);
+    return [];
+  };
+
+  // Helper to check logged in user's reaction on a message
+  const getMyReaction = (msgId) => {
+    const r = reactions[msgId];
+    if (!r) return null;
+    if (typeof r === 'string') return r;
+    const myUid = effectiveUserId || currentUserId;
+    return r[myUid] || null;
+  };
+
+  // WhatsApp Message Dropdown click outside listener
+  useEffect(() => {
+    function handleMenuClickOutside(e) {
+      if (!e.target?.closest?.('.wa-msg-dropdown-container, .msg-bubble-menu-trigger, .wa-more-emojis-picker')) {
+        setActiveMenuMsgId(null);
+        setShowMoreEmojisMsgId(null);
+      }
+    }
+    if (activeMenuMsgId || showMoreEmojisMsgId) {
+      document.addEventListener('mousedown', handleMenuClickOutside);
+      document.addEventListener('touchstart', handleMenuClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleMenuClickOutside);
+      document.removeEventListener('touchstart', handleMenuClickOutside);
+    };
+  }, [activeMenuMsgId, showMoreEmojisMsgId]);
+
+  const handleOpenMenu = (e, msgId) => {
+    e.stopPropagation();
+    const rect = e.currentTarget.getBoundingClientRect();
+    const spaceBelow = window.innerHeight - rect.bottom;
+    setMenuOpenUpward(spaceBelow < 300);
+    setActiveMenuMsgId((prev) => (prev === msgId ? null : msgId));
+  };
+
+  const handleBubbleClick = (e, msg) => {
+    // On mobile responsive, clicking anywhere on the message opens the WhatsApp dropdown
+    if (window.innerWidth <= 768) {
+      e.stopPropagation();
+      const rect = e.currentTarget.getBoundingClientRect();
+      const spaceBelow = window.innerHeight - rect.bottom;
+      setMenuOpenUpward(spaceBelow < 300);
+      setActiveMenuMsgId((prev) => (prev === msg.id ? null : msg.id));
+    }
+  };
+
+  const handleToggleReaction = (msgId, emoji) => {
+    const myUserId = effectiveUserId || currentUserId;
+    const socket = getSocket();
+    const isGroup = selectedContact?.is_group || String(selectedContact?.user_id).startsWith('group_');
+    const gid = isGroup ? parseInt(String(selectedContact.user_id).replace('group_', ''), 10) : null;
+
+    let targetEmoji = emoji;
+    setReactions((prev) => {
+      const cur = prev[msgId];
+      const myExisting = typeof cur === 'object' ? cur?.[myUserId] : (typeof cur === 'string' ? cur : null);
+      if (myExisting === emoji) {
+        targetEmoji = null; // Un-react
+        const nextMsgReactions = typeof cur === 'object' ? { ...cur } : {};
+        delete nextMsgReactions[myUserId];
+        return { ...prev, [msgId]: nextMsgReactions };
+      }
+      const nextMsgReactions = typeof cur === 'object' ? { ...cur, [myUserId]: emoji } : { [myUserId]: emoji };
+      return { ...prev, [msgId]: nextMsgReactions };
+    });
+
+    if (socket && socket.connected) {
+      socket.emit('message_reaction', {
+        messageId: msgId,
+        emoji: targetEmoji,
+        senderId: myUserId,
+        receiverId: isGroup ? null : selectedContact?.user_id,
+        groupId: gid,
+      });
+    }
+    setActiveMenuMsgId(null);
+  };
+
+  const handleDeleteForEveryone = (msg) => {
+    const socket = getSocket();
+    const myUserId = effectiveUserId || currentUserId;
+    const isGroup = selectedContact?.is_group || String(selectedContact?.user_id).startsWith('group_');
+    const gid = isGroup ? parseInt(String(selectedContact.user_id).replace('group_', ''), 10) : null;
+
+    if (socket && socket.connected) {
+      socket.emit('delete_message', {
+        messageId: msg.id,
+        deleteForEveryone: true,
+        senderId: myUserId,
+        receiverId: isGroup ? null : selectedContact?.user_id,
+        groupId: gid,
+      });
+    }
+    deleteChatMessageHttp(msg.id, myUserId, true);
+
+    setMessages((prev) =>
+      prev.map((m) =>
+        String(m.id) === String(msg.id)
+          ? { ...m, is_deleted: true, text: 'You deleted this message', attachment: null }
+          : m
+      )
+    );
+    toast.success('Message deleted for everyone');
+    setDeleteModalMsg(null);
+  };
+
+  const handleDeleteForMe = (msg) => {
+    const socket = getSocket();
+    const myUserId = effectiveUserId || currentUserId;
+
+    if (socket && socket.connected) {
+      socket.emit('delete_message', {
+        messageId: msg.id,
+        deleteForMe: true,
+        senderId: myUserId,
+      });
+    }
+    deleteChatMessageHttp(msg.id, myUserId, false);
+
+    setMessages((prev) => prev.filter((m) => String(m.id) !== String(msg.id)));
+    toast.success('Message deleted for you');
+    setDeleteModalMsg(null);
+  };
+
+  const handleCopyMessage = (msg) => {
+    const textToCopy = msg.text || msg.attachment?.name || '';
+    if (textToCopy) {
+      navigator.clipboard?.writeText?.(textToCopy);
+      toast.success('Message copied!');
+    }
+    setActiveMenuMsgId(null);
+  };
+
+  const handleReplyMessage = (msg) => {
+    setReplyingTo(msg);
+    setActiveMenuMsgId(null);
+  };
+
+  const handlePinMessage = (msg) => {
+    const isCurrentlyPinned = pinnedMessageId === msg.id;
+    setPinnedMessageId(isCurrentlyPinned ? null : msg.id);
+    toast.success(isCurrentlyPinned ? 'Message unpinned' : 'Message pinned!');
+    setActiveMenuMsgId(null);
+  };
+
+  const handleMessageInfo = (msg) => {
+    setInfoModalMsg(msg);
+    setActiveMenuMsgId(null);
+  };
+
+  const handleForwardMessage = (msg) => {
+    setForwardModalMsg(msg);
+    setForwardSearchQuery('');
+    setActiveMenuMsgId(null);
+  };
+
+  const handleExecuteForward = (targetContact, msgToForward) => {
+    const myUserId = effectiveUserId || currentUserId;
+    const socket = getSocket();
+    const fwdText = msgToForward.text || '';
+    const fwdAttachment = msgToForward.attachment || null;
+
+    if (socket && socket.connected) {
+      emitSendMessage({
+        senderId: myUserId,
+        receiverId: targetContact.user_id,
+        text: fwdText,
+        attachment: fwdAttachment,
+      });
+    } else {
+      sendChatMessageHttp({
+        senderId: myUserId,
+        receiverId: targetContact.user_id,
+        text: fwdText,
+        attachment: fwdAttachment,
+      });
+    }
+    toast.success(`Forwarded to ${targetContact.name}!`);
+    setForwardModalMsg(null);
+    setForwardSearchQuery('');
+  };
 
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -382,6 +593,7 @@ export default function MessagesPage() {
         }
 
         if (Array.isArray(history) && history.length > 0) {
+          const loadedReactions = {};
           const formatted = history.map((m) => {
             const isMe = String(m.sender_id) === String(myId);
             let msgText = m.text;
@@ -393,13 +605,19 @@ export default function MessagesPage() {
                 msgAttachment = parsed.attachment || null;
               }
             } catch {}
+
+            if (m.reactions && Object.keys(m.reactions).length > 0) {
+              loadedReactions[m.id] = m.reactions;
+            }
+
             return {
               id: m.id,
               sender_id: m.sender_id,
               receiver_id: m.receiver_id,
               sender: isMe ? 'me' : 'them',
-              text: msgText,
-              attachment: msgAttachment || null,
+              text: m.is_deleted ? 'This message was deleted' : msgText,
+              attachment: m.is_deleted ? null : (msgAttachment || null),
+              is_deleted: Boolean(m.is_deleted),
               time: m.created_at
                 ? new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
                 : 'Just now',
@@ -407,6 +625,7 @@ export default function MessagesPage() {
             };
           });
           setMessages(formatted);
+          setReactions((prev) => ({ ...prev, ...loadedReactions }));
         } else {
           setMessages([]);
         }
@@ -616,6 +835,49 @@ export default function MessagesPage() {
       }
     });
 
+    const socket = getSocket();
+    const handleSocketReaction = (data) => {
+      const { messageId, emoji, senderId, reactions: updatedReactions } = data || {};
+      if (!messageId) return;
+      setReactions((prev) => {
+        const next = { ...prev };
+        if (updatedReactions) {
+          next[messageId] = updatedReactions;
+        } else if (emoji) {
+          next[messageId] = { ...(next[messageId] || {}), [senderId]: emoji };
+        } else {
+          const existing = { ...(next[messageId] || {}) };
+          delete existing[senderId];
+          next[messageId] = existing;
+        }
+        return next;
+      });
+    };
+
+    const handleSocketDeleted = (data) => {
+      const { messageId } = data || {};
+      if (!messageId) return;
+      setMessages((prev) =>
+        prev.map((m) =>
+          String(m.id) === String(messageId)
+            ? { ...m, is_deleted: true, text: 'This message was deleted', attachment: null }
+            : m
+        )
+      );
+    };
+
+    const handleSocketDeletedForMe = (data) => {
+      const { messageId } = data || {};
+      if (!messageId) return;
+      setMessages((prev) => prev.filter((m) => String(m.id) !== String(messageId)));
+    };
+
+    if (socket) {
+      socket.on('message_reaction', handleSocketReaction);
+      socket.on('message_deleted', handleSocketDeleted);
+      socket.on('message_deleted_for_me', handleSocketDeletedForMe);
+    }
+
     return () => {
       unsubNewMsg();
       unsubSent();
@@ -623,6 +885,11 @@ export default function MessagesPage() {
       unsubGroupRead();
       unsubTyping();
       unsubStopTyping();
+      if (socket) {
+        socket.off('message_reaction', handleSocketReaction);
+        socket.off('message_deleted', handleSocketDeleted);
+        socket.off('message_deleted_for_me', handleSocketDeletedForMe);
+      }
     };
   }, [effectiveUserId, currentUserId]);
 
@@ -641,6 +908,15 @@ export default function MessagesPage() {
     const tempId = `temp_${Date.now()}`;
     const isReceiverOnline = onlineUserIds.includes(String(selectedContact.user_id));
 
+    const currentReply = replyingTo
+      ? {
+          id: replyingTo.id,
+          text: replyingTo.text || replyingTo.attachment?.name || '',
+          sender: replyingTo.sender,
+          name: replyingTo.sender === 'me' ? 'You' : (selectedContact?.name || 'Leader'),
+        }
+      : null;
+
     const optimisticMsg = {
       id: tempId,
       sender_id: myUserId,
@@ -650,10 +926,12 @@ export default function MessagesPage() {
       attachment: attachment || null,
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       status: isReceiverOnline ? 'delivered' : 'sent',
+      replyTo: currentReply,
     };
 
     setMessages((prev) => [...prev, optimisticMsg]);
     setInputText('');
+    setReplyingTo(null);
 
     const previewSnippet = cleanText || (attachment ? `📎 ${attachment.name}` : 'File');
     setConversations((prev) =>
@@ -1214,6 +1492,36 @@ export default function MessagesPage() {
                   </div>
                 )}
 
+                {/* ── WhatsApp Pinned Message Header Banner ── */}
+                {pinnedMessageId && (() => {
+                  const pMsg = messages.find((m) => m.id === pinnedMessageId);
+                  if (!pMsg) return null;
+                  return (
+                    <div className="wa-pinned-header-strip">
+                      <div className="wa-pinned-meta">
+                        <span className="wa-pinned-icon">📌</span>
+                        <div className="wa-pinned-text-wrap">
+                          <span className="wa-pinned-label">Pinned message</span>
+                          <span className="wa-pinned-snippet">
+                            {pMsg.text || pMsg.attachment?.name || 'Attachment'}
+                          </span>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        className="wa-pinned-close-btn"
+                        onClick={() => {
+                          setPinnedMessageId(null);
+                          toast('Message unpinned');
+                        }}
+                        title="Unpin message"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  );
+                })()}
+
                 {/* ── Messages Stream with Images, Videos, PDF, Voice Notes & WhatsApp Ticks ── */}
                 <div className="msg-chat-messages-area">
                   {loadingMessages ? (
@@ -1232,6 +1540,7 @@ export default function MessagesPage() {
                     messages.map((msg, idx) => {
                 const isMe = msg.sender === 'me';
                 const status = msg.status || 'delivered';
+                const isPinned = pinnedMessageId === msg.id;
 
                 return (
                   <div
@@ -1246,7 +1555,29 @@ export default function MessagesPage() {
                       />
                     )}
 
-                    <div className="msg-bubble-content">
+                    <div
+                      className="msg-bubble-content"
+                      onClick={(e) => handleBubbleClick(e, msg)}
+                    >
+                      {/* WhatsApp Pin Badge if message is pinned */}
+                      {isPinned && (
+                        <div className="msg-pinned-badge-chip" title="Pinned message">
+                          <BsPinAngle className="msg-pinned-chip-icon" />
+                          <span>Pinned</span>
+                        </div>
+                      )}
+
+                      {/* WhatsApp Quoted Reply inside Bubble */}
+                      {msg.replyTo && (
+                        <div className="wa-bubble-quote-box">
+                          <div className="wa-bubble-quote-bar" />
+                          <div className="wa-bubble-quote-info">
+                            <span className="wa-bubble-quote-author">{msg.replyTo.name}</span>
+                            <span className="wa-bubble-quote-snippet">{msg.replyTo.text}</span>
+                          </div>
+                        </div>
+                      )}
+
                       {/* Photo / Image Attachment */}
                       {msg.attachment?.type === 'image' && (
                         <div className="msg-attachment-media-wrap">
@@ -1326,15 +1657,21 @@ export default function MessagesPage() {
                       )}
 
                       {/* Text message */}
-                      {msg.text && msg.text !== msg.attachment?.name && (
-                        <p className="msg-bubble-text">{msg.text}</p>
+                      {msg.is_deleted ? (
+                        <p className="msg-bubble-text msg-bubble-deleted">
+                          <span className="msg-deleted-symbol">🚫</span> <em>{msg.text || 'This message was deleted'}</em>
+                        </p>
+                      ) : (
+                        msg.text && msg.text !== msg.attachment?.name && (
+                          <p className="msg-bubble-text">{msg.text}</p>
+                        )
                       )}
 
                       <div className="msg-bubble-meta-row">
                         <span className="msg-bubble-time">{msg.time}</span>
 
                         {/* WhatsApp Ticks on Outgoing Messages */}
-                        {isMe && (
+                        {isMe && !msg.is_deleted && (
                           <span className="msg-tick-container">
                             {status === 'read' ? (
                               <IoCheckmarkDone className="msg-tick msg-tick-blue" title="Read" />
@@ -1346,6 +1683,161 @@ export default function MessagesPage() {
                           </span>
                         )}
                       </div>
+
+                      {/* WhatsApp Quick Reaction Badge on bubble corner */}
+                      {!msg.is_deleted && getMsgReactionList(msg.id).length > 0 && (
+                        <div
+                          className="msg-reaction-badge"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const myReact = getMyReaction(msg.id);
+                            if (myReact) handleToggleReaction(msg.id, myReact);
+                          }}
+                          title="Click to remove reaction"
+                        >
+                          {Array.from(new Set(getMsgReactionList(msg.id))).map((em, idx) => (
+                            <span key={idx} className="msg-reaction-emoji">{em}</span>
+                          ))}
+                          {getMsgReactionList(msg.id).length > 1 && (
+                            <span className="msg-reaction-count">{getMsgReactionList(msg.id).length}</span>
+                          )}
+                        </div>
+                      )}
+
+                      {/* WhatsApp Dropdown Trigger Arrow (Hover on Desktop / Tap on Mobile) */}
+                      {!msg.is_deleted && (
+                        <button
+                          type="button"
+                          className={`msg-bubble-menu-trigger ${activeMenuMsgId === msg.id ? 'active' : ''}`}
+                          title="Message options"
+                          onClick={(e) => handleOpenMenu(e, msg.id)}
+                        >
+                          <FiChevronDown />
+                        </button>
+                      )}
+
+                      {/* WhatsApp Floating Dropdown Menu (Exact Match Image 2) */}
+                      {activeMenuMsgId === msg.id && !msg.is_deleted && (
+                        <div
+                          className={`wa-msg-dropdown-container ${isMe ? 'wa-dropdown-outgoing' : 'wa-dropdown-incoming'} ${menuOpenUpward ? 'open-upward' : 'open-downward'}`}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {/* 1. Emoji Reactions Bar */}
+                          <div className="wa-reactions-bar">
+                            {['👍', '❤️', '😂', '😮', '😢', '🙏'].map((emoji) => (
+                              <button
+                                key={emoji}
+                                type="button"
+                                className={`wa-reaction-btn ${getMyReaction(msg.id) === emoji ? 'active' : ''}`}
+                                onClick={() => handleToggleReaction(msg.id, emoji)}
+                                title={`React with ${emoji}`}
+                              >
+                                {emoji}
+                              </button>
+                            ))}
+                            <button
+                              type="button"
+                              className={`wa-reaction-btn wa-reaction-plus ${showMoreEmojisMsgId === msg.id ? 'active' : ''}`}
+                              title="More reactions"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setShowMoreEmojisMsgId((prev) => (prev === msg.id ? null : msg.id));
+                              }}
+                            >
+                              +
+                            </button>
+                          </div>
+
+                          {/* 1.1 Extended Emoji Reactions Grid (When + is clicked) */}
+                          {showMoreEmojisMsgId === msg.id && (
+                            <div className="wa-more-emojis-picker" onClick={(e) => e.stopPropagation()}>
+                              <div className="wa-more-emojis-grid">
+                                {[
+                                  '😀', '😃', '😄', '😁', '😆', '🥹', '😅', '🤣', '😂', '🙂',
+                                  '😉', '😊', '😇', '🥰', '😍', '🤩', '😘', '😋', '😜', '🤪',
+                                  '🤫', '🤗', '🤭', '😏', '🥳', '😎', '🤓', '🧐', '🔥', '🎉',
+                                  '✨', '💯', '👏', '🙌', '💪', '🤝', '❤️', '🧡', '💛', '💚',
+                                  '💙', '💜', '🤎', '🖤', '🤍', '💔', '❣️', '💕', '💫', '💥',
+                                  '👀', '🤙', '✌️', '🤞', '🙏'
+                                ].map((em) => (
+                                  <button
+                                    key={em}
+                                    type="button"
+                                    className={`wa-more-emoji-btn ${getMyReaction(msg.id) === em ? 'active' : ''}`}
+                                    onClick={() => {
+                                      handleToggleReaction(msg.id, em);
+                                      setShowMoreEmojisMsgId(null);
+                                    }}
+                                    title={em}
+                                  >
+                                    {em}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* 2. Actions List (Exact matching Image 1 + Delete, React omitted since emojis are above) */}
+                          <div className="wa-action-menu">
+                            <button
+                              type="button"
+                              className="wa-action-item"
+                              onClick={() => handleMessageInfo(msg)}
+                            >
+                              <FiInfo className="wa-action-icon" />
+                              <span>Message info</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              className="wa-action-item"
+                              onClick={() => handleReplyMessage(msg)}
+                            >
+                              <FiCornerUpLeft className="wa-action-icon" />
+                              <span>Reply</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              className="wa-action-item"
+                              onClick={() => handleCopyMessage(msg)}
+                            >
+                              <FiCopy className="wa-action-icon" />
+                              <span>Copy</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              className="wa-action-item"
+                              onClick={() => handleForwardMessage(msg)}
+                            >
+                              <FiCornerUpRight className="wa-action-icon" />
+                              <span>Forward</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              className="wa-action-item"
+                              onClick={() => handlePinMessage(msg)}
+                            >
+                              <BsPinAngle className="wa-action-icon" />
+                              <span>{isPinned ? 'Unpin' : 'Pin'}</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              className="wa-action-item wa-action-item-danger"
+                              onClick={() => {
+                                setDeleteModalMsg(msg);
+                                setActiveMenuMsgId(null);
+                              }}
+                            >
+                              <FiTrash2 className="wa-action-icon wa-danger-icon" />
+                              <span>Delete</span>
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 );
@@ -1373,6 +1865,29 @@ export default function MessagesPage() {
 
               <div ref={messagesEndRef} />
             </div>
+
+            {/* ── WhatsApp Replying To Preview Bar ── */}
+            {replyingTo && (
+              <div className="wa-reply-bar-preview">
+                <div className="wa-reply-bar-accent" />
+                <div className="wa-reply-bar-info">
+                  <span className="wa-reply-bar-sender">
+                    {replyingTo.sender === 'me' ? 'You' : (selectedContact?.name || 'Leader')}
+                  </span>
+                  <span className="wa-reply-bar-text">
+                    {replyingTo.text || (replyingTo.attachment ? `[${replyingTo.attachment.type}] ${replyingTo.attachment.name}` : 'Message')}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  className="wa-reply-bar-close"
+                  onClick={() => setReplyingTo(null)}
+                  title="Cancel reply"
+                >
+                  ✕
+                </button>
+              </div>
+            )}
 
             {/* ── Typing Section with Interactive Emoji Picker & Expandable Drawer ── */}
             <form className="msg-typing-section" onSubmit={handleSendMessage}>
@@ -1626,6 +2141,162 @@ export default function MessagesPage() {
             socket={getSocket()}
             onClose={() => setActiveCall(null)}
           />
+        )}
+
+        {/* ℹ️ WhatsApp Message Info Modal */}
+        {/* ℹ️ WhatsApp Message Info Modal */}
+        {infoModalMsg && (
+          <div className="wa-modal-overlay" onClick={() => setInfoModalMsg(null)}>
+            <div className="wa-info-modal-card" onClick={(e) => e.stopPropagation()}>
+              <div className="wa-modal-header">
+                <h4>Message info</h4>
+                <button
+                  type="button"
+                  className="wa-modal-close"
+                  onClick={() => setInfoModalMsg(null)}
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="wa-info-preview-wrap">
+                <div className={`msg-bubble-content ${infoModalMsg.sender === 'me' ? 'msg-outgoing-preview' : 'msg-incoming-preview'}`}>
+                  <p className="msg-bubble-text">{infoModalMsg.text || infoModalMsg.attachment?.name || 'Attachment'}</p>
+                  <div className="msg-bubble-meta-row">
+                    <span className="msg-bubble-time">{infoModalMsg.time}</span>
+                    <span className="msg-tick-container">
+                      <IoCheckmarkDone className="msg-tick msg-tick-blue" />
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="wa-info-stats-list">
+                <div className="wa-info-stat-row">
+                  <div className="wa-info-stat-icon-wrap">
+                    <IoCheckmarkDone className="msg-tick msg-tick-blue" />
+                  </div>
+                  <div className="wa-info-stat-meta">
+                    <span className="wa-info-stat-title">Read</span>
+                    <span className="wa-info-stat-desc">Today at {infoModalMsg.time}</span>
+                  </div>
+                </div>
+                <div className="wa-info-stat-divider" />
+                <div className="wa-info-stat-row">
+                  <div className="wa-info-stat-icon-wrap">
+                    <IoCheckmarkDone className="msg-tick msg-tick-grey" />
+                  </div>
+                  <div className="wa-info-stat-meta">
+                    <span className="wa-info-stat-title">Delivered</span>
+                    <span className="wa-info-stat-desc">Today at {infoModalMsg.time}</span>
+                  </div>
+                </div>
+              </div>
+
+              {getMsgReactionList(infoModalMsg.id).length > 0 && (
+                <div className="wa-info-reactions-section">
+                  <div className="wa-info-section-title">Reactions</div>
+                  <div className="wa-info-reactions-list">
+                    {getMsgReactionList(infoModalMsg.id).map((em, idx) => (
+                      <span key={idx} className="wa-info-reaction-pill">{em}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ↪️ WhatsApp Forward Message Modal */}
+        {forwardModalMsg && (
+          <div className="wa-modal-overlay" onClick={() => setForwardModalMsg(null)}>
+            <div className="wa-forward-modal-card" onClick={(e) => e.stopPropagation()}>
+              <div className="wa-modal-header">
+                <h4>Forward message to</h4>
+                <button
+                  type="button"
+                  className="wa-modal-close"
+                  onClick={() => setForwardModalMsg(null)}
+                >
+                  ✕
+                </button>
+              </div>
+              <div className="wa-forward-search-wrap">
+                <FiSearch className="wa-forward-search-icon" />
+                <input
+                  type="text"
+                  className="wa-forward-search-input"
+                  placeholder="Search contacts..."
+                  value={forwardSearchQuery}
+                  onChange={(e) => setForwardSearchQuery(e.target.value)}
+                />
+              </div>
+              <div className="wa-forward-contacts-list">
+                {conversations
+                  .filter((c) =>
+                    (c.name || '').toLowerCase().includes(forwardSearchQuery.toLowerCase())
+                  )
+                  .map((contact) => (
+                    <div key={contact.user_id} className="wa-forward-contact-item">
+                      <img
+                        src={contact.avatar_url || userAvatarRahul}
+                        alt={contact.name}
+                        className="wa-forward-avatar"
+                        onError={(e) => {
+                          e.currentTarget.onerror = null;
+                          e.currentTarget.src = userAvatarRahul;
+                        }}
+                      />
+                      <div className="wa-forward-contact-info">
+                        <span className="wa-forward-name">{contact.name}</span>
+                        <span className="wa-forward-role">{contact.role || contact.designation || 'Leader'}</span>
+                      </div>
+                      <button
+                        type="button"
+                        className="wa-forward-send-btn"
+                        onClick={() => handleExecuteForward(contact, forwardModalMsg)}
+                      >
+                        Send
+                      </button>
+                    </div>
+                  ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 🗑️ WhatsApp Delete Message Modal */}
+        {deleteModalMsg && (
+          <div className="wa-modal-overlay" onClick={() => setDeleteModalMsg(null)}>
+            <div className="wa-delete-modal-card" onClick={(e) => e.stopPropagation()}>
+              <h4 className="wa-delete-modal-title">Delete message?</h4>
+              <div className="wa-delete-modal-actions">
+                {deleteModalMsg.sender === 'me' && (
+                  <button
+                    type="button"
+                    className="wa-delete-btn wa-delete-everyone-btn"
+                    onClick={() => handleDeleteForEveryone(deleteModalMsg)}
+                  >
+                    Delete for everyone
+                  </button>
+                )}
+                <button
+                  type="button"
+                  className="wa-delete-btn wa-delete-me-btn"
+                  onClick={() => handleDeleteForMe(deleteModalMsg)}
+                >
+                  Delete for me
+                </button>
+                <button
+                  type="button"
+                  className="wa-delete-btn wa-delete-cancel-btn"
+                  onClick={() => setDeleteModalMsg(null)}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
         )}
       </main>
         </div>
