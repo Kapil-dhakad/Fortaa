@@ -53,6 +53,17 @@ async function registerUser(req, res) {
       });
     }
 
+    const resolvedMobile = (mobileNumber || '').trim();
+    if (resolvedMobile) {
+      const mobileAlreadyExists = await userModel.findOne({ mobileNumber: resolvedMobile });
+      if (mobileAlreadyExists) {
+        return res.status(409).json({
+          success: false,
+          message: 'An account with this mobile number already exists. Please use a different number or log in.',
+        });
+      }
+    }
+
 
     const hash = await bcrypt.hash(resolvedPassword, 10);
 
@@ -342,6 +353,45 @@ async function checkEmail(req, res) {
 }
 
 /**
+ * Check if Mobile Number already exists in Database
+ */
+async function checkMobile(req, res) {
+  try {
+    const mobile = (req.query.mobile || req.body.mobile || req.query.mobileNumber || req.body.mobileNumber || '').trim();
+
+    if (!mobile) {
+      return res.status(400).json({
+        success: false,
+        message: 'Mobile number is required',
+      });
+    }
+
+    const existingUser = await userModel.findOne({ mobileNumber: mobile });
+
+    if (existingUser) {
+      return res.status(200).json({
+        success: true,
+        exists: true,
+        message: 'This mobile number is already registered. Please log in or use another number.',
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      exists: false,
+      message: 'Mobile number is available',
+    });
+  } catch (error) {
+    console.error('[CheckMobile Error]:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to check mobile number',
+      error: error.message,
+    });
+  }
+}
+
+/**
  * Get User Profile by ID
  */
 async function getUserProfile(req, res) {
@@ -354,7 +404,8 @@ async function getUserProfile(req, res) {
     if (db.isDBConnected()) {
       const result = await db.query(
         `SELECT id, member_id, account_type, name, username, email, mobile_number, dob, gender,
-                location, skills, experience, bio, designation, company_brand, business_name, avatar_url
+                location, skills, experience, bio, designation, company_brand, business_name, avatar_url,
+                website_social, created_at
          FROM users WHERE id = $1`,
         [userId]
       );
@@ -479,6 +530,41 @@ async function updateUserProfile(req, res) {
   }
 }
 
+/**
+ * Get Downline Network Team for a user
+ */
+async function getUserTeam(req, res) {
+  try {
+    const userId = parseInt(req.params.id, 10);
+    if (!userId || isNaN(userId)) {
+      return res.status(200).json({ success: true, team: [] });
+    }
+    if (db.isDBConnected()) {
+      const uRes = await db.query('SELECT member_id FROM users WHERE id = $1', [userId]);
+      const memberId = uRes.rows[0]?.member_id;
+
+      let teamRows = [];
+      if (memberId) {
+        const teamRes = await db.query(
+          `SELECT id, name, email, member_id, avatar_url,
+                  COALESCE(designation, 'Leader') as designation,
+                  COALESCE(company_brand, 'Fortaa') as company_brand
+           FROM users
+           WHERE referral_id = $1
+           ORDER BY id DESC`,
+          [memberId]
+        );
+        teamRows = teamRes.rows;
+      }
+      return res.status(200).json({ success: true, team: teamRows });
+    }
+    return res.status(200).json({ success: true, team: [] });
+  } catch (err) {
+    console.error('getUserTeam error:', err);
+    return res.status(200).json({ success: true, team: [] });
+  }
+}
+
 module.exports = {
   registerUser,
   loginUser,
@@ -487,6 +573,8 @@ module.exports = {
   getAllUsers,
   getUserStats,
   checkEmail,
+  checkMobile,
   getUserProfile,
   updateUserProfile,
+  getUserTeam,
 };

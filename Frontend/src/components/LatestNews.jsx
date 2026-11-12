@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router-dom';
 import iconNetwork from '../assets/figma/icon_network.png';
 import iconRightArrow from '../assets/figma/icon_right_arrow.png';
 import newsMeeting from '../assets/figma/news_meeting.png';
@@ -16,8 +17,8 @@ const newsArticles = [
     date: '03 Nov 2026',
   },
   {
-    category: 'Product Updates',
-    title: 'New product launches and industry developments',
+    category: 'Service Updates',
+    title: 'New service launches and industry developments',
     date: '05 Nov 2026',
   },
 ];
@@ -47,6 +48,12 @@ const eventsList = [
 ];
 
 export default function LatestNews() {
+  const navigate = useNavigate();
+
+  const handleAction = () => {
+    navigate('/login');
+  };
+
   return (
     <section className="figma-three-block-section" id="news">
       <div className="figma-three-block-container">
@@ -71,10 +78,14 @@ export default function LatestNews() {
                   <span className="figma-article-badge">{art.category}</span>
                   <h4 className="figma-article-title">{art.title}</h4>
                   <span className="figma-article-date">{art.date}</span>
-                  <a href="#read" className="figma-article-read-btn">
+                  <button
+                    type="button"
+                    onClick={handleAction}
+                    className="figma-article-read-btn"
+                  >
                     <span>Read Article</span>
                     <img src={iconRightArrow} alt="" />
-                  </a>
+                  </button>
                 </div>
               </div>
             ))}
@@ -108,10 +119,14 @@ export default function LatestNews() {
               </div>
             </div>
 
-            <a href="#story" className="figma-btn-success-story">
+            <button
+              type="button"
+              onClick={handleAction}
+              className="figma-btn-success-story"
+            >
               <span>Read Success Story</span>
               <img src={iconRightArrow} alt="" />
-            </a>
+            </button>
 
             <div className="figma-growth-dots">
               <span className="growth-dot active" />
@@ -123,17 +138,22 @@ export default function LatestNews() {
         </div>
 
         {/* ================= COLUMN 3 (~25% width): UPCOMING EVENTS ================= */}
-        <div className="figma-col-events">
+        <div className="figma-col-events" id="events">
           <div className="figma-subcol-header">
             <div className="figma-events-tag-row">
               <div className="figma-subcol-tag">
                 <img src={iconNetwork} alt="" className="figma-tag-network-icon" />
                 <span>UPCOMING EVENTS</span>
               </div>
-              <a href="#all-events" className="figma-growth-view-all">
+              <button
+                type="button"
+                onClick={handleAction}
+                className="figma-growth-view-all"
+                style={{ background: 'transparent', border: 'none', cursor: 'pointer' }}
+              >
                 <span>View All Categories</span>
                 <img src={iconRightArrow} alt="" />
-              </a>
+              </button>
             </div>
             <p className="figma-growth-sub-desc events-desc">
               Be part of industry Events, workshops and Networking meets.
@@ -156,10 +176,14 @@ export default function LatestNews() {
                   </span>
                 </div>
 
-                <a href="#event" className="figma-event-action-pill">
+                <button
+                  type="button"
+                  onClick={handleAction}
+                  className="figma-event-action-pill"
+                >
                   <span>{ev.btnLabel}</span>
                   <img src={iconRightArrow} alt="" />
-                </a>
+                </button>
               </div>
             ))}
           </div>
@@ -167,5 +191,4 @@ export default function LatestNews() {
       </div>
     </section>
   );
-
 }

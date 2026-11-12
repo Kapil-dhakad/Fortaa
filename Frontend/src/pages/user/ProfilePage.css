@@ -641,31 +641,63 @@
 .prof-stat-card {
   background: #FFFFFF;
   border: 1px solid #E2E8F0;
-  border-radius: 12px;
-  padding: 16px 20px;
+  border-radius: 14px;
+  padding: 16px 18px;
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 14px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
-  transition: transform 0.15s ease;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+  cursor: pointer;
+  user-select: none;
 }
 
 .prof-stat-card:hover {
-  transform: translateY(-1px);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
+  border-color: #CBD5E1;
+}
+
+.prof-stat-card:active {
+  transform: scale(0.98);
 }
 
 .prof-stat-icon-wrap {
-  width: 44px;
-  height: 44px;
+  width: 46px;
+  height: 46px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  border-radius: 12px;
+  transition: transform 0.2s ease;
+}
+
+.prof-stat-card:hover .prof-stat-icon-wrap {
+  transform: scale(1.06);
+}
+
+/* Individual Stat Icon Badge Tints */
+.prof-stat-card--network .prof-stat-icon-wrap {
+  background: #FEF2F2;
+}
+
+.prof-stat-card--followers .prof-stat-icon-wrap {
+  background: #F0FDF4;
+}
+
+.prof-stat-card--following .prof-stat-icon-wrap {
+  background: #FFFBEB;
+}
+
+.prof-stat-card--post .prof-stat-icon-wrap {
+  background: #EFF6FF;
 }
 
 .prof-stat-info {
   display: flex;
   flex-direction: column;
+  min-width: 0;
 }
 
 .prof-stat-number {
@@ -677,10 +709,11 @@
 }
 
 .prof-stat-label {
-  font-size: 13.5px;
-  color: #1E1B4B;
-  font-weight: 700;
+  font-size: 13px;
+  color: #64748B;
+  font-weight: 600;
   margin-top: 3px;
+  white-space: nowrap;
 }
 
 /* ───────────────── ABOUT ME CARD ───────────────── */
@@ -1254,7 +1287,8 @@
     display: none;
   }
   .prof-stats-grid {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
   }
 }
 
@@ -1960,8 +1994,51 @@
     padding: 12px 12px 85px 12px;
   }
   .prof-stats-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 12px;
+    display: grid !important;
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 8px !important;
+    margin-bottom: 14px !important;
+  }
+  .prof-stat-card {
+    padding: 10px 4px 8px !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    text-align: center !important;
+    gap: 3px !important;
+    border-radius: 12px !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04) !important;
+  }
+  .prof-stat-icon-wrap {
+    width: 32px !important;
+    height: 32px !important;
+    border-radius: 8px !important;
+    margin-bottom: 2px !important;
+  }
+  .prof-stat-icon-wrap svg {
+    width: 18px !important;
+    height: 18px !important;
+  }
+  .prof-stat-info {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    text-align: center !important;
+  }
+  .prof-stat-number {
+    font-size: 15px !important;
+    font-weight: 800 !important;
+    color: #1E1B4B !important;
+    line-height: 1.1 !important;
+  }
+  .prof-stat-label {
+    font-size: 10.5px !important;
+    font-weight: 600 !important;
+    color: #64748B !important;
+    margin-top: 1px !important;
+    white-space: nowrap !important;
+    letter-spacing: -0.2px !important;
   }
   .prof-edit-view {
     grid-template-columns: 1fr;
@@ -2005,16 +2082,6 @@
   }
   .prof-user-name {
     font-size: 17px;
-  }
-  .prof-stat-number {
-    font-size: 18px;
-  }
-  .prof-stat-label {
-    font-size: 11.5px;
-  }
-  .prof-stat-card {
-    padding: 12px 14px;
-    gap: 10px;
   }
   .prof-tabs-bar {
     overflow-x: auto;
@@ -2074,7 +2141,26 @@
     white-space: nowrap;
   }
   .prof-stats-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 6px !important;
+  }
+  .prof-stat-card {
+    padding: 8px 3px 6px !important;
+  }
+  .prof-stat-icon-wrap {
+    width: 28px !important;
+    height: 28px !important;
+    border-radius: 7px !important;
+  }
+  .prof-stat-icon-wrap svg {
+    width: 16px !important;
+    height: 16px !important;
+  }
+  .prof-stat-number {
+    font-size: 14px !important;
+  }
+  .prof-stat-label {
+    font-size: 10px !important;
   }
   .prof-meta-contact-row {
     flex-direction: column;
@@ -2083,6 +2169,13 @@
   }
   .prof-about-card {
     padding: 14px 16px;
+  }
+}
+
+@media (max-width: 340px) {
+  .prof-stats-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 6px !important;
   }
 }
 

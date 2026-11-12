@@ -41,6 +41,7 @@ router.get('/following/:userId', getFollowing);
 
 // Quick array of followed IDs & pending IDs for current user
 router.get('/following-ids/:userId', getFollowingIds);
+router.get('/ids/:userId', getFollowingIds);
 
 // Profile Social Counts
 router.get('/counts/:userId', getUserSocialCounts);

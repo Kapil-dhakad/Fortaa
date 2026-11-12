@@ -8,8 +8,10 @@ const {
   getAllUsers,
   getUserStats,
   checkEmail,
+  checkMobile,
   getUserProfile,
   updateUserProfile,
+  getUserTeam,
 } = require('../controller/user.controller');
 const { handleGoogleAuth } = require('../controller/googleAuth.controller');
 const { sendEmailOtp, verifyEmailOtp } = require('../controller/otp.controller');
@@ -18,6 +20,7 @@ const authMiddleware = require('../middleware/auth.middleware');
 
 // Authentication routes
 router.get('/check-email', checkEmail);
+router.get('/check-mobile', checkMobile);
 router.post('/register', validateRegistration, registerUser);
 router.post('/login', loginUser);
 router.post('/google-login', validateGoogleAuth, handleGoogleAuth);
@@ -33,5 +36,6 @@ router.get('/stats', getUserStats);
 // Profile routes
 router.get('/profile/:id', getUserProfile);
 router.put('/profile/:id', updateUserProfile);
+router.get('/team/:id', getUserTeam);
 
 module.exports = router;

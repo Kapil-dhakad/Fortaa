@@ -2,7 +2,7 @@
    FIGMA EXACT FOOTER
    Frame 52:98: 1440 × 321px
    Background: #4E2F83 (Solid deep purple matching brand theme)
-   Left Column: Logo (logo_icon_img + logo_text_img) + Tagline + About + 4 Social circles
+   Left Column: Logo + Tagline + About + Crisp Vector Social circles
    Right Grid: 4 Columns (Explore, Business, Resources, Company)
    Bottom Row: Copyright + Motto
    ========================================================= */
@@ -86,31 +86,45 @@
 .figma-footer-socials-row {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-top: 4px;
+  gap: 12px;
+  margin-top: 8px;
 }
 
 .figma-footer-social-circle {
-  width: 30px;
-  height: 30px;
+  width: 34px;
+  height: 34px;
   border-radius: 50%;
-  background: #D31BFF;
+  background: linear-gradient(135deg, #E040FB 0%, #A81CE4 100%);
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: transform 0.15s ease, opacity 0.15s ease;
+  color: #ffffff;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   text-decoration: none;
+  box-shadow: 0 2px 8px rgba(211, 27, 255, 0.35);
 }
 
 .figma-footer-social-circle:hover {
-  transform: translateY(-2px);
-  opacity: 0.9;
+  transform: translateY(-3px) scale(1.1);
+  background: linear-gradient(135deg, #FF66FF 0%, #C328FF 100%);
+  box-shadow: 0 6px 18px rgba(224, 64, 251, 0.6);
+  color: #ffffff;
 }
 
-.figma-social-img {
-  width: 16px;
-  height: 16px;
-  object-fit: contain;
+.figma-footer-social-circle:active {
+  transform: scale(0.95);
+}
+
+.figma-social-vector-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  transition: transform 0.2s ease;
+}
+
+.figma-footer-social-circle:hover .figma-social-vector-icon {
+  transform: rotate(5deg) scale(1.08);
 }
 
 /* Right: 4 Columns Nav Grid */
@@ -150,12 +164,14 @@
   font-weight: 400;
   color: rgba(255, 255, 255, 0.85);
   text-decoration: none;
-  transition: color 0.15s ease, padding-left 0.15s ease;
+  transition: all 0.2s ease;
+  display: inline-block;
 }
 
 .figma-footer-link-item:hover {
-  color: #ffffff;
-  padding-left: 2px;
+  color: #FFB3FD;
+  transform: translateX(4px);
+  text-shadow: 0 0 10px rgba(255, 179, 253, 0.4);
 }
 
 /* Bottom copyright row */

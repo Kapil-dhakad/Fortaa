@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router-dom';
 import iconNetwork from '../assets/figma/icon_network.png';
 import iconCompanies from '../assets/figma/icon_companies.png';
 import iconLeaders from '../assets/figma/icon_leaders.png';
@@ -23,8 +24,8 @@ const categories = [
     title: 'Opportunities',
     subtitle: 'Find New Opportunities',
     description:
-      'Discover business and distribution opportunities shared by participating organiations.',
-    cta: 'Explore Companies',
+      'Discover business and distribution opportunities shared by participating organisations.',
+    cta: 'Explore Opportunities',
     cardClass: 'cat-card-opportunities',
     iconClass: 'cat-icon-opportunities',
     icon: iconCompanies,
@@ -45,12 +46,12 @@ const categories = [
     ctaColor: '#EBDEFF',
   },
   {
-    id: 'products',
-    title: 'Products',
-    subtitle: 'Explore Featured Products',
+    id: 'services',
+    title: 'Services',
+    subtitle: 'Explore Featured Services',
     description:
-      'Discover products and brands across multiple categories.',
-    cta: 'Browse Products',
+      'Discover services, tools and solutions across multiple categories.',
+    cta: 'Browse Services',
     cardClass: 'cat-card-products',
     iconClass: 'cat-icon-products',
     icon: iconProducts,
@@ -63,7 +64,7 @@ const categories = [
     subtitle: 'Promote Your Business',
     description:
       'Increase your brand visibility with featured listings and promotional campaigns.',
-    cta: 'Browse Products',
+    cta: 'Explore Promotions',
     cardClass: 'cat-card-promotions',
     iconClass: 'cat-icon-promotions',
     icon: iconProducts,
@@ -75,8 +76,8 @@ const categories = [
     title: 'Industry News',
     subtitle: 'Stay Ahead of the Industry',
     description:
-      'Get the latest news, trends,launches and business insights.',
-    cta: 'Browse Products',
+      'Get the latest news, trends, launches and business insights.',
+    cta: 'Read News',
     cardClass: 'cat-card-news',
     iconClass: 'cat-icon-news',
     icon: iconProducts,
@@ -86,6 +87,17 @@ const categories = [
 ];
 
 export default function ExploreCategories() {
+  const navigate = useNavigate();
+
+  const handleCategoryNav = (e, targetId) => {
+    e.preventDefault();
+    const elem = document.getElementById(targetId);
+    if (elem) {
+      elem.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      window.history.pushState(null, '', `#${targetId}`);
+    }
+  };
+
   return (
     <section className="figma-explore-section" id="explore">
       <div className="figma-explore-container">
@@ -101,12 +113,17 @@ export default function ExploreCategories() {
             </h2>
           </div>
 
-          <a href="#categories" className="figma-explore-view-all">
+          <button
+            type="button"
+            onClick={() => navigate('/login')}
+            className="figma-explore-view-all"
+            style={{ background: 'transparent', border: 'none', cursor: 'pointer' }}
+          >
             <span>View All Categories</span>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3B52C4" strokeWidth="2.2">
               <path d="M5 12h14M13 6l6 6-6 6" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
-          </a>
+          </button>
         </div>
 
         {/* 6 Category Cards Grid (each 223 × 280px) */}
@@ -119,7 +136,7 @@ export default function ExploreCategories() {
               }`}
             >
               {/* Decorative corner & glow shapes matching Figma */}
-              <div className="figma-cat-corner- wedge" />
+              <div className="figma-cat-corner-wedge" />
               <div className="figma-cat-glow-1" />
               <div className="figma-cat-glow-2" />
 
@@ -140,6 +157,7 @@ export default function ExploreCategories() {
               {/* Bottom CTA Link */}
               <a
                 href={`#${cat.id}`}
+                onClick={(e) => handleCategoryNav(e, cat.id)}
                 className="figma-cat-cta"
                 style={{ color: cat.ctaColor }}
               >

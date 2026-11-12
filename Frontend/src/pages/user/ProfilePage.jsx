@@ -4,6 +4,7 @@ import toast from 'react-hot-toast';
 import './ProfilePage.css';
 import UserHeader from '../../components/layout/UserHeader';
 import UserSidebar from '../../components/layout/UserSidebar';
+import UserMobileBottomNav from '../../components/layout/UserMobileBottomNav';
 import PostComments from '../../components/posts/PostComments';
 import ShareModal from '../../components/posts/ShareModal';
 import { FaRegThumbsUp, FaThumbsUp, FaRegComment } from 'react-icons/fa';
@@ -144,6 +145,7 @@ export default function ProfilePage() {
   const [shareModalPost, setShareModalPost] = useState(null);
   const [followersList, setFollowersList] = useState([]);
   const [followingList, setFollowingList] = useState([]);
+  const [networkTeamList, setNetworkTeamList] = useState([]);
 
   // Post 3-dots Menu & Edit/Delete State
   const [activePostMenuId, setActivePostMenuId] = useState(null);
@@ -274,13 +276,27 @@ export default function ProfilePage() {
       const posts = await fetchPosts(currentUserId, 'mine');
       setMyPosts(posts);
 
-      // 3. Followers & Following lists
+      // 3. Followers & Following & Network Team lists
       const [fFollowers, fFollowing] = await Promise.all([
         fetchFollowers(currentUserId),
         fetchFollowing(currentUserId),
       ]);
       setFollowersList(fFollowers);
       setFollowingList(fFollowing);
+
+      try {
+        const teamRes = await fetch(`/api/users/team/${currentUserId}`);
+        const teamData = await teamRes.json();
+        if (teamData?.success && Array.isArray(teamData.team)) {
+          setNetworkTeamList(teamData.team);
+          setSocialCounts((prev) => ({
+            ...prev,
+            networkCount: teamData.team.length,
+          }));
+        }
+      } catch (err) {
+        console.warn('Fetch network team error:', err);
+      }
     }
 
     loadProfileSocialData();
@@ -478,36 +494,6 @@ export default function ProfilePage() {
       setIsCoverModalOpen(true);
     } else {
       setActiveEditMenu(label);
-    }
-  };
-
-  const navItems = [
-    { label: 'Home', icon: navHomeIcon, path: '/dashboard' },
-    { label: 'My Profile', icon: navProfileIcon, path: '/profile' },
-    { label: 'Services', icon: navServicesIcon },
-    { label: 'My Team', icon: navTeamIcon },
-    { label: 'Following', icon: navFollowingIcon },
-    { label: 'Market Place', icon: navMarketplaceIcon },
-    { label: 'Companies', icon: navCompaniesIcon },
-    { label: 'Products', icon: navProductsIcon },
-    { label: 'Leaders', icon: navLeadersIcon },
-    { label: 'Promotions', icon: navPromotionsIcon },
-    { label: 'Events', icon: navEventsIcon },
-    { label: 'News & Updates', icon: navNewsIcon },
-    { label: 'Messages', icon: navMessagesIcon },
-    { label: 'Groups', icon: navGroupsIcon },
-    { label: 'Resources', icon: navResourcesIcon },
-    { label: 'Settings', icon: navSettingsIcon },
-  ];
-
-  const handleNavClick = (item) => {
-    setActiveNav(item.label);
-    setMobileMenuOpen(false);
-    if (item.label === 'My Profile') {
-      setIsEditing(false);
-    }
-    if (item.path && item.path !== '/profile') {
-      navigate(item.path);
     }
   };
 
@@ -1191,7 +1177,13 @@ export default function ProfilePage() {
 
               {/* 2. 4 Stats Cards Row */}
               <div className="prof-stats-grid">
-                <div className="prof-stat-card">
+                <div
+                  className="prof-stat-card prof-stat-card--network"
+                  onClick={() => setActiveTab('Network')}
+                  title="View Network"
+                  role="button"
+                  tabIndex={0}
+                >
                   <div className="prof-stat-icon-wrap">
                     <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#DC2626" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
@@ -1206,7 +1198,13 @@ export default function ProfilePage() {
                   </div>
                 </div>
 
-                <div className="prof-stat-card">
+                <div
+                  className="prof-stat-card prof-stat-card--followers"
+                  onClick={() => setActiveTab('Followers')}
+                  title="View Followers"
+                  role="button"
+                  tabIndex={0}
+                >
                   <div className="prof-stat-icon-wrap">
                     <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#16A34A" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                       <circle cx="12" cy="12" r="3"></circle>
@@ -1222,7 +1220,13 @@ export default function ProfilePage() {
                   </div>
                 </div>
 
-                <div className="prof-stat-card">
+                <div
+                  className="prof-stat-card prof-stat-card--following"
+                  onClick={() => setActiveTab('Following')}
+                  title="View Following"
+                  role="button"
+                  tabIndex={0}
+                >
                   <div className="prof-stat-icon-wrap">
                     <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#D97706" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
@@ -1235,7 +1239,13 @@ export default function ProfilePage() {
                   </div>
                 </div>
 
-                <div className="prof-stat-card">
+                <div
+                  className="prof-stat-card prof-stat-card--post"
+                  onClick={() => setActiveTab('All posts')}
+                  title="View All Posts"
+                  role="button"
+                  tabIndex={0}
+                >
                   <div className="prof-stat-icon-wrap">
                     <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#2563EB" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
@@ -1503,39 +1513,66 @@ export default function ProfilePage() {
                       <span style={{ fontSize: '13px', color: '#5A2CE4', fontWeight: '600' }}>Active Downline</span>
                     </div>
 
-                    <div className="prof-following-list">
-                      {[
-                        { name: 'Amit Verma', role: 'Diamond Leader', id: 'NS294812', team: '45 members' },
-                        { name: 'Sneha Patel', role: 'Platinum Leader', id: 'NS819234', team: '32 members' },
-                        { name: 'Vikas Kumar', role: 'Gold Leader', id: 'NS381023', team: '18 members' },
-                        { name: 'Neha Gupta', role: 'Silver Leader', id: 'NS491028', team: '12 members' },
-                      ].map((member, mIdx) => (
-                        <div key={mIdx} className="prof-following-card prof-follower-card">
-                          <div className="prof-following-user-row">
-                            <img
-                              src={userAvatarImg}
-                              alt={member.name}
-                              className="prof-following-avatar"
-                            />
-                            <div className="prof-following-info">
-                              <div className="prof-following-name">{member.name}</div>
-                              <div className="prof-following-role">
-                                {member.role} • ID: {member.id} • {member.team}
+                    {networkTeamList.length > 0 ? (
+                      <div className="prof-following-list">
+                        {networkTeamList.map((member, mIdx) => (
+                          <div key={member.id || mIdx} className="prof-following-card prof-follower-card">
+                            <div className="prof-following-user-row">
+                              <img
+                                src={member.avatar_url || userAvatarImg}
+                                alt={member.name}
+                                className="prof-following-avatar"
+                                onError={(e) => {
+                                  e.currentTarget.onerror = null;
+                                  e.currentTarget.src = userAvatarImg;
+                                }}
+                              />
+                              <div className="prof-following-info">
+                                <div className="prof-following-name">{member.name}</div>
+                                <div className="prof-following-role">
+                                  {member.designation || 'Leader'} • ID: {member.member_id || member.id} • {member.company_brand || 'Fortaa'}
+                                </div>
                               </div>
                             </div>
+                            <div className="prof-following-actions">
+                              <button
+                                type="button"
+                                className="prof-btn-purple-sm prof-btn-action-single"
+                                onClick={() => navigate(`/leader/${member.id}`)}
+                              >
+                                View Profile
+                              </button>
+                            </div>
                           </div>
-                          <div className="prof-following-actions">
-                            <button
-                              type="button"
-                              className="prof-btn-purple-sm prof-btn-action-single"
-                              onClick={() => toast(`Viewing team details of ${member.name}`)}
-                            >
-                              View Team
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div style={{ textAlign: 'center', padding: '36px 14px', color: '#8E8A9F' }}>
+                        <div style={{ fontSize: '36px', marginBottom: '8px' }}>👥</div>
+                        <p style={{ fontWeight: '700', fontSize: '15px', color: '#1F1735', marginBottom: '6px' }}>
+                          No Network Team Members Yet
+                        </p>
+                        <p style={{ fontSize: '13px', color: '#6B7280', maxWidth: '400px', margin: '0 auto 16px auto', lineHeight: '1.5' }}>
+                          When other members register using your Referral Member ID (<b>{userProfile.memberId || storedUser.memberId || 'Fortaa'}</b>), your active downline team will appear here.
+                        </p>
+                        <button
+                          type="button"
+                          className="prof-btn-purple-sm"
+                          style={{ margin: '0 auto', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                          onClick={() => {
+                            const code = userProfile.memberId || storedUser.memberId;
+                            if (code) {
+                              navigator.clipboard?.writeText(code);
+                              toast.success(`Referral Member ID (${code}) copied to clipboard!`);
+                            } else {
+                              toast('Share your profile URL with prospective team members');
+                            }
+                          }}
+                        >
+                          Copy Referral Member ID 📋
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -1975,68 +2012,7 @@ export default function ProfilePage() {
       )}
 
       {/* Fixed Bottom Navigation Bar ("Home Navbar") on Mobile */}
-      <nav className="ud-mob-bottom-navbar">
-        <button
-          type="button"
-          className="ud-mob-bnav-item"
-          onClick={() => navigate('/dashboard')}
-        >
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" />
-          </svg>
-          <span>Home</span>
-        </button>
-
-        <button
-          type="button"
-          className="ud-mob-bnav-item"
-          onClick={() => navigate('/leaders')}
-        >
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-            <circle cx="9" cy="7" r="4" />
-            <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-            <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-          </svg>
-          <span>Network</span>
-        </button>
-
-        {/* Center Floating Plus FAB */}
-        <button
-          type="button"
-          className="ud-mob-bnav-fab"
-          onClick={() => navigate('/dashboard')}
-          aria-label="Create Post"
-        >
-          +
-        </button>
-
-        <button
-          type="button"
-          className="ud-mob-bnav-item"
-          onClick={() => navigate('/opportunity')}
-        >
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <circle cx="12" cy="12" r="10" />
-            <circle cx="12" cy="12" r="6" />
-            <circle cx="12" cy="12" r="2" />
-          </svg>
-          <span>Opportunity</span>
-        </button>
-
-        <button
-          type="button"
-          className="ud-mob-bnav-item active"
-          onClick={() => setIsEditing(false)}
-        >
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
-            <circle cx="12" cy="12" r="2.5" />
-            <circle cx="19" cy="12" r="2.5" />
-            <circle cx="5" cy="12" r="2.5" />
-          </svg>
-          <span>More</span>
-        </button>
-      </nav>
+      <UserMobileBottomNav active="More" />
 
       {/* Share Modal */}
       <ShareModal

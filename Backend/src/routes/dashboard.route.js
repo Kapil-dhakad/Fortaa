@@ -4,6 +4,7 @@ const {
   getDashboardOverview,
   getPosts,
   createPost,
+  votePoll,
   likePost,
   updatePost,
   deletePost,
@@ -26,6 +27,7 @@ router.get('/overview', getDashboardOverview);
 // Posts
 router.get('/posts', getPosts);
 router.post('/posts', createPost);
+router.post('/posts/:id/vote', votePoll);
 router.post('/posts/:id/like', likePost);
 router.put('/posts/:id', updatePost);
 router.delete('/posts/:id', deletePost);

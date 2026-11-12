@@ -1,65 +1,89 @@
+import { useNavigate } from 'react-router-dom';
+import {
+  FaInstagram,
+  FaYoutube,
+  FaLinkedinIn,
+  FaTelegramPlane,
+  FaFacebookF,
+} from 'react-icons/fa';
 import logoIcon from '../assets/figma/logo_icon_img.png';
 import logoText from '../assets/figma/logo_text_img.png';
-import socialInstagram from '../assets/figma/social_instagram.png';
-import socialYoutube from '../assets/figma/social_youtube.png';
-import socialLinkedin from '../assets/figma/social_linkedin.png';
-import socialTelegram from '../assets/figma/social_telegram.png';
 import './Footer.css';
 
 const footerColumns = [
   {
     title: 'Explore',
     links: [
-      { name: 'Companies', href: '#companies' },
-      { name: 'Opportunities', href: '#opportunities' },
-      { name: 'Products', href: '#products' },
-      { name: 'Leaders', href: '#leaders' },
-      { name: 'Promotions', href: '#promotions' },
-      { name: 'News', href: '#news' },
-      { name: 'Events', href: '#events' },
+      { name: 'Companies', href: '#companies', targetId: 'companies' },
+      { name: 'Opportunities', href: '#opportunities', targetId: 'opportunities' },
+      { name: 'Services', href: '#services', targetId: 'services' },
+      { name: 'Leaders', href: '#leaders', targetId: 'leaders' },
+      { name: 'Promotions', href: '#promotions', targetId: 'promotions' },
+      { name: 'News', href: '#news', targetId: 'news' },
+      { name: 'Events', href: '#events', targetId: 'events' },
     ],
   },
   {
     title: 'Business',
     links: [
-      { name: 'List Your Business', href: '#list-business' },
-      { name: 'Advertise With Us', href: '#advertise' },
-      { name: 'Featured Listings', href: '#featured' },
-      { name: 'Partnership', href: '#partnership' },
-      { name: 'Contact Sales', href: '#sales' },
+      { name: 'List Your Business', href: '/signup', isRoute: true },
+      { name: 'Advertise With Us', href: '#promotions', targetId: 'promotions' },
+      { name: 'Featured Listings', href: '#companies', targetId: 'companies' },
+      { name: 'Partnership', href: '/login', isRoute: true },
+      { name: 'Contact Sales', href: '/login', isRoute: true },
     ],
   },
   {
     title: 'Resources',
     links: [
-      { name: 'Articles', href: '#articles' },
-      { name: 'Guides', href: '#guides' },
-      { name: 'Success Stories', href: '#success' },
-      { name: 'FAQs', href: '#faqs' },
-      { name: 'Help Center', href: '#help' },
+      { name: 'Articles', href: '#news', targetId: 'news' },
+      { name: 'Guides', href: '/login', isRoute: true },
+      { name: 'Success Stories', href: '#growth', targetId: 'growth' },
+      { name: 'FAQs', href: '/login', isRoute: true },
+      { name: 'Help Center', href: '/login', isRoute: true },
     ],
   },
   {
     title: 'Company',
     links: [
-      { name: 'About Us', href: '#about' },
-      { name: 'Contact', href: '#contact' },
-      { name: 'Careers', href: '#careers' },
-      { name: 'Privacy Policy', href: '#privacy' },
-      { name: 'Terms & Conditions', href: '#terms' },
-      { name: 'Disclaimer', href: '#disclaimer' },
+      { name: 'About Us', href: '/login', isRoute: true },
+      { name: 'Contact', href: '/login', isRoute: true },
+      { name: 'Careers', href: '/login', isRoute: true },
+      { name: 'Privacy Policy', href: '/login', isRoute: true },
+      { name: 'Terms & Conditions', href: '/login', isRoute: true },
+      { name: 'Disclaimer', href: '/login', isRoute: true },
     ],
   },
 ];
 
 const socialIcons = [
-  { img: socialInstagram, label: 'Instagram', href: 'https://instagram.com' },
-  { img: socialYoutube, label: 'YouTube', href: 'https://youtube.com' },
-  { img: socialLinkedin, label: 'LinkedIn', href: 'https://linkedin.com' },
-  { img: socialTelegram, label: 'Telegram', href: 'https://telegram.org' },
+  { icon: <FaInstagram size={15} />, label: 'Instagram', href: 'https://instagram.com' },
+  { icon: <FaYoutube size={15} />, label: 'YouTube', href: 'https://youtube.com' },
+  { icon: <FaLinkedinIn size={14} />, label: 'LinkedIn', href: 'https://linkedin.com' },
+  { icon: <FaTelegramPlane size={14} />, label: 'Telegram', href: 'https://telegram.org' },
+  { icon: <FaFacebookF size={14} />, label: 'Facebook', href: 'https://facebook.com' },
 ];
 
 export default function Footer() {
+  const navigate = useNavigate();
+
+  const handleLinkClick = (e, link) => {
+    e.preventDefault();
+    if (link.isRoute) {
+      navigate(link.href);
+      return;
+    }
+    if (link.targetId) {
+      const elem = document.getElementById(link.targetId);
+      if (elem) {
+        elem.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        window.history.pushState(null, '', `#${link.targetId}`);
+        return;
+      }
+    }
+    navigate('/login');
+  };
+
   return (
     <footer className="figma-footer" id="footer">
       <div className="figma-footer-wrapper">
@@ -75,7 +99,7 @@ export default function Footer() {
               A professional discovery and promotional platform for the direct selling and network marketing ecosystem.
             </p>
 
-            {/* Social media icons */}
+            {/* Crisp modern vector social media icons */}
             <div className="figma-footer-socials-row">
               {socialIcons.map((s, idx) => (
                 <a
@@ -85,8 +109,9 @@ export default function Footer() {
                   aria-label={s.label}
                   target="_blank"
                   rel="noreferrer"
+                  title={s.label}
                 >
-                  <img src={s.img} alt={s.label} className="figma-social-img" />
+                  <span className="figma-social-vector-icon">{s.icon}</span>
                 </a>
               ))}
             </div>
@@ -100,7 +125,11 @@ export default function Footer() {
                 <ul className="figma-footer-links-list">
                   {col.links.map((link, lIdx) => (
                     <li key={lIdx}>
-                      <a href={link.href} className="figma-footer-link-item">
+                      <a
+                        href={link.href}
+                        onClick={(e) => handleLinkClick(e, link)}
+                        className="figma-footer-link-item"
+                      >
                         {link.name}
                       </a>
                     </li>
@@ -122,4 +151,3 @@ export default function Footer() {
     </footer>
   );
 }
-

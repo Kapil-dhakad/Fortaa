@@ -3,17 +3,15 @@ import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import UserHeader from '../../components/layout/UserHeader';
 import UserSidebar from '../../components/layout/UserSidebar';
+import UserMobileBottomNav from '../../components/layout/UserMobileBottomNav';
 import {
   sendFollowRequest,
   cancelFollowRequest,
   unfollowUser,
+  fetchFollowingIds,
 } from '../../services/follow.service';
 import { fetchLeaders } from '../../services/dashboard.service';
 import { joinChat, subscribeToFollowEvents } from '../../services/socket.service';
-import whatsappIcon from '../../assets/dashboard/whatsaap-icon.png';
-import bellIcon from '../../assets/dashboard/bell-icon.png';
-import messageIcon from '../../assets/dashboard/message-icon.png';
-import userAvatarRahul from '../../assets/dashboard/user_avatar_rahul.png';
 import './LeadersPage.css';
 
 // Default / Figma Demo Leaders Dataset (100% matching Figma screenshot and specs)
@@ -227,7 +225,41 @@ export default function LeadersPage() {
   } catch {
     storedUser = {};
   }
-  const currentUserId = storedUser.id || 1;
+  const [resolvedUserId, setResolvedUserId] = useState(() => storedUser.id || storedUser._id || null);
+  const currentUserId = resolvedUserId || storedUser.id || 1;
+
+  // Auto-resolve user ID if missing from localStorage
+  useEffect(() => {
+    if (storedUser.id || storedUser._id) {
+      setResolvedUserId(storedUser.id || storedUser._id);
+      return;
+    }
+    if (storedUser.email) {
+      fetch(`/api/dashboard/overview?email=${encodeURIComponent(storedUser.email)}`)
+        .then((r) => r.json())
+        .then((data) => {
+          if (data?.success && data?.user?.id) {
+            setResolvedUserId(data.user.id);
+            try {
+              const cur = JSON.parse(localStorage.getItem('fortaa_user') || '{}');
+              localStorage.setItem('fortaa_user', JSON.stringify({ ...cur, id: data.user.id, ...data.user }));
+              window.dispatchEvent(new CustomEvent('fortaa_user_synced', { detail: data.user }));
+            } catch {}
+          }
+        })
+        .catch((e) => console.log('Resolve user id in leaders error:', e));
+    }
+  }, [storedUser.id, storedUser._id, storedUser.email]);
+
+  useEffect(() => {
+    const handleUserSynced = (e) => {
+      if (e?.detail?.id) {
+        setResolvedUserId(e.detail.id);
+      }
+    };
+    window.addEventListener('fortaa_user_synced', handleUserSynced);
+    return () => window.removeEventListener('fortaa_user_synced', handleUserSynced);
+  }, []);
 
   // State
   const [leaders, setLeaders] = useState([]);
@@ -238,7 +270,27 @@ export default function LeadersPage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 6;
+  const itemsPerPage = 12;
+
+  // Track dismissed leader cards (LinkedIn style dismiss 'X')
+  const [dismissedIds, setDismissedIds] = useState(() => {
+    try {
+      return JSON.parse(sessionStorage.getItem('fortaa_dismissed_leaders') || '[]');
+    } catch {
+      return [];
+    }
+  });
+
+  const handleDismissLeader = (e, leaderId) => {
+    e.stopPropagation();
+    setDismissedIds((prev) => {
+      const next = [...prev, leaderId];
+      try {
+        sessionStorage.setItem('fortaa_dismissed_leaders', JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+  };
 
   // Filter Sidebar State
   const [levelFilters, setLevelFilters] = useState({
@@ -254,25 +306,52 @@ export default function LeadersPage() {
   const [networkSizeFilter, setNetworkSizeFilter] = useState('');
 
   // Follow State Tracking: { [userId]: 'none' | 'pending' | 'accepted' }
-  const [followMap, setFollowMap] = useState({});
+  // Initialized from cache so state never flickers or reverts to "Follow" on refresh!
+  const [followMap, setFollowMap] = useState(() => {
+    try {
+      return JSON.parse(sessionStorage.getItem('fortaa_follow_status_map') || '{}');
+    } catch {
+      return {};
+    }
+  });
+
+  const updateFollowMap = (newEntries) => {
+    setFollowMap((prev) => {
+      const next = { ...prev };
+      Object.entries(newEntries).forEach(([k, v]) => {
+        next[k] = v;
+        next[Number(k)] = v;
+        next[String(k)] = v;
+      });
+      try {
+        sessionStorage.setItem('fortaa_follow_status_map', JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+  };
 
   // Load real database users/leaders and merge
   useEffect(() => {
     let isMounted = true;
 
     // Load following status from API
-    fetch(`/api/follow/ids/${currentUserId}`)
-      .then((res) => res.json())
+    fetchFollowingIds(currentUserId)
       .then((data) => {
         if (!isMounted) return;
         const map = {};
-        if (data.followingIds) {
-          data.followingIds.forEach((id) => (map[id] = 'accepted'));
+        if (data?.followingIds) {
+          data.followingIds.forEach((id) => {
+            map[Number(id)] = 'accepted';
+            map[String(id)] = 'accepted';
+          });
         }
-        if (data.pendingIds) {
-          data.pendingIds.forEach((id) => (map[id] = 'pending'));
+        if (data?.pendingIds) {
+          data.pendingIds.forEach((id) => {
+            map[Number(id)] = 'pending';
+            map[String(id)] = 'pending';
+          });
         }
-        setFollowMap((prev) => ({ ...prev, ...map }));
+        updateFollowMap(map);
       })
       .catch((err) => console.log('Follow ids error:', err));
 
@@ -281,7 +360,19 @@ export default function LeadersPage() {
       .then((dbLeaders) => {
         if (!isMounted || !dbLeaders || dbLeaders.length === 0) return;
 
-        // Map database leaders into the leader card shape
+        // Populate followMap directly from leader's follow_status from database
+        const initialStatusMap = {};
+        dbLeaders.forEach((u) => {
+          if (u.follow_status && u.follow_status !== 'none') {
+            initialStatusMap[Number(u.id)] = u.follow_status;
+            initialStatusMap[String(u.id)] = u.follow_status;
+          }
+        });
+        if (Object.keys(initialStatusMap).length > 0) {
+          updateFollowMap(initialStatusMap);
+        }
+
+        // Map database leaders into the leader card shape with ACTUAL real data
         const mapped = dbLeaders.map((u, idx) => {
           const levelNames = ['Diamond', 'Platinum', 'Gold', 'Silver', 'Bronze', 'Top'];
           const chosenLevel = levelNames[idx % levelNames.length];
@@ -300,6 +391,28 @@ export default function LeadersPage() {
             'linear-gradient(135deg, #134E5E 0%, #71B280 100%)',
           ];
 
+          const followersCount = typeof u.followers_count === 'number' ? u.followers_count : 0;
+          const followingCount = typeof u.following_count === 'number' ? u.following_count : 0;
+          const postsCount = typeof u.posts_count === 'number' ? u.posts_count : 0;
+          const formattedFollowers = followersCount >= 1000 ? `${(followersCount / 1000).toFixed(1)}k` : `${followersCount}`;
+          const formattedFollowing = followingCount >= 1000 ? `${(followingCount / 1000).toFixed(1)}k` : `${followingCount}`;
+
+          const resolvedQuote = u.bio
+            ? `“${u.bio}”`
+            : u.company_brand
+            ? `“Growing business with ${u.company_brand}.”`
+            : '“Small steps every day lead to big result.”';
+
+          const resolvedTags = u.skills
+            ? (typeof u.skills === 'string' ? u.skills.split(',').map((s) => s.trim()).filter(Boolean) : u.skills)
+            : [u.role || 'Business', 'Leadership'];
+
+          const resolvedLocation = u.location
+            ? `${u.location}, India`
+            : u.company_brand
+            ? `${u.company_brand}, India`
+            : 'India';
+
           return {
             id: u.id,
             name: u.name,
@@ -307,22 +420,24 @@ export default function LeadersPage() {
             levelTitle: `${chosenLevel} Leaders`,
             badgeType: chosenLevel.toLowerCase(),
             badgeColor: badgeColors[chosenLevel] || '#5A2CE4',
-            location: u.company_brand ? `${u.company_brand}, India` : 'India',
-            followers: '4.2k',
-            followersCount: 4200,
-            following: '1.5k',
-            posts: '12',
-            quote: '“Small steps every day lead to big result.”',
-            tags: ['Marketing', 'Sales', 'Strategy'],
+            location: resolvedLocation,
+            followers: formattedFollowers,
+            followersCount: followersCount,
+            following: formattedFollowing,
+            posts: String(postsCount),
+            quote: resolvedQuote,
+            tags: resolvedTags.slice(0, 3),
             role: u.role || 'Business Leader',
             bannerGradient: gradients[idx % gradients.length],
             avatar: u.avatar_url || `https://images.unsplash.com/photo-${1534528741775 + idx}?w=150&auto=format&fit=crop&q=80`,
-            networkSize: '1k-5k',
+            networkSize: `${followersCount} network`,
+            follow_status: u.follow_status || 'none',
           };
         });
 
         setLeaders(mapped);
-        setTopPerforming(mapped.slice(0, 3));
+        const sortedTop = [...mapped].sort((a, b) => (b.followersCount || 0) - (a.followersCount || 0));
+        setTopPerforming(sortedTop.slice(0, 6));
       })
       .catch((err) => console.log('fetchLeaders error:', err));
 
@@ -330,7 +445,12 @@ export default function LeadersPage() {
     joinChat(currentUserId);
     const unsub = subscribeToFollowEvents({
       onFollowAccepted: ({ targetUserId }) => {
-        setFollowMap((prev) => ({ ...prev, [Number(targetUserId)]: 'accepted' }));
+        updateFollowMap({ [targetUserId]: 'accepted' });
+      },
+      onFollowUpdated: (data) => {
+        if (data?.targetUserId && data?.status) {
+          updateFollowMap({ [data.targetUserId]: data.status });
+        }
       },
     });
 
@@ -342,12 +462,16 @@ export default function LeadersPage() {
 
   // Handle Follow Toggle
   const handleFollowClick = async (targetId, targetName) => {
-    const currentStatus = followMap[targetId] || 'none';
+    const currentStatus =
+      followMap[targetId] ||
+      followMap[Number(targetId)] ||
+      followMap[String(targetId)] ||
+      'none';
 
     if (currentStatus === 'accepted') {
       const confirm = window.confirm(`Are you sure you want to unfollow ${targetName}?`);
       if (!confirm) return;
-      setFollowMap((prev) => ({ ...prev, [targetId]: 'none' }));
+      updateFollowMap({ [targetId]: 'none' });
       toast(`Unfollowed ${targetName}`);
       try {
         await unfollowUser(targetId, currentUserId);
@@ -357,7 +481,7 @@ export default function LeadersPage() {
     } else if (currentStatus === 'pending') {
       const confirm = window.confirm(`Cancel follow request to ${targetName}?`);
       if (!confirm) return;
-      setFollowMap((prev) => ({ ...prev, [targetId]: 'none' }));
+      updateFollowMap({ [targetId]: 'none' });
       toast('Follow request cancelled', { icon: '✖' });
       try {
         await cancelFollowRequest(targetId, currentUserId);
@@ -365,11 +489,14 @@ export default function LeadersPage() {
         console.error(err);
       }
     } else {
-      // Send Request
-      setFollowMap((prev) => ({ ...prev, [targetId]: 'pending' }));
+      // Send Request immediately to prevent UI lag
+      updateFollowMap({ [targetId]: 'pending' });
       toast.success(`Follow request sent to ${targetName}! 🎉`);
       try {
-        await sendFollowRequest(targetId, currentUserId);
+        const res = await sendFollowRequest(targetId, currentUserId);
+        if (res?.status) {
+          updateFollowMap({ [targetId]: res.status });
+        }
       } catch (err) {
         console.error(err);
       }
@@ -396,12 +523,19 @@ export default function LeadersPage() {
     setNetworkSizeFilter('');
     setSearchQuery('');
     setActiveTab('all');
+    setDismissedIds([]);
+    try {
+      sessionStorage.removeItem('fortaa_dismissed_leaders');
+    } catch {}
     toast.success('Filters reset');
   };
 
   // Filtered leaders calculation
   const filteredLeaders = useMemo(() => {
     return leaders.filter((leader) => {
+      // Exclude dismissed cards (LinkedIn style dismissal)
+      if (dismissedIds.includes(leader.id)) return false;
+
       // Category Tab filter
       if (activeTab !== 'all') {
         if (activeTab === 'top' && leader.level !== 'Top') return false;
@@ -446,7 +580,7 @@ export default function LeadersPage() {
 
       return true;
     });
-  }, [leaders, activeTab, levelFilters, searchQuery, locationFilter, roleFilter, networkSizeFilter]);
+  }, [leaders, activeTab, levelFilters, searchQuery, locationFilter, roleFilter, networkSizeFilter, dismissedIds]);
 
   // Paginated leaders
   const totalPages = Math.ceil(filteredLeaders.length / itemsPerPage) || 1;
@@ -480,134 +614,6 @@ export default function LeadersPage() {
           <div className="lead-body-wrapper">
           {/* Main Left Column (Desktop 895px / Responsive) */}
           <main className="lead-main-column">
-            {/* Desktop Hero Banner (Frame 307: 895px x 141px) */}
-            <section className="lead-hero-banner">
-              <div className="lead-hero-left">
-                <div className="lead-hero-title-row">
-                  <span className="lead-hero-crown" role="img" aria-label="Crown">
-                    👑
-                  </span>
-                  <h1 className="lead-hero-heading">Leaders</h1>
-                </div>
-                <p className="lead-hero-subtext">
-                  Learn from the best. Connect with successful leaders and grow your business with their guidance.
-                </p>
-              </div>
-
-              <div className="lead-hero-right">
-                {/* 4 Stats Cards */}
-                <div className="lead-stats-row">
-                  <div className="lead-stat-card">
-                    <span className="lead-stat-icon lead-stat-network-icon">👥</span>
-                    <div className="lead-stat-info">
-                      <span className="lead-stat-num">248</span>
-                      <span className="lead-stat-label">Network</span>
-                    </div>
-                  </div>
-
-                  <div className="lead-stat-card">
-                    <span className="lead-stat-icon lead-stat-following-icon">🤝</span>
-                    <div className="lead-stat-info">
-                      <span className="lead-stat-num">1,25,450</span>
-                      <span className="lead-stat-label">Following</span>
-                    </div>
-                  </div>
-
-                  <div className="lead-stat-card">
-                    <span className="lead-stat-icon lead-stat-followers-icon">⭕</span>
-                    <div className="lead-stat-info">
-                      <span className="lead-stat-num">112</span>
-                      <span className="lead-stat-label">Followers</span>
-                    </div>
-                  </div>
-
-                  <div className="lead-stat-card">
-                    <span className="lead-stat-icon lead-stat-post-icon">📝</span>
-                    <div className="lead-stat-info">
-                      <span className="lead-stat-num">85</span>
-                      <span className="lead-stat-label">Post</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Be a Leader Button */}
-                <button
-                  type="button"
-                  className="lead-be-leader-btn"
-                  onClick={() => navigate('/complete-profile')}
-                >
-                  Be a Leader <span className="lead-btn-arrow">→</span>
-                </button>
-              </div>
-            </section>
-
-            {/* Mobile Hero Header (Frame 193) - Visible on Mobile Screens */}
-            <div className="lead-mob-hero-header">
-              {/* Top Navigation Row in Hero Header matching Figma Screenshot */}
-              <div className="lead-mob-hero-topbar">
-                <div className="lead-mob-brand-capsule" onClick={() => navigate('/dashboard')} title="FORTAA Home">
-                  <span className="lead-mob-brand-bold">FORTAA</span>
-                  <span className="lead-mob-brand-sub">Discover, easy and Grow</span>
-                </div>
-
-                <div className="lead-mob-hero-actions">
-                  <a
-                    href="https://wa.me/"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="lead-mob-icon-circle whatsapp"
-                    title="WhatsApp"
-                  >
-                    <img src={whatsappIcon} alt="WhatsApp" />
-                  </a>
-
-                  <button
-                    type="button"
-                    className="lead-mob-icon-circle"
-                    title="Notifications"
-                    onClick={() => toast.success('Notifications')}
-                  >
-                    <img src={bellIcon} alt="Bell" />
-                  </button>
-
-                  <button
-                    type="button"
-                    className="lead-mob-icon-circle"
-                    title="Messages"
-                    onClick={() => navigate('/messages')}
-                  >
-                    <img src={messageIcon} alt="Messages" />
-                  </button>
-
-                  <div
-                    className="lead-mob-avatar-pill"
-                    onClick={() => navigate('/profile')}
-                    title="My Profile"
-                  >
-                    <img
-                      src={storedUser?.avatar || userAvatarRahul}
-                      alt="User Avatar"
-                      className="lead-mob-avatar-img"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Bottom Row in Hero Header */}
-              <div className="lead-mob-hero-bottom">
-                <div className="lead-mob-hero-left">
-                  <div className="lead-mob-hero-title">
-                    <span className="lead-mob-title-icon">👥</span>
-                    <h2>Leaders</h2>
-                  </div>
-                  <p className="lead-mob-hero-tagline">Connect, Learn and Grow</p>
-                </div>
-                <div className="lead-mob-count-pill">
-                  <span>👥 1.2k+ Leaders</span>
-                </div>
-              </div>
-            </div>
-
             {/* Category Filter Tabs Bar (Frame 340-348) */}
             <div className="lead-category-bar">
               <div className="lead-tabs-scrollable">
@@ -688,7 +694,12 @@ export default function LeadersPage() {
                 </div>
               ) : (
                 paginatedLeaders.map((leader) => {
-                  const status = followMap[leader.id] || 'none';
+                  const status =
+                    followMap[leader.id] ||
+                    followMap[Number(leader.id)] ||
+                    followMap[String(leader.id)] ||
+                    leader.follow_status ||
+                    'none';
 
                   return (
                     <div
@@ -723,6 +734,20 @@ export default function LeadersPage() {
                           </span>
                           <span className="lead-badge-text">{leader.level} Leader</span>
                         </div>
+
+                        {/* Dismiss X Icon Button (LinkedIn style) */}
+                        <button
+                          type="button"
+                          className="lead-card-dismiss-btn"
+                          onClick={(e) => handleDismissLeader(e, leader.id)}
+                          title="Dismiss suggestion"
+                          aria-label="Dismiss"
+                        >
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                          </svg>
+                        </button>
 
                         {/* Circular Avatar (Ellipse 43: 114px x 114px, top 71px, left 4px) */}
                         <div className="lead-card-avatar-wrap">
@@ -805,8 +830,9 @@ export default function LeadersPage() {
                               e.stopPropagation();
                               handleFollowClick(leader.id, leader.name);
                             }}
+                            title={status === 'pending' ? 'Click to cancel request' : ''}
                           >
-                            {status === 'accepted' ? 'Following ✓' : status === 'pending' ? 'Pending...' : 'Follow'}
+                            {status === 'accepted' ? 'Following ✓' : status === 'pending' ? 'Request Pending' : 'Follow'}
                           </button>
                           <button
                             type="button"
@@ -1039,7 +1065,12 @@ export default function LeadersPage() {
               {/* List of 6 ranked leaders */}
               <div className="lead-top-list">
                 {topPerforming.map((topLdr) => {
-                  const status = followMap[topLdr.id] || 'none';
+                  const status =
+                    followMap[topLdr.id] ||
+                    followMap[Number(topLdr.id)] ||
+                    followMap[String(topLdr.id)] ||
+                    topLdr.follow_status ||
+                    'none';
 
                   return (
                     <div
@@ -1078,7 +1109,7 @@ export default function LeadersPage() {
                           handleFollowClick(topLdr.id, topLdr.name);
                         }}
                       >
-                        {status === 'accepted' ? 'Following' : status === 'pending' ? 'Pending' : 'Follow'}
+                        {status === 'accepted' ? 'Following' : status === 'pending' ? 'Request Pending' : 'Follow'}
                       </button>
                     </div>
                   );
@@ -1249,68 +1280,7 @@ export default function LeadersPage() {
       )}
 
       {/* Mobile Bottom Navigation Bar matching UserDashboard */}
-      <nav className="lead-mob-bottom-navbar">
-        <button
-          type="button"
-          className="lead-mob-bnav-item"
-          onClick={() => navigate('/dashboard')}
-        >
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" />
-          </svg>
-          <span>Home</span>
-        </button>
-
-        <button
-          type="button"
-          className="lead-mob-bnav-item active"
-          onClick={() => navigate('/leaders')}
-        >
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-            <circle cx="9" cy="7" r="4" />
-            <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-            <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-          </svg>
-          <span>Network</span>
-        </button>
-
-        {/* Center Floating Plus FAB */}
-        <button
-          type="button"
-          className="lead-mob-bnav-fab"
-          onClick={() => navigate('/dashboard')}
-          aria-label="Create Post"
-        >
-          +
-        </button>
-
-        <button
-          type="button"
-          className="lead-mob-bnav-item"
-          onClick={() => navigate('/dashboard')}
-        >
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <circle cx="12" cy="12" r="10" />
-            <circle cx="12" cy="12" r="6" />
-            <circle cx="12" cy="12" r="2" />
-          </svg>
-          <span>Opportunity</span>
-        </button>
-
-        <button
-          type="button"
-          className="lead-mob-bnav-item"
-          onClick={() => navigate('/profile')}
-        >
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
-            <circle cx="12" cy="12" r="2.5" />
-            <circle cx="19" cy="12" r="2.5" />
-            <circle cx="5" cy="12" r="2.5" />
-          </svg>
-          <span>More</span>
-        </button>
-      </nav>
+      <UserMobileBottomNav active="Network" />
     </div>
   );
 }

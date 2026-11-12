@@ -242,6 +242,89 @@ function setupChatSocket(io) {
       }
     });
 
+    // ==========================================
+    // 📞 1-on-1 AUDIO & VIDEO CALLING (WebRTC)
+    // ==========================================
+
+    // 1. Caller initiates call
+    socket.on('call_initiate', (payload) => {
+      try {
+        const { toUserId, callType, callerName, callerAvatar, callerRole } = payload || {};
+        if (!toUserId || !currentUserId) return;
+
+        const targetUid = String(toUserId).trim();
+        const callerUid = String(currentUserId).trim();
+
+        // Check if recipient is online
+        const isTargetOnline = onlineUsers.has(targetUid) && onlineUsers.get(targetUid).size > 0;
+        if (!isTargetOnline) {
+          return socket.emit('call_user_offline', { targetUserId: targetUid });
+        }
+
+        // Send incoming call event to recipient room
+        io.to(`room_${targetUid}`).emit('call_incoming', {
+          fromUserId: callerUid,
+          callType: callType || 'video', // 'video' | 'audio'
+          callerName: callerName || 'Fortaa Member',
+          callerAvatar: callerAvatar || null,
+          callerRole: callerRole || 'Leader',
+        });
+      } catch (err) {
+        console.error('[call_initiate error]:', err);
+      }
+    });
+
+    // 2. Recipient accepts call
+    socket.on('call_accept', ({ toUserId }) => {
+      try {
+        if (!toUserId || !currentUserId) return;
+        io.to(`room_${String(toUserId).trim()}`).emit('call_accepted', {
+          fromUserId: String(currentUserId).trim(),
+        });
+      } catch (err) {
+        console.error('[call_accept error]:', err);
+      }
+    });
+
+    // 3. Recipient rejects call or Caller cancels
+    socket.on('call_reject', ({ toUserId, reason }) => {
+      try {
+        if (!toUserId) return;
+        io.to(`room_${String(toUserId).trim()}`).emit('call_rejected', {
+          fromUserId: String(currentUserId || '').trim(),
+          reason: reason || 'declined', // 'declined' | 'busy' | 'cancelled'
+        });
+      } catch (err) {
+        console.error('[call_reject error]:', err);
+      }
+    });
+
+    // 4. WebRTC Signaling exchange (SDP Offer, Answer, ICE Candidates)
+    socket.on('call_signal', ({ toUserId, signal }) => {
+      try {
+        if (!toUserId || !signal || !currentUserId) return;
+        io.to(`room_${String(toUserId).trim()}`).emit('call_signal', {
+          fromUserId: String(currentUserId).trim(),
+          signal,
+        });
+      } catch (err) {
+        console.error('[call_signal error]:', err);
+      }
+    });
+
+    // 5. Either participant ends the ongoing call
+    socket.on('call_end', ({ toUserId }) => {
+      try {
+        if (toUserId) {
+          io.to(`room_${String(toUserId).trim()}`).emit('call_ended', {
+            fromUserId: String(currentUserId || '').trim(),
+          });
+        }
+      } catch (err) {
+        console.error('[call_end error]:', err);
+      }
+    });
+
     // Disconnect
     socket.on('disconnect', () => {
       if (currentUserId && onlineUsers.has(currentUserId)) {

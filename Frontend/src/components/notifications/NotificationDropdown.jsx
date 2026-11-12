@@ -17,6 +17,17 @@ export default function NotificationDropdown({
   currentUserId,
   onNotificationCountChange,
 }) {
+  const effectiveUserId =
+    currentUserId ||
+    (() => {
+      try {
+        const u = JSON.parse(localStorage.getItem('fortaa_user') || '{}');
+        return u.id || u._id || null;
+      } catch {
+        return null;
+      }
+    })();
+
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(false);
   const [actionStates, setActionStates] = useState({}); // { [actorId]: 'accepted' | 'declined' }
@@ -24,12 +35,12 @@ export default function NotificationDropdown({
 
   // Load real notifications when opened
   useEffect(() => {
-    if (!isOpen || !currentUserId) return;
+    if (!isOpen || !effectiveUserId) return;
 
     let isMounted = true;
     setLoading(true);
 
-    fetchNotifications(currentUserId)
+    fetchNotifications(effectiveUserId)
       .then((data) => {
         if (!isMounted) return;
         setNotifications(data || []);
@@ -44,7 +55,7 @@ export default function NotificationDropdown({
     return () => {
       isMounted = false;
     };
-  }, [isOpen, currentUserId, onNotificationCountChange]);
+  }, [isOpen, effectiveUserId, onNotificationCountChange]);
 
   // Click outside to close (supporting mouse and touch)
   useEffect(() => {
@@ -65,13 +76,13 @@ export default function NotificationDropdown({
 
   // Handle Accept Follow Request
   const handleAccept = async (actorId, actorName) => {
-    if (!actorId || !currentUserId) return;
+    if (!actorId || !effectiveUserId) return;
 
     setActionStates((prev) => ({ ...prev, [actorId]: 'accepted' }));
     toast.success(`You accepted ${actorName || 'user'}'s follow request!`);
 
     try {
-      const res = await acceptFollowRequest(actorId, currentUserId);
+      const res = await acceptFollowRequest(actorId, effectiveUserId);
       if (res.success) {
         // Update local notification status
         setNotifications((prev) =>
@@ -101,13 +112,13 @@ export default function NotificationDropdown({
 
   // Handle Decline Follow Request
   const handleDecline = async (actorId, actorName) => {
-    if (!actorId || !currentUserId) return;
+    if (!actorId || !effectiveUserId) return;
 
     setActionStates((prev) => ({ ...prev, [actorId]: 'declined' }));
     toast('Follow request declined', { icon: 'ℹ️' });
 
     try {
-      const res = await rejectFollowRequest(actorId, currentUserId);
+      const res = await rejectFollowRequest(actorId, effectiveUserId);
       if (res.success) {
         setNotifications((prev) => prev.filter((n) => !(n.actor_id === actorId && n.type === 'follow_request')));
         onNotificationCountChange?.(Math.max(0, notifications.filter((n) => !n.is_read).length - 1));
@@ -130,9 +141,9 @@ export default function NotificationDropdown({
 
   // Mark all notifications as read
   const handleMarkAllRead = async () => {
-    if (!currentUserId) return;
+    if (!effectiveUserId) return;
     try {
-      await markNotificationsRead(currentUserId);
+      await markNotificationsRead(effectiveUserId);
       setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
       onNotificationCountChange?.(0);
       toast.success('All marked as read');

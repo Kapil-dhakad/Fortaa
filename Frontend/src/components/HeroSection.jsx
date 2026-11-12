@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import heroMobileBg from '../assets/figma/hero_mobile_bg.png';
 import heroMountainBg from '../assets/figma/hero_mountain_bg.png';
 import heroRect7 from '../assets/figma/hero_rect_7.png';
@@ -24,10 +24,10 @@ import iconStatComm from '../assets/figma/icon_stat_comm.png';
 import './HeroSection.css';
 
 const quickCategories = [
-  { icon: iconCompanies, label: 'Companies', href: '#companies' },
-  { icon: iconLeaders, label: 'Leaders', href: '#leaders' },
-  { icon: iconProducts, label: 'Products', href: '#products' },
-  { icon: iconOpportunities, label: 'Opportunities', href: '#opportunities' },
+  { icon: iconCompanies, label: 'Companies', href: '#companies', targetId: 'companies' },
+  { icon: iconLeaders, label: 'Leaders', href: '#leaders', targetId: 'leaders' },
+  { icon: iconProducts, label: 'Services', href: '#services', targetId: 'services' },
+  { icon: iconOpportunities, label: 'Opportunities', href: '#opportunities', targetId: 'opportunities' },
 ];
 
 const statsList = [
@@ -38,6 +38,22 @@ const statsList = [
 ];
 
 export default function HeroSection() {
+  const navigate = useNavigate();
+
+  const handleScrollTo = (e, targetId) => {
+    e.preventDefault();
+    const element = document.getElementById(targetId);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      window.history.pushState(null, '', `#${targetId}`);
+    }
+  };
+
+  const handleSearchSubmit = (e) => {
+    e.preventDefault();
+    navigate('/login');
+  };
+
   return (
     <section className="figma-hero-wrapper" id="home">
       <div className="figma-hero-canvas">
@@ -59,7 +75,7 @@ export default function HeroSection() {
         <img src={heroRect10} alt="" className="figma-hero-vec-10" />
         {/* [7:65] relX:653, relY:0, w:250, h:477 */}
         <img src={heroRect11} alt="" className="figma-hero-vec-11" />
-        {/* [7:66] relX:614.2, relY:-44.4, w:235.1, h:276.9 — linear-gradient(335.62deg, #592B9E 26.69%, #5A2AB0 75.54%) */}
+        {/* [7:66] relX:614.2, relY:-44.4, w:235.1, h:276.9 */}
         <img src={heroRect12} alt="" className="figma-hero-vec-12" />
 
         {/* Bottom-left corner decorative shapes */}
@@ -94,13 +110,13 @@ export default function HeroSection() {
 
           {/* Description [9:82] */}
           <p className="figma-hero-desc">
-            Explore direct-selling companies, business opportunities, products,
+            Explore direct-selling companies, business opportunities, services,
             industry leaders and the latest network marketing insights - all from
             one professional platform.
           </p>
 
           {/* Search Bar [9:84] w:575, h:40 */}
-          <div className="figma-hero-search">
+          <form className="figma-hero-search" onSubmit={handleSearchSubmit}>
             <img
               src={iconSearchPurple}
               alt=""
@@ -108,16 +124,20 @@ export default function HeroSection() {
             />
             <input
               type="text"
-              placeholder="Search companies, products, leaders or opportunities..."
+              placeholder="Search companies, services, leaders or opportunities..."
             />
-            <button type="button" className="figma-hero-search-submit" aria-label="Search">
+            <button type="submit" className="figma-hero-search-submit" aria-label="Search">
               <img src={iconSearchWhite} alt="Search" />
             </button>
-          </div>
+          </form>
 
           {/* CTA Buttons [9:100] & [9:108] */}
           <div className="figma-hero-cta-row">
-            <a href="#opportunities" className="figma-hero-btn-explore">
+            <a
+              href="#opportunities"
+              onClick={(e) => handleScrollTo(e, 'opportunities')}
+              className="figma-hero-btn-explore"
+            >
               <span>Explore Opportunities</span>
               <img src={iconRightArrow} alt="" />
             </a>
@@ -126,10 +146,15 @@ export default function HeroSection() {
             </Link>
           </div>
 
-          {/* Bottom 4 Quick Category Pills [Frame 6, 7, 8, 9] with #D51CFD icon boxes */}
+          {/* Bottom 4 Quick Category Pills */}
           <div className="figma-hero-quick-cats">
             {quickCategories.map((item) => (
-              <a key={item.label} href={item.href} className="figma-quick-cat-item">
+              <a
+                key={item.label}
+                href={item.href}
+                onClick={(e) => handleScrollTo(e, item.targetId)}
+                className="figma-quick-cat-item"
+              >
                 <div className="figma-quick-cat-icon-box">
                   <img src={item.icon} alt={item.label} />
                 </div>
@@ -139,7 +164,7 @@ export default function HeroSection() {
           </div>
         </div>
 
-        {/* Right Bottom Stats Bar [9:169] relX:796, relY:366, w:628, h:73, bg:#0f123f */}
+        {/* Right Bottom Stats Bar */}
         <div className="figma-hero-stats-bar">
           {statsList.map((stat) => (
             <div key={stat.label} className="figma-stat-card">

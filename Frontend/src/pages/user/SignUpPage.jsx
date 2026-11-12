@@ -4,19 +4,18 @@ import toast from 'react-hot-toast';
 import { uploadSingleImage, uploadDocument } from '../../services/upload.service';
 import logoIconImg from '../../assets/figma/logo_icon_img.png';
 import logoTextImg from '../../assets/figma/logo_text_img.png';
-import registrationSuccessImg from '../../assets/figma/registration_success.png';
-import priyaSharmaImg from '../../assets/figma/priya_sharma.png';
 import GoogleLoginButton from '../../components/auth/GoogleLoginButton';
 import './SignUpPage.css';
 
 export default function SignUpPage() {
   const navigate = useNavigate();
 
-  // Step state: 1: 'account-type', 2: 'personal-details', 3: 'business-details', 4: 'verification', 5: 'success'
+  // Step state: 1: 'account-type', 2: 'personal-details', 3: 'business-details', 4: 'verification'
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   // Email OTP state
   const [showEmailOtpInput, setShowEmailOtpInput] = useState(false);
@@ -43,6 +42,7 @@ export default function SignUpPage() {
     mobileNumber: '',
     whatsappNumber: '',
     password: '',
+    confirmPassword: '',
     dob: '',
     gender: '',
   });
@@ -54,12 +54,10 @@ export default function SignUpPage() {
     mobileNumber: false,
     whatsappNumber: false,
     password: false,
+    confirmPassword: false,
     dob: false,
     gender: false,
   });
-
-  // Registered user response from backend
-  const [registeredUser, setRegisteredUser] = useState(null);
 
   // Form Data
   const [formData, setFormData] = useState({
@@ -67,6 +65,7 @@ export default function SignUpPage() {
     name: '',
     email: '',
     password: '',
+    confirmPassword: '',
     mobileNumber: '',
     whatsappNumber: '',
     dob: '',
@@ -275,6 +274,14 @@ export default function SignUpPage() {
         }
         break;
 
+      case 'confirmPassword':
+        if (!value) {
+          if (isSubmit) error = 'Please confirm your password.';
+        } else if (value !== formData.password) {
+          error = 'Passwords do not match.';
+        }
+        break;
+
       case 'dob':
         if (!value) {
           error = 'Date of birth is required.';
@@ -310,6 +317,23 @@ export default function SignUpPage() {
   const handleFieldChange = (field, value) => {
     handleChange(field, value);
 
+    // If password changed, re-validate confirmPassword if already touched
+    if (field === 'password' && touched.confirmPassword && formData.confirmPassword) {
+      if (formData.confirmPassword !== value) {
+        setFieldErrors((prev) => ({ ...prev, confirmPassword: 'Passwords do not match.' }));
+      } else {
+        setFieldErrors((prev) => ({ ...prev, confirmPassword: '' }));
+      }
+    }
+
+    if (field === 'confirmPassword') {
+      if (value !== formData.password) {
+        setFieldErrors((prev) => ({ ...prev, confirmPassword: 'Passwords do not match.' }));
+      } else {
+        setFieldErrors((prev) => ({ ...prev, confirmPassword: '' }));
+      }
+    }
+
     // If an error was showing and user resolved it, clear it
     if (fieldErrors[field]) {
       const err = validateField(field, value);
@@ -320,10 +344,26 @@ export default function SignUpPage() {
   };
 
   // Called when cursor leaves the input field (onBlur)
-  const handleBlur = (field) => {
+  const handleBlur = async (field) => {
     setTouched((prev) => ({ ...prev, [field]: true }));
     const err = validateField(field, formData[field]);
     setFieldErrors((prev) => ({ ...prev, [field]: err }));
+
+    // Async uniqueness check for mobileNumber on blur
+    if (!err && field === 'mobileNumber' && formData.mobileNumber && formData.mobileNumber.length === 10) {
+      try {
+        const mobRes = await fetch(`/api/users/check-mobile?mobile=${encodeURIComponent(formData.mobileNumber.trim())}`);
+        const mobData = await mobRes.json();
+        if (mobData.exists) {
+          setFieldErrors((prev) => ({
+            ...prev,
+            mobileNumber: 'This mobile number is already registered. Please log in or use another number.',
+          }));
+        }
+      } catch (e) {
+        // silent check failure
+      }
+    }
   };
 
   // Step 1: Select Account Type
@@ -394,6 +434,7 @@ export default function SignUpPage() {
       dob: true,
       gender: true,
       password: true,
+      confirmPassword: true,
     });
 
     const errors = {
@@ -404,6 +445,7 @@ export default function SignUpPage() {
       dob: validateField('dob', formData.dob, true),
       gender: validateField('gender', formData.gender, true),
       password: validateField('password', formData.password, true),
+      confirmPassword: validateField('confirmPassword', formData.confirmPassword, true),
     };
 
     setFieldErrors(errors);
@@ -415,19 +457,26 @@ export default function SignUpPage() {
       return;
     }
 
+    if (formData.password !== formData.confirmPassword) {
+      setFieldErrors((prev) => ({ ...prev, confirmPassword: 'Passwords do not match.' }));
+      setErrorMessage('Passwords do not match.');
+      toast.error('Passwords do not match.');
+      return;
+    }
+
     if (!formData.agreeTerms) {
       setErrorMessage('Please accept the Terms & Conditions and Privacy Policy.');
       toast.error('Please accept the Terms & Conditions and Privacy Policy.');
       return;
     }
 
-    // Check if email already exists in Database
     setLoading(true);
     try {
-      const response = await fetch(`/api/users/check-email?email=${encodeURIComponent(formData.email.trim())}`);
-      const data = await response.json();
+      // 1. Check if email already exists in Database
+      const emailResponse = await fetch(`/api/users/check-email?email=${encodeURIComponent(formData.email.trim())}`);
+      const emailData = await emailResponse.json();
 
-      if (data.exists) {
+      if (emailData.exists) {
         setFieldErrors((prev) => ({
           ...prev,
           email: 'An account with this email address already exists. Please log in.',
@@ -437,9 +486,25 @@ export default function SignUpPage() {
         return;
       }
 
+      // 2. Check if mobile number already exists in Database
+      if (formData.mobileNumber) {
+        const mobResponse = await fetch(`/api/users/check-mobile?mobile=${encodeURIComponent(formData.mobileNumber.trim())}`);
+        const mobData = await mobResponse.json();
+
+        if (mobData.exists) {
+          setFieldErrors((prev) => ({
+            ...prev,
+            mobileNumber: 'This mobile number is already registered. Please log in or use another number.',
+          }));
+          setErrorMessage('This mobile number is already registered. Please log in or use another number.');
+          toast.error('This mobile number is already registered. Please log in or use another number.');
+          return;
+        }
+      }
+
       setStep(3);
     } catch (err) {
-      console.warn('Check email error:', err);
+      console.warn('Check email/mobile error:', err);
       // Fallback: allow to proceed if check fails
       setStep(3);
     } finally {
@@ -513,8 +578,9 @@ export default function SignUpPage() {
       }
       localStorage.setItem('fortaa_user', JSON.stringify(data.user));
 
-      setRegisteredUser(data.user);
-      setStep(5); // Show Success Screen
+      toast.success('Registration completed successfully! Welcome to Fortaa.');
+      // Direct navigation to Dashboard
+      navigate('/dashboard');
     } catch (err) {
       console.error('Registration API error:', err);
       const errMsg = err.message || 'Registration failed. Please check your details.';
@@ -869,8 +935,8 @@ export default function SignUpPage() {
                   {touched.gender && fieldErrors.gender && <span className="field-error-text">⚠️ {fieldErrors.gender}</span>}
                 </div>
 
-                {/* Row 4: Password field (Full width) */}
-                <div className="form-field form-group-full">
+                {/* Row 4: Password field */}
+                <div className="form-field">
                   <label className="form-label">
                     Password<span className="required">*</span>
                   </label>
@@ -906,12 +972,57 @@ export default function SignUpPage() {
                       ) : (
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                           <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
-                          <circle cx="12" cy="12" r="3" />
+                          <circle cx="12" cy="3" r="3" />
                         </svg>
                       )}
                     </button>
                   </div>
                   {touched.password && fieldErrors.password && <span className="field-error-text">⚠️ {fieldErrors.password}</span>}
+                </div>
+
+                {/* Row 4: Confirm Password field */}
+                <div className="form-field">
+                  <label className="form-label">
+                    Confirm Password<span className="required">*</span>
+                  </label>
+                  <div className="field-input-box">
+                    <span className="field-icon">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                      </svg>
+                    </span>
+                    <input
+                      type={showConfirmPassword ? 'text' : 'password'}
+                      className={`field-input ${touched.confirmPassword && fieldErrors.confirmPassword ? 'has-error' : ''}`}
+                      placeholder="Confirm your password"
+                      value={formData.confirmPassword}
+                      onChange={(e) => handleFieldChange('confirmPassword', e.target.value)}
+                      onBlur={() => handleBlur('confirmPassword')}
+                      required
+                    />
+                    <button
+                      type="button"
+                      className="input-eye-btn"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
+                    >
+                      {showConfirmPassword ? (
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24" />
+                          <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68" />
+                          <path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61" />
+                          <line x1="2" y1="2" x2="22" y2="22" />
+                        </svg>
+                      ) : (
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+                          <circle cx="12" cy="3" r="3" />
+                        </svg>
+                      )}
+                    </button>
+                  </div>
+                  {touched.confirmPassword && fieldErrors.confirmPassword && <span className="field-error-text">⚠️ {fieldErrors.confirmPassword}</span>}
                 </div>
 
                 {/* Password Criteria Checklist (Spans nicely under password) */}
@@ -1113,7 +1224,7 @@ export default function SignUpPage() {
 
                 {/* Website / Social Media */}
                 <div className="form-field">
-                  <label className="form-label">Website / Social Media (Optional)</label>
+                  <label className="form-label">Website / Social Media</label>
                   <div className="field-input-box">
                     <span className="field-icon">
                       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -1198,14 +1309,16 @@ export default function SignUpPage() {
                     </div>
                     
                     {!formData.emailVerified ? (
-                      <button
-                        type="button"
-                        className="btn-verify-action"
-                        onClick={handleSendEmailOtp}
-                        disabled={sendingOtp}
-                      >
-                        {sendingOtp ? 'Sending...' : showEmailOtpInput ? 'Resend' : 'Verify'}
-                      </button>
+                      !showEmailOtpInput && (
+                        <button
+                          type="button"
+                          className="btn-verify-action"
+                          onClick={handleSendEmailOtp}
+                          disabled={sendingOtp}
+                        >
+                          {sendingOtp ? 'Sending...' : 'Verify'}
+                        </button>
+                      )
                     ) : (
                       <button type="button" className="btn-verify-action verified">
                         Verified ✓
@@ -1243,58 +1356,37 @@ export default function SignUpPage() {
                           className="btn-otp-resend"
                           onClick={handleSendEmailOtp}
                           disabled={resendTimer > 0 || sendingOtp}
+                          title={resendTimer > 0 ? `Please wait ${resendTimer}s before requesting a new code` : 'Resend verification code'}
                         >
-                          {resendTimer > 0 ? `Resend in ${resendTimer}s` : 'Resend Code'}
+                          {sendingOtp ? (
+                            <span>Sending...</span>
+                          ) : resendTimer > 0 ? (
+                            <>
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                                <circle cx="12" cy="12" r="10" />
+                                <polyline points="12 6 12 12 16 14" />
+                              </svg>
+                              <span>Resend in {resendTimer}s</span>
+                            </>
+                          ) : (
+                            <>
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" />
+                              </svg>
+                              <span>Resend Code</span>
+                            </>
+                          )}
                         </button>
                         <button
                           type="button"
+                          className="btn-otp-cancel"
                           onClick={() => setShowEmailOtpInput(false)}
-                          style={{ background: 'none', border: 'none', color: '#9CA3AF', fontSize: '12px', cursor: 'pointer', marginLeft: 'auto' }}
                         >
                           Cancel
                         </button>
                       </div>
                     </div>
                   )}
-                </div>
-
-                {/* ID Verification */}
-                <div className={`verify-item-card ${formData.govtIdUrl ? 'verified-card' : ''}`}>
-                  <div className="verify-left">
-                    <div className="verify-icon-box">
-                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <rect x="3" y="4" width="18" height="16" rx="2" />
-                        <circle cx="9" cy="10" r="2" />
-                        <line x1="15" y1="8" x2="17" y2="8" />
-                        <line x1="15" y1="12" x2="17" y2="12" />
-                        <line x1="7" y1="16" x2="17" y2="16" />
-                      </svg>
-                    </div>
-                    <div className="verify-info">
-                      <h4>ID Verification (Optional)</h4>
-                      <p>{formData.govtIdName ? `Selected: ${formData.govtIdName}` : 'Upload your Aadhar, PAN card or Govt ID'}</p>
-                      {formData.govtIdUrl && (
-                        <div style={{ fontSize: '11px', color: '#059669', marginTop: '2px', fontWeight: 600 }}>
-                          ✓ Uploaded to S3 &amp; will be saved with profile
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  
-                  <input
-                    type="file"
-                    ref={govtIdInputRef}
-                    style={{ display: 'none' }}
-                    accept=".pdf,.jpg,.jpeg,.png,.webp"
-                    onChange={(e) => handleFileUpload(e, 'govtId', 'kyc_docs')}
-                  />
-                  <button
-                    type="button"
-                    className={`btn-verify-upload ${formData.govtIdUrl ? 'verified' : ''}`}
-                    onClick={() => govtIdInputRef.current?.click()}
-                  >
-                    {uploadingField === 'govtId' ? 'Uploading to S3...' : formData.govtIdUrl ? 'Uploaded ✓' : 'Upload'}
-                  </button>
                 </div>
               </div>
 
@@ -1314,117 +1406,7 @@ export default function SignUpPage() {
             </div>
           )}
 
-          {/* STEP 5: REGISTRATION SUCCESSFUL! (Figma Match) */}
-          {step === 5 && (
-            <div className="success-screen-wrapper">
-              <div className="celebration-badge-box">
-                <img
-                  src={registrationSuccessImg}
-                  alt="Registration Successful"
-                  className="celebration-hero-img"
-                />
-              </div>
-
-              <h2 className="success-hero-title">Registration Successful!</h2>
-              <p className="success-hero-subtitle">
-                Your account has been created successfully.<br />Welcome to Fortaa
-              </p>
-
-              {/* Member Profile Card (Matching Figma Frame 81 & Profile) */}
-              <div className="member-profile-card">
-                <div className="profile-header-row">
-                  <div className="profile-avatar-box">
-                    <img
-                      src={priyaSharmaImg}
-                      alt="User Avatar"
-                      className="profile-avatar-img"
-                      onError={(e) => {
-                        e.target.style.display = 'none';
-                        e.target.parentNode.textContent = (registeredUser?.name || formData.name || 'R').charAt(0).toUpperCase();
-                      }}
-                    />
-                  </div>
-                  <div className="profile-text-wrap">
-                    <div className="profile-welcome-text">
-                      Welcome, {registeredUser?.name || formData.name || 'Rahul Sharma'}
-                    </div>
-                    <div className="profile-member-id">
-                      Member ID: {registeredUser?.memberId || 'NS123456'}
-                    </div>
-                  </div>
-                </div>
-
-                <button
-                  type="button"
-                  className="btn-success-dashboard"
-                  onClick={() => navigate('/dashboard')}
-                >
-                  Go to Dashboard
-                </button>
-
-                <button
-                  type="button"
-                  className="btn-success-explore"
-                  onClick={() => navigate('/#explore')}
-                >
-                  Explore Platform
-                </button>
-              </div>
-
-              <p className="success-features-prompt">
-                You can now access all features and start your journey.
-              </p>
-
-              {/* Bottom 4 Category Pills (Matching Figma Frame 8) */}
-              <div className="success-category-pills">
-                <div className="cat-pill-item">
-                  <div className="cat-pill-icon-box">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <rect x="4" y="2" width="16" height="20" rx="2" />
-                      <path d="M9 22v-4h6v4" />
-                      <path d="M8 6h.01M16 6h.01M8 10h.01M16 10h.01M8 14h.01M16 14h.01" />
-                    </svg>
-                  </div>
-                  <span className="cat-pill-label">Companies</span>
-                </div>
-
-                <div className="cat-pill-item">
-                  <div className="cat-pill-icon-box">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="m7.5 4.27 9 5.15" />
-                      <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" />
-                      <path d="m3.3 7 8.7 5 8.7-5" />
-                      <path d="M12 22V12" />
-                    </svg>
-                  </div>
-                  <span className="cat-pill-label">Products</span>
-                </div>
-
-                <div className="cat-pill-item">
-                  <div className="cat-pill-icon-box">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-                      <circle cx="9" cy="7" r="4" />
-                      <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
-                      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-                    </svg>
-                  </div>
-                  <span className="cat-pill-label">Leaders</span>
-                </div>
-
-                <div className="cat-pill-item">
-                  <div className="cat-pill-icon-box">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <circle cx="12" cy="12" r="10" />
-                      <circle cx="12" cy="12" r="6" />
-                      <circle cx="12" cy="12" r="2" />
-                    </svg>
-                  </div>
-                  <span className="cat-pill-label">Opportunity</span>
-                </div>
-              </div>
-            </div>
-          )}
+          
         </div>
       </div>
     </div>

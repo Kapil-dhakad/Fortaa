@@ -721,25 +721,63 @@
 }
 
 .btn-otp-resend {
-  background: none;
-  border: none;
-  color: #7C3AED;
+  height: 42px;
+  padding: 0 16px;
+  border-radius: 8px;
+  border: 1.5px solid #5A2CE4;
+  background: #F4F1FD;
+  color: #5A2CE4;
+  font-family: 'Inter', sans-serif;
   font-size: 13px;
   font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   cursor: pointer;
-  padding: 6px 10px;
-  transition: color 0.2s;
+  transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+  white-space: nowrap;
+  box-shadow: 0 2px 6px rgba(90, 44, 228, 0.08);
 }
 
 .btn-otp-resend:hover:not(:disabled) {
-  color: #5B21B6;
-  text-decoration: underline;
+  background: #5A2CE4;
+  color: #FFFFFF;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(90, 44, 228, 0.25);
 }
 
 .btn-otp-resend:disabled {
-  color: #9CA3AF;
+  background: #F1F5F9;
+  border-color: #CBD5E1;
+  color: #64748B;
   cursor: not-allowed;
-  text-decoration: none;
+  transform: none;
+  box-shadow: none;
+}
+
+.btn-otp-cancel {
+  height: 42px;
+  padding: 0 14px;
+  background: transparent;
+  border: 1px solid transparent;
+  color: #64748B;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-otp-cancel:hover {
+  color: #DC2626;
+  background: #FEF2F2;
+  border-color: #FCA5A5;
 }
 
 .btn-verify-upload {

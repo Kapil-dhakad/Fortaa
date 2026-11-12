@@ -80,12 +80,21 @@ async function sendFollowRequest(req, res) {
     try {
       const io = req.app?.get('io') || getIO();
       if (io) {
-        io.to(`room_${targetUserId}`).emit('follow_request_received', {
+        const payload = {
           requesterId: followerId,
           requesterName: followerName,
           requesterAvatar: followerAvatar,
-        });
-        io.to(`room_${targetUserId}`).emit('new_notification');
+          message: `${followerName} sent you a follow request.`,
+          type: 'follow_request',
+        };
+        const targetRoom = `room_${String(targetUserId).trim()}`;
+        io.to(targetRoom).emit('follow_request_received', payload);
+        io.to(targetRoom).emit('new_notification', payload);
+        io.to(targetRoom).emit('follow_updated', { followerId, targetUserId, status: 'pending' });
+        io.to(`room_${targetUserId}`).emit('follow_request_received', payload);
+        io.to(`room_${targetUserId}`).emit('new_notification', payload);
+        io.to(`room_${targetUserId}`).emit('follow_updated', { followerId, targetUserId, status: 'pending' });
+        io.to(`room_${followerId}`).emit('follow_updated', { followerId, targetUserId, status: 'pending' });
       }
     } catch (sockErr) {
       console.warn('Socket notification error:', sockErr.message);

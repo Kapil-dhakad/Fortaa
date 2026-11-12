@@ -44,6 +44,21 @@ export async function submitPost(postData) {
   return data.post;
 }
 
+export async function votePollApi(postId, optionId, userId) {
+  try {
+    const res = await fetch(`${BASE_URL}/posts/${postId}/vote`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ optionId, userId }),
+    });
+    const data = await res.json();
+    return data;
+  } catch (err) {
+    console.error('votePollApi error:', err);
+    return null;
+  }
+}
+
 export async function likePostApi(postId, userId) {
   try {
     const res = await fetch(`${BASE_URL}/posts/${postId}/like`, {

@@ -400,11 +400,36 @@
 
 .ud-dropdown-logout-btn {
   color: #DC2626 !important;
+  font-weight: 600 !important;
+  gap: 10px !important;
+  padding: 8px 12px !important;
+  border-radius: 8px !important;
+  margin-top: 2px !important;
+  transition: all 0.15s ease !important;
 }
 
 .ud-dropdown-logout-btn:hover {
   background: #FEF2F2 !important;
   color: #B91C1C !important;
+}
+
+.ud-dropdown-logout-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  background: #FEE2E2;
+  color: #DC2626;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.18s ease;
+}
+
+.ud-dropdown-logout-btn:hover .ud-dropdown-logout-icon {
+  background: #FECACA;
+  color: #B91C1C;
+  transform: scale(1.06);
 }
 
 /* Mobile variant */
@@ -413,17 +438,18 @@
   width: 200px;
 }
 
-/* ───────────────── LEFT SIDEBAR ───────────────── */
+/* ───────────────── LEFT SIDEBAR (Icon-only collapsed by default, expands on cursor hover) ───────────────── */
 .ud-sidebar-left {
   background: #2E0362;
-  width: 175px;
-  min-width: 175px;
-  max-width: 175px;
+  width: 70px;
+  min-width: 70px;
+  max-width: 70px;
   height: 100%;
   overflow-y: auto;
+  overflow-x: hidden;
   scrollbar-width: none;
   -ms-overflow-style: none;
-  padding: 8px 10px 24px;
+  padding: 8px 6px 24px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -431,11 +457,27 @@
   color: #FFFFFF;
   flex-shrink: 0;
   box-sizing: border-box;
-  border-right: 1px solid rgba(255, 255, 255, 0.05);
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  transition: width 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+              min-width 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+              max-width 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+              padding 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 40;
 }
 
 .ud-sidebar-left::-webkit-scrollbar {
   display: none;
+}
+
+/* Expanded state on Hover */
+.ud-sidebar-left:hover,
+.ud-sidebar-left.is-hovered {
+  width: 210px;
+  min-width: 210px;
+  max-width: 210px;
+  padding: 8px 10px 24px;
+  box-shadow: 6px 0 24px rgba(0, 0, 0, 0.35);
 }
 
 .ud-nav-list {
@@ -450,26 +492,39 @@
 .ud-nav-link {
   display: flex;
   align-items: center;
-  gap: 12px;
+  justify-content: center;
+  gap: 0;
   background: transparent;
   border: none;
   color: rgba(255, 255, 255, 0.75);
-  width: 155px;
+  width: 50px;
   height: 45px;
   min-height: 45px;
   box-sizing: border-box;
-  padding: 8px 10px 7px 10px;
+  padding: 0;
   border-radius: 10px;
   font-size: 12px;
   font-family: inherit;
   font-weight: 500;
-  text-align: left;
   cursor: pointer;
-  transition: all 0.15s ease;
+  overflow: hidden;
+  transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+              background 0.15s ease,
+              color 0.15s ease,
+              padding 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+              gap 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.ud-sidebar-left:hover .ud-nav-link,
+.ud-sidebar-left.is-hovered .ud-nav-link {
+  width: 190px;
+  justify-content: flex-start;
+  padding: 8px 12px;
+  gap: 12px;
 }
 
 .ud-nav-link:hover {
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.12);
   color: #FFFFFF;
 }
 
@@ -510,11 +565,24 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  opacity: 0;
+  max-width: 0;
+  display: none;
+  pointer-events: none;
+  transition: opacity 0.2s ease, max-width 0.25s ease;
 }
 
-/* Sidebar Promo Card: Grow Together (Figma: 134x154px, radius 10px, border 1px solid #1E0241, gradient #6326AE 71% to #420191) */
+.ud-sidebar-left:hover .ud-nav-label,
+.ud-sidebar-left.is-hovered .ud-nav-label {
+  opacity: 1;
+  max-width: 140px;
+  display: inline-block;
+  pointer-events: auto;
+}
+
+/* Sidebar Promo Card: Grow Together (Hidden when collapsed, smooth reveal on hover) */
 .ud-sidebar-promo-card {
-  width: 134px;
+  width: 175px;
   height: 154px;
   min-height: 154px;
   box-sizing: border-box;
@@ -524,10 +592,18 @@
   border: 1px solid #1E0241;
   padding: 8px 6px;
   text-align: center;
-  display: flex;
+  display: none;
   flex-direction: column;
   align-items: center;
   justify-content: space-between;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+
+.ud-sidebar-left:hover .ud-sidebar-promo-card,
+.ud-sidebar-left.is-hovered .ud-sidebar-promo-card {
+  display: flex;
+  opacity: 1;
 }
 
 .ud-promo-img-wrap {
@@ -589,15 +665,45 @@
   opacity: 0.9;
 }
 
-/* Sidebar Bottom Brand Footer (Same size as top logo: 152x42px, radius 5px, border 1.5px solid #6B109F) */
+/* Sidebar Bottom Brand Footer (Icon only when collapsed, expands on hover) */
 .ud-brand-logo-card-bottom {
   margin-top: 10px;
   flex-shrink: 0;
+  width: 48px;
+  min-width: 48px;
+  padding: 4px;
+  border: none;
+  background: transparent;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: all 0.25s ease;
 }
 
-/* Sidebar Social Icons (Figma: 20x20px circles, gradient #9E04C3 -> #5A2CE4, 10px icons, 10px gap) */
-.ud-sidebar-socials {
+.ud-brand-logo-card-bottom .ud-logo-text-wrap {
+  display: none;
+  opacity: 0;
+}
+
+.ud-sidebar-left:hover .ud-brand-logo-card-bottom,
+.ud-sidebar-left.is-hovered .ud-brand-logo-card-bottom {
+  width: 175px;
+  min-width: 175px;
+  border: 1.5px solid #6B109F;
+  padding: 4px 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+}
+
+.ud-sidebar-left:hover .ud-brand-logo-card-bottom .ud-logo-text-wrap,
+.ud-sidebar-left.is-hovered .ud-brand-logo-card-bottom .ud-logo-text-wrap {
   display: flex;
+  opacity: 1;
+}
+
+/* Sidebar Social Icons (Visible on hover) */
+.ud-sidebar-socials {
+  display: none;
   align-items: center;
   justify-content: center;
   gap: 10px;
@@ -605,6 +711,11 @@
   margin-bottom: 10px;
   width: 100%;
   flex-shrink: 0;
+}
+
+.ud-sidebar-left:hover .ud-sidebar-socials,
+.ud-sidebar-left.is-hovered .ud-sidebar-socials {
+  display: flex;
 }
 
 .ud-social-circle-btn {
@@ -664,6 +775,11 @@
   .ud-sidebar-left.mobile-open {
     left: 0;
   }
+}
+
+/* Hide mobile bottom navbar by default on desktop (> 768px) */
+.ud-mob-bottom-navbar {
+  display: none !important;
 }
 
 @media (max-width: 768px) {
@@ -838,14 +954,17 @@
     right: 0 !important;
     height: 67px !important;
     background: #FFFFFF !important;
-    border-radius: 5px 5px 0px 0px !important;
+    border-radius: 8px 8px 0px 0px !important;
     display: flex !important;
     align-items: center !important;
     justify-content: space-around !important;
-    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.08) !important;
+    box-shadow: 0 -2px 14px rgba(0, 0, 0, 0.09) !important;
     z-index: 1000 !important;
-    max-width: 412px !important;
+    width: 100% !important;
+    max-width: 100% !important;
     margin: 0 auto !important;
+    padding-bottom: env(safe-area-inset-bottom, 0px) !important;
+    box-sizing: border-box !important;
   }
 
   .ud-mob-bnav-item {
@@ -884,3 +1003,203 @@
     line-height: 1 !important;
   }
 }
+
+/* Force Services icon to pure white in sidebar */
+.ud-nav-icon-white {
+  filter: brightness(0) invert(1) !important;
+}
+
+/* ───────────────── SHARED MOBILE MENU DRAWER (UserMobileBottomNav) ───────────────── */
+@keyframes udFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes udSlideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+.ud-mob-menu-backdrop {
+  position: fixed !important;
+  inset: 0 !important;
+  background: rgba(0, 0, 0, 0.6) !important;
+  backdrop-filter: blur(4px) !important;
+  -webkit-backdrop-filter: blur(4px) !important;
+  z-index: 99999 !important;
+  display: flex !important;
+  align-items: flex-end !important;
+  justify-content: center !important;
+  animation: udFadeIn 0.2s ease-out !important;
+}
+
+.ud-mob-menu-sheet {
+  width: 100% !important;
+  max-width: 480px !important;
+  max-height: 82vh !important;
+  background: #FFFFFF !important;
+  border-radius: 20px 20px 0 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+  box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.25) !important;
+  animation: udSlideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.ud-mob-menu-handle-bar {
+  width: 40px !important;
+  height: 4px !important;
+  border-radius: 2px !important;
+  background: #CBD5E1 !important;
+  margin: 10px auto 4px !important;
+  flex-shrink: 0 !important;
+}
+
+.ud-mob-menu-user-row {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  padding: 12px 18px !important;
+  border-bottom: 1px solid #F1F5F9 !important;
+}
+
+.ud-mob-menu-user-meta {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  cursor: pointer !important;
+}
+
+.ud-mob-menu-avatar {
+  width: 42px !important;
+  height: 42px !important;
+  border-radius: 50% !important;
+  object-fit: cover !important;
+  border: 2px solid #7C3AED !important;
+}
+
+.ud-mob-menu-name-wrap {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 2px !important;
+}
+
+.ud-mob-menu-name {
+  font-family: 'Inter', sans-serif !important;
+  font-size: 14.5px !important;
+  font-weight: 700 !important;
+  color: #1E1B4B !important;
+}
+
+.ud-mob-menu-badge {
+  font-size: 11.5px !important;
+  color: #6D28D9 !important;
+  font-weight: 600 !important;
+}
+
+.ud-mob-menu-close {
+  background: #F1F5F9 !important;
+  border: none !important;
+  border-radius: 50% !important;
+  width: 32px !important;
+  height: 32px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 13px !important;
+  color: #64748B !important;
+  cursor: pointer !important;
+  transition: all 0.15s ease !important;
+}
+
+.ud-mob-menu-close:hover {
+  background: #E2E8F0 !important;
+  color: #0F172A !important;
+}
+
+.ud-mob-menu-grid {
+  display: grid !important;
+  grid-template-columns: repeat(2, 1fr) !important;
+  gap: 10px !important;
+  padding: 14px 16px !important;
+  overflow-y: auto !important;
+  max-height: 52vh !important;
+}
+
+.ud-mob-menu-card {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  background: #F8FAFC !important;
+  border: 1px solid #E2E8F0 !important;
+  border-radius: 12px !important;
+  padding: 10px 12px !important;
+  cursor: pointer !important;
+  text-align: left !important;
+  transition: all 0.15s ease !important;
+  user-select: none !important;
+}
+
+.ud-mob-menu-card:active,
+.ud-mob-menu-card.is-active {
+  background: #F5F3FF !important;
+  border-color: #C4B5FD !important;
+  transform: scale(0.98) !important;
+}
+
+.ud-mob-menu-card-icon-wrap {
+  width: 32px !important;
+  height: 32px !important;
+  border-radius: 8px !important;
+  background: #2E0362 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0 !important;
+}
+
+.ud-mob-menu-card-icon {
+  width: 18px !important;
+  height: 18px !important;
+  object-fit: contain !important;
+}
+
+.ud-mob-menu-card-title {
+  font-family: 'Inter', sans-serif !important;
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  color: #1E293B !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+.ud-mob-menu-footer {
+  padding: 12px 16px 18px !important;
+  border-top: 1px solid #F1F5F9 !important;
+  background: #FFFFFF !important;
+}
+
+.ud-mob-menu-logout-btn {
+  width: 100% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  padding: 11px 16px !important;
+  background: #FFF1F2 !important;
+  border: 1px solid #FECDD3 !important;
+  border-radius: 10px !important;
+  color: #E11D48 !important;
+  font-family: 'Inter', sans-serif !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  transition: all 0.15s ease !important;
+}
+
+.ud-mob-menu-logout-btn:hover {
+  background: #FFE4E6 !important;
+  border-color: #FDA4AF !important;
+}
+

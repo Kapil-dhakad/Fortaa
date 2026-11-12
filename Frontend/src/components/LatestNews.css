@@ -166,12 +166,22 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0;
   font-family: 'Inter', sans-serif;
   font-size: 10.5px;
   font-weight: 600;
   color: #750192;
   text-decoration: none;
   margin-top: 2px;
+  transition: all 0.2s ease;
+}
+
+.figma-article-read-btn:hover {
+  color: #5A2CE4;
+  transform: translateX(3px);
 }
 
 .figma-article-read-btn img {
@@ -360,6 +370,7 @@
   gap: 8px;
   background: #6B109F;
   border: 1px solid #ffffff;
+  cursor: pointer;
   color: #ffffff;
   height: 32px;
   border-radius: 8px;
@@ -369,17 +380,29 @@
   text-decoration: none;
   margin-top: 10px;
   width: 100%;
-  transition: opacity 0.15s ease;
+  transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 8px rgba(107, 16, 159, 0.25);
 }
 
 .figma-btn-success-story:hover {
-  opacity: 0.9;
+  background: #560a82;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(107, 16, 159, 0.4);
+}
+
+.figma-btn-success-story:active {
+  transform: scale(0.98);
 }
 
 .figma-btn-success-story img {
   width: 14px;
   height: 14px;
   object-fit: contain;
+  transition: transform 0.2s ease;
+}
+
+.figma-btn-success-story:hover img {
+  transform: translateX(3px);
 }
 
 /* ── Upcoming Events List ── */
@@ -472,6 +495,8 @@
 
 .figma-event-action-pill {
   border: 1px solid #8B17F8;
+  background: transparent;
+  cursor: pointer;
   border-radius: 5px;
   padding: 3px 8px;
   font-family: 'Inter', sans-serif;
@@ -484,12 +509,18 @@
   gap: 3px;
   white-space: nowrap;
   flex-shrink: 0;
-  transition: all 0.15s ease;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .figma-event-action-pill:hover {
   background: #8518F1;
   color: #ffffff;
+  transform: translateY(-1px) scale(1.03);
+  box-shadow: 0 3px 8px rgba(133, 24, 241, 0.3);
+}
+
+.figma-event-action-pill:active {
+  transform: scale(0.96);
 }
 
 .figma-event-action-pill img {

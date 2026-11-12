@@ -310,17 +310,18 @@
   box-sizing: border-box;
 }
 
-/* ── PANEL 1: LEFT SIDEBAR (FIXED / STATIONARY) ── */
+/* ── PANEL 1: LEFT SIDEBAR (Icon-only collapsed by default, expands on cursor hover) ── */
 .ud-sidebar-left {
-  background: #020633;
-  width: 175px;
-  min-width: 175px;
-  max-width: 175px;
+  background: #2E0362;
+  width: 70px;
+  min-width: 70px;
+  max-width: 70px;
   height: 100%;
   overflow-y: auto;
+  overflow-x: hidden;
   scrollbar-width: none;
   -ms-overflow-style: none;
-  padding: 8px 10px 24px;
+  padding: 8px 6px 24px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -328,7 +329,22 @@
   color: #FFFFFF;
   flex-shrink: 0;
   box-sizing: border-box;
-  border-right: 1px solid rgba(255, 255, 255, 0.05);
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  transition: width 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+              min-width 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+              max-width 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+              padding 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 40;
+}
+
+.ud-sidebar-left:hover,
+.ud-sidebar-left.is-hovered {
+  width: 210px;
+  min-width: 210px;
+  max-width: 210px;
+  padding: 8px 10px 24px;
+  box-shadow: 6px 0 24px rgba(0, 0, 0, 0.35);
 }
 
 .ud-sidebar-left::-webkit-scrollbar {
@@ -856,9 +872,7 @@
 
 /* Center 2-Column Split: Col 1 Feed (420px) vs Col 2 Trainers/Leaders (423px) */
 .ud-center-split-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 420px) minmax(0, 423px);
-  gap: 12px;
+  display: block;
   width: 100%;
   align-items: start;
   box-sizing: border-box;
@@ -866,121 +880,524 @@
 
 .ud-feed-column {
   width: 100%;
-  max-width: 420px;
+  max-width: 100%;
   min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 14px;
-  box-sizing: border-box;
 }
 
-/* Create Post Card (Figma Frame 119: 420x99px, radius 5px, border 1px #D9D9D9) */
+/* Create Post Card - Modern, Attractive & Spacious */
 .ud-create-post-card {
   width: 100%;
-  max-width: 420px;
-  height: 99px;
+  max-width: 100%;
   box-sizing: border-box;
   background: #FFFFFF;
-  border-radius: 5px;
-  padding: 8px 12px;
-  border: 1px solid #D9D9D9;
+  border-radius: 12px;
+  border: 1px solid #E5E7EB;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+  padding: 14px 16px;
   display: flex;
   flex-direction: column;
+  gap: 12px;
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.ud-create-post-card:focus-within {
+  border-color: #C4B5FD;
+  box-shadow: 0 4px 16px rgba(107, 70, 193, 0.08);
+}
+
+.ud-cp-header {
+  display: flex;
+  align-items: center;
   justify-content: space-between;
 }
 
-.ud-cp-title {
-  font-family: 'Inter', sans-serif;
-  font-size: 12px;
-  font-weight: 600;
-  color: #232356;
-}
-
-.ud-cp-input-row {
+.ud-cp-title-wrap {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
+.ud-cp-title-icon {
+  stroke: #6B46C1;
+}
+
+.ud-cp-title {
+  font-family: 'Inter', -apple-system, sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  color: #1E1B4B;
+  letter-spacing: -0.2px;
+}
+
+.ud-cp-input-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
 .ud-cp-avatar {
-  width: 24px;
-  height: 24px;
+  width: 38px;
+  height: 38px;
   border-radius: 50%;
   object-fit: cover;
+  flex-shrink: 0;
+  border: 1.5px solid #F3F4F6;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
-.ud-cp-input {
+.ud-cp-textarea {
   flex: 1;
-  height: 23px;
-  background: #FFFFFF;
-  border: 1px solid #D9D9D9;
+  min-height: 54px;
+  background: #F8FAFC;
+  border: 1.5px solid #E2E8F0;
   border-radius: 10px;
-  padding: 0 10px;
-  font-family: 'Inter', sans-serif;
-  font-size: 10px;
-  color: #232356;
+  padding: 10px 14px;
+  font-family: 'Inter', -apple-system, sans-serif;
+  font-size: 13.5px;
+  line-height: 1.45;
+  color: #1F2937;
   outline: none;
+  resize: vertical;
+  transition: all 0.2s ease;
 }
 
-.ud-cp-actions-row {
+.ud-cp-textarea:focus {
+  background: #FFFFFF;
+  border-color: #7C3AED;
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
+}
+
+.ud-cp-textarea::placeholder {
+  color: #9CA3AF;
+  font-size: 13px;
+}
+
+/* In-Card Poll Creator Box */
+.ud-cp-poll-box {
+  background: #FAF5FF;
+  border: 1.5px dashed #C084FC;
+  border-radius: 12px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  animation: udFadeIn 0.25s ease;
+}
+
+@keyframes udFadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.ud-cp-poll-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
 
-.ud-cp-tags {
+.ud-cp-poll-badge {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #6B21A8;
+}
+
+.ud-cp-poll-close {
+  background: #EDE9FE;
+  border: none;
+  border-radius: 50%;
+  width: 22px;
+  height: 22px;
   display: flex;
   align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  color: #6B21A8;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.ud-cp-poll-close:hover {
+  background: #DDD6FE;
+}
+
+.ud-cp-poll-q-input {
+  width: 100%;
+  box-sizing: border-box;
+  background: #FFFFFF;
+  border: 1px solid #D8B4FE;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #1F2937;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.ud-cp-poll-q-input:focus {
+  border-color: #9333EA;
+  box-shadow: 0 0 0 2px rgba(147, 51, 234, 0.15);
+}
+
+.ud-cp-poll-opts {
+  display: flex;
+  flex-direction: column;
   gap: 6px;
 }
 
-.ud-cp-tag {
-  height: 18px;
+.ud-cp-poll-opt-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ud-cp-poll-opt-num {
+  font-size: 12px;
+  font-weight: 600;
+  color: #7C3AED;
+  width: 16px;
+  text-align: right;
+}
+
+.ud-cp-poll-opt-input {
+  flex: 1;
   background: #FFFFFF;
-  border: 1px solid #D9D9D9;
-  border-radius: 3px;
-  padding: 0 6px;
-  font-family: 'Inter', sans-serif;
-  font-size: 8px;
+  border: 1px solid #E2E8F0;
+  border-radius: 8px;
+  padding: 7px 10px;
+  font-size: 12.5px;
+  color: #374151;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.ud-cp-poll-opt-input:focus {
+  border-color: #7C3AED;
+}
+
+.ud-cp-poll-del-opt {
+  background: transparent;
+  border: none;
+  color: #9CA3AF;
+  cursor: pointer;
+  padding: 4px 6px;
+  font-size: 12px;
+  border-radius: 4px;
+}
+
+.ud-cp-poll-del-opt:hover {
+  color: #EF4444;
+  background: #FEE2E2;
+}
+
+.ud-cp-poll-add-btn {
+  align-self: flex-start;
+  background: transparent;
+  border: 1px dashed #A855F7;
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #7C3AED;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.ud-cp-poll-add-btn:hover {
+  background: #F3E8FF;
+}
+
+/* Actions Row */
+.ud-cp-actions-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 4px;
+}
+
+.ud-cp-tags {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.ud-cp-tag {
+  height: 32px;
+  padding: 0 12px;
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 20px;
+  font-family: 'Inter', -apple-system, sans-serif;
+  font-size: 12.5px;
   font-weight: 500;
-  color: #232356;
+  color: #475569;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 5px;
+  transition: all 0.2s ease;
+}
+
+.ud-cp-tag:hover {
+  transform: translateY(-1px);
+}
+
+.ud-cp-tag-photo:hover, .ud-cp-tag-photo.active {
+  background: #EFF6FF;
+  border-color: #93C5FD;
+  color: #1D4ED8;
+}
+
+.ud-cp-tag-video:hover, .ud-cp-tag-video.active {
+  background: #FFF1F2;
+  border-color: #FDA4AF;
+  color: #E11D48;
+}
+
+.ud-cp-tag-poll:hover, .ud-cp-tag-poll.active {
+  background: #FAF5FF;
+  border-color: #D8B4FE;
+  color: #7C3AED;
 }
 
 .ud-cp-btn-post {
-  width: 42px;
-  height: 18px;
-  background: #5A2CE4;
-  border-radius: 3px;
+  height: 34px;
+  padding: 0 22px;
+  background: linear-gradient(135deg, #6B46C1 0%, #805AD5 100%);
+  border-radius: 20px;
   border: none;
-  font-family: 'Inter', sans-serif;
-  font-size: 8px;
+  font-family: 'Inter', -apple-system, sans-serif;
+  font-size: 13px;
   font-weight: 600;
   color: #FFFFFF;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
+  box-shadow: 0 3px 10px rgba(107, 70, 193, 0.25);
+  transition: all 0.2s ease;
+}
+
+.ud-cp-btn-post:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 5px 14px rgba(107, 70, 193, 0.35);
+  background: linear-gradient(135deg, #5B32B6 0%, #7044C7 100%);
+}
+
+.ud-cp-btn-post:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Feed Interactive Poll Card */
+.ud-poll-card {
+  margin: 10px 0 14px;
+  background: #FAF5FF;
+  border: 1px solid #E9D5FF;
+  border-radius: 12px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ud-poll-question {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #1E1B4B;
+  line-height: 1.4;
+}
+
+.ud-poll-icon {
+  font-size: 16px;
+}
+
+.ud-poll-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ud-poll-option-btn {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 10px 14px;
+  border: 1.5px solid #E2E8F0;
+  border-radius: 8px;
+  background: #FFFFFF;
+  cursor: pointer;
+  overflow: hidden;
+  text-align: left;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.ud-poll-option-btn:hover {
+  border-color: #C084FC;
+  background: #FAF5FF;
+}
+
+.ud-poll-option-btn.selected {
+  border-color: #7C3AED;
+  background: #F5F3FF;
+}
+
+.ud-poll-option-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  background: #E9D5FF;
+  opacity: 0.6;
+  transition: width 0.4s ease;
+  z-index: 1;
+}
+
+.ud-poll-option-btn.selected .ud-poll-option-fill {
+  background: #DDD6FE;
+  opacity: 0.85;
+}
+
+.ud-poll-option-text {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #1F2937;
+}
+
+.ud-poll-radio {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 1.5px solid #9CA3AF;
+  display: inline-block;
+  flex-shrink: 0;
+  transition: all 0.2s;
+}
+
+.ud-poll-radio.checked {
+  border-color: #7C3AED;
+  background: #7C3AED;
+  box-shadow: inset 0 0 0 2px #FFFFFF;
+}
+
+.ud-poll-option-pct {
+  position: relative;
+  z-index: 2;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #6B21A8;
+}
+
+.ud-poll-footer {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  color: #6B7280;
+  padding-top: 4px;
+}
+
+/* Instagram-style Autoplay Feed Video */
+.ud-post-video-box {
+  position: relative;
+  background: #000;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.ud-feed-video-el {
+  width: 100%;
+  max-height: 480px;
+  object-fit: cover;
+  display: block;
+}
+
+.ud-video-sound-circle-btn {
+  position: absolute;
+  bottom: 12px;
+  right: 12px;
+  z-index: 5;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: #FFFFFF;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+  transition: background 0.15s ease, transform 0.15s ease, border-color 0.15s ease;
+}
+
+.ud-video-sound-circle-btn:hover {
+  background: rgba(0, 0, 0, 0.85);
+  transform: scale(1.1);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+.ud-video-sound-pill {
+  display: none;
+}
+
+.ud-video-play-center-btn {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 4;
+  pointer-events: none;
+  animation: udPulse 1.5s infinite;
+}
+
+@keyframes udPulse {
+  0% { transform: translate(-50%, -50%) scale(0.95); opacity: 0.85; }
+  50% { transform: translate(-50%, -50%) scale(1.05); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(0.95); opacity: 0.85; }
 }
 
 /* ── POST SECTION (Figma: width 420px, height 688px, border 1px #D9D9D9, radius 10px, background #FFFFFF) ── */
 .ud-post-section {
   box-sizing: border-box;
   width: 100%;
-  max-width: 420px;
+  max-width: 100%;
   height: auto;
-  min-height: 688px;
-  background: #FFFFFF;
-  border: 1px solid #D9D9D9;
-  border-radius: 10px;
-  padding: 14px 10px 14px 10px;
+  min-height: auto;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 0;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  gap: 10px;
+  gap: 16px;
 }
 
 .ud-post-item {
@@ -988,8 +1405,13 @@
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
   background: #FFFFFF;
+  border: 1px solid #E5E7EB;
+  border-radius: 12px;
+  padding: 16px 18px 14px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+  transition: box-shadow 0.2s ease;
 }
 
 .ud-post-item-first {
@@ -1137,55 +1559,24 @@
 }
 
 .ud-post-image-box {
-  cursor: pointer;
-  overflow: hidden;
-  border-radius: 8px;
-}
-
-.ud-post-img {
-  transition: transform 0.2s ease, opacity 0.2s ease;
-}
-
-.ud-post-image-box:hover .ud-post-img {
-  opacity: 0.96;
-}
-
-.ud-post-text {
-  font-family: 'Inter', sans-serif;
-  font-size: 12px;
-  font-weight: 500;
-  line-height: 15px;
-  color: #232356;
-  margin: 0;
-}
-
-.ud-post-tags {
-  font-family: 'Inter', sans-serif;
-  font-size: 12px;
-  font-weight: 600;
-  line-height: 15px;
-  color: #5A2CE4;
-  margin: 2px 0 6px;
-}
-
-.ud-post-image-box {
   position: relative;
   width: 100%;
-  max-width: 399px;
-  max-height: 280px;
+  max-width: 100%;
+  max-height: 520px;
   border-radius: 10px;
   overflow: hidden;
-  background: transparent;
+  background: #000000;
   display: flex;
+  align-items: center;
   justify-content: center;
 }
 
 .ud-post-img {
   width: 100%;
   height: auto;
-  max-height: 280px;
-  object-fit: cover;
-  border-radius: 10px;
+  max-height: 560px;
+  object-fit: contain;
+  border-radius: 12px;
   display: block;
 }
 
@@ -2516,8 +2907,8 @@
     gap: 22px;
   }
   .ud-center-split-grid {
-    grid-template-columns: minmax(0, 1.35fr) minmax(340px, 440px);
-    gap: 18px;
+    display: block;
+    width: 100%;
   }
   .ud-search-wrapper {
     max-width: 900px;
@@ -3011,10 +3402,10 @@
   .ud-mobile-only {
     display: block !important;
     width: 100% !important;
-    max-width: 412px !important;
+    max-width: 100% !important;
     margin: 0 auto !important;
     min-height: 100vh !important;
-    background: #3A23D5 !important;
+    background: #F4F6F9 !important;
     padding-bottom: 74px !important;
     box-sizing: border-box !important;
     position: relative !important;
@@ -3175,35 +3566,26 @@
   /* ───────────────── MAIN WHITE CARD (FRAME 109) ───────────────── */
   .ud-mob-frame109 {
     background: #FFFFFF !important;
-    border-radius: 10px !important;
-    margin: 4px 6px 16px !important;
-    padding: 8px 8px 12px !important;
+    border-radius: 0 0 16px 16px !important;
+    margin: 0 0 16px 0 !important;
+    padding: 10px 10px 16px !important;
     position: relative !important;
     box-sizing: border-box !important;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03) !important;
   }
 
   /* Ellipse 16 - 24 blur background glow */
   .ud-mob-frame109::before {
-    content: '' !important;
-    position: absolute !important;
-    top: 0 !important;
-    left: 0 !important;
-    right: 0 !important;
-    bottom: 0 !important;
-    pointer-events: none !important;
-    background: 
-      radial-gradient(ellipse 262px 285px at -15% 35%, rgba(228, 223, 253, 0.45) 0%, transparent 70%),
-      radial-gradient(ellipse 262px 285px at 90% 15%, rgba(228, 223, 253, 0.4) 0%, transparent 70%),
-      radial-gradient(ellipse 262px 285px at 45% 65%, rgba(228, 223, 253, 0.35) 0%, transparent 70%) !important;
-    filter: blur(10px) !important;
-    z-index: 0 !important;
+    display: none !important;
   }
 
-  /* ───────────────── CREATE POST STRIP ───────────────── */
+  /* ───────────────── CREATE POST STRIP (Positioned below stories) ───────────────── */
   .ud-mob-create-post-strip {
-    background: #FFFFFF !important;
-    border-radius: 8px !important;
-    padding: 4px 0 8px !important;
+    background: #F8FAFC !important;
+    border: 1px solid #E2E8F0 !important;
+    border-radius: 10px !important;
+    padding: 8px 10px !important;
+    margin-bottom: 12px !important;
     position: relative !important;
     z-index: 1 !important;
   }
@@ -3283,15 +3665,17 @@
     flex-shrink: 0 !important;
   }
 
-  /* ───────────────── STORIES ROW (FRAME 188 - 192) ───────────────── */
+  /* ───────────────── STORIES ROW (FRAME 188 - 192) (Positioned on top) ───────────────── */
   .ud-mob-stories-row {
     display: flex !important;
-    gap: 6px !important;
+    gap: 8px !important;
     overflow-x: auto !important;
     scrollbar-width: none !important;
-    padding: 6px 0 10px !important;
+    padding: 4px 0 10px !important;
     position: relative !important;
     z-index: 1 !important;
+    border-bottom: 1px solid #F1F5F9 !important;
+    margin-bottom: 10px !important;
   }
 
   .ud-mob-story-card {
@@ -3559,12 +3943,13 @@
   }
 
   .ud-mob-post-banner-img {
-    width: 100% !important;
-    height: auto !important;
-    max-height: 160px !important;
-    object-fit: cover !important;
-    display: block !important;
-  }
+  width: 100% !important;
+  height: auto !important;
+  max-height: 480px !important;
+  object-fit: contain !important;
+  display: block !important;
+  border-radius: 12px !important;
+}
 
   .ud-mob-banner-overlay-logo {
     position: absolute !important;
@@ -3849,8 +4234,11 @@
     justify-content: space-around !important;
     box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.08) !important;
     z-index: 1000 !important;
-    max-width: 412px !important;
+    width: 100% !important;
+    max-width: 100% !important;
     margin: 0 auto !important;
+    padding-bottom: env(safe-area-inset-bottom, 0px) !important;
+    box-sizing: border-box !important;
   }
 
   .ud-mob-bnav-item {
@@ -3888,6 +4276,666 @@
     margin-top: -16px !important;
     line-height: 1 !important;
   }
+
+  /* ───────────────── MOBILE MORE / FULL PLATFORM MENU DRAWER ───────────────── */
+  .ud-mob-menu-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    z-index: 99999;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    animation: udFadeIn 0.2s ease-out;
+  }
+
+  .ud-mob-menu-sheet {
+    width: 100%;
+    max-width: 480px;
+    max-height: 82vh;
+    background: #FFFFFF;
+    border-radius: 20px 20px 0 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.25);
+    animation: udSlideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .ud-mob-menu-handle-bar {
+    width: 40px;
+    height: 4px;
+    border-radius: 2px;
+    background: #CBD5E1;
+    margin: 10px auto 4px;
+    flex-shrink: 0;
+  }
+
+  .ud-mob-menu-user-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 18px;
+    border-bottom: 1px solid #F1F5F9;
+  }
+
+  .ud-mob-menu-user-meta {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+  }
+
+  .ud-mob-menu-avatar {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid #7C3AED;
+  }
+
+  .ud-mob-menu-name-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .ud-mob-menu-name {
+    font-family: 'Inter', sans-serif;
+    font-size: 14.5px;
+    font-weight: 700;
+    color: #1E1B4B;
+  }
+
+  .ud-mob-menu-badge {
+    font-size: 11.5px;
+    color: #6D28D9;
+    font-weight: 600;
+  }
+
+  .ud-mob-menu-close {
+    background: #F1F5F9;
+    border: none;
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    color: #64748B;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .ud-mob-menu-close:hover {
+    background: #E2E8F0;
+    color: #0F172A;
+  }
+
+  .ud-mob-menu-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    padding: 14px 16px;
+    overflow-y: auto;
+    max-height: 52vh;
+  }
+
+  .ud-mob-menu-card {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #F8FAFC;
+    border: 1px solid #E2E8F0;
+    border-radius: 12px;
+    padding: 10px 12px;
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.15s ease;
+    user-select: none;
+  }
+
+  .ud-mob-menu-card:active,
+  .ud-mob-menu-card.is-active {
+    background: #F5F3FF;
+    border-color: #C4B5FD;
+    transform: scale(0.98);
+  }
+
+  .ud-mob-menu-card-icon-wrap {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: #2E0362;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .ud-mob-menu-card-icon {
+    width: 18px;
+    height: 18px;
+    object-fit: contain;
+  }
+
+  .ud-mob-menu-card-title {
+    font-family: 'Inter', sans-serif;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: #1E293B;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .ud-mob-menu-footer {
+    padding: 12px 16px 18px;
+    border-top: 1px solid #F1F5F9;
+    background: #FFFFFF;
+  }
+
+  .ud-mob-menu-logout-btn {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 11px 16px;
+    background: #FFF1F2;
+    border: 1px solid #FECDD3;
+    border-radius: 10px;
+    color: #E11D48;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .ud-mob-menu-logout-btn:active {
+    background: #FFE4E6;
+  }
 }
 
 
+
+/* =========================================================
+   NEW DASHBOARD REVAMP: IN-FEED SUGGESTED & ANIMATED ACTIONS
+   ========================================================= */
+
+/* Action Button Hover & Micro-Animations */
+.ud-post-interact-bar {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid #F1F5F9;
+}
+
+.ud-interact-btn,
+.ud-mob-post-action-btn {
+  background: transparent;
+  border: 1px solid transparent;
+  font-family: 'Inter', sans-serif;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: #4B5563;
+  cursor: pointer;
+  padding: 8px 14px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  user-select: none;
+}
+
+.ud-interact-icon-wrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* LIKE BUTTON */
+.ud-btn-like:hover {
+  background: rgba(90, 44, 228, 0.08) !important;
+  color: #5A2CE4 !important;
+}
+.ud-btn-like:hover .ud-like-icon {
+  transform: scale(1.25) rotate(-8deg);
+}
+.ud-btn-like.liked-active {
+  background: rgba(90, 44, 228, 0.12) !important;
+  color: #5A2CE4 !important;
+  font-weight: 600 !important;
+  border-color: rgba(90, 44, 228, 0.2) !important;
+}
+.ud-btn-like.liked-active .ud-like-icon {
+  animation: udHeartBounce 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  color: #5A2CE4 !important;
+}
+
+/* COMMENT BUTTON */
+.ud-btn-comment:hover {
+  background: rgba(37, 99, 235, 0.08) !important;
+  color: #2563EB !important;
+}
+.ud-btn-comment:hover .ud-comment-icon {
+  transform: translateY(-2px) scale(1.15);
+}
+.ud-btn-comment.active {
+  background: rgba(37, 99, 235, 0.12) !important;
+  color: #2563EB !important;
+  font-weight: 600 !important;
+  border-color: rgba(37, 99, 235, 0.2) !important;
+}
+
+/* SHARE BUTTON */
+.ud-btn-share:hover {
+  background: rgba(16, 185, 129, 0.08) !important;
+  color: #059669 !important;
+}
+.ud-btn-share:hover .ud-share-icon {
+  transform: translateX(3px) scale(1.15);
+}
+
+.ud-interact-btn:active,
+.ud-mob-post-action-btn:active {
+  transform: scale(0.95);
+}
+
+@keyframes udHeartBounce {
+  0% { transform: scale(1); }
+  35% { transform: scale(1.35) rotate(-10deg); }
+  65% { transform: scale(0.9) rotate(5deg); }
+  100% { transform: scale(1) rotate(0deg); }
+}
+
+/* In-Feed Suggested Trainers & Leaders (Instagram Style) */
+.ud-infeed-suggested {
+  background: #FFFFFF;
+  border: 1px solid #E5E7EB;
+  border-radius: 14px;
+  padding: 16px 18px;
+  margin: 8px 0 16px 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.ud-infeed-suggested-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #F3F4F6;
+}
+
+.ud-infeed-suggested-title-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ud-infeed-sparkle-badge {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #5A2CE4;
+}
+
+.ud-infeed-suggested-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+}
+
+.ud-infeed-see-all-btn {
+  background: transparent;
+  border: none;
+  color: #5A2CE4;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 4px 10px;
+  border-radius: 6px;
+  transition: all 0.15s ease;
+}
+
+.ud-infeed-see-all-btn:hover {
+  background: rgba(90, 44, 228, 0.08);
+}
+
+.ud-infeed-scroll-container {
+  display: flex;
+  gap: 14px;
+  overflow-x: auto;
+  padding: 6px 2px 12px 2px;
+  scrollbar-width: thin;
+  scrollbar-color: #CBD5E1 transparent;
+  -webkit-overflow-scrolling: touch;
+}
+
+.ud-infeed-scroll-container::-webkit-scrollbar {
+  height: 6px;
+}
+
+.ud-infeed-scroll-container::-webkit-scrollbar-thumb {
+  background: #CBD5E1;
+  border-radius: 10px;
+}
+
+.ud-infeed-person-card {
+  position: relative;
+  flex: 0 0 165px;
+  width: 165px;
+  background: #F9FAFB;
+  border: 1px solid #E5E7EB;
+  border-radius: 12px;
+  padding: 14px 10px 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-sizing: border-box;
+}
+
+.ud-infeed-dismiss-btn {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.05);
+  border: none;
+  color: #6B7280;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  padding: 0;
+  z-index: 2;
+}
+
+.ud-infeed-dismiss-btn:hover {
+  background: rgba(0, 0, 0, 0.15);
+  color: #111827;
+  transform: scale(1.1);
+}
+
+.ud-infeed-person-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+  background: #FFFFFF;
+  border-color: #D1D5DB;
+}
+
+.ud-infeed-avatar-ring {
+  position: relative;
+  width: 62px;
+  height: 62px;
+  border-radius: 50%;
+  padding: 2.5px;
+  background: linear-gradient(135deg, #5A2CE4 0%, #D51CFD 100%);
+  margin-bottom: 8px;
+  flex-shrink: 0;
+}
+
+.ud-infeed-avatar-img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  background: #FFFFFF;
+  display: block;
+}
+
+.ud-infeed-trainer-badge {
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+  background: #FEF3C7;
+  border: 1px solid #F59E0B;
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  font-size: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ud-infeed-person-name {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #111827;
+  margin: 0 0 2px 0;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ud-infeed-person-role {
+  font-size: 11.5px;
+  color: #6B7280;
+  margin-bottom: 3px;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ud-infeed-person-stats {
+  font-size: 10.5px;
+  color: #9CA3AF;
+  margin-bottom: 10px;
+}
+
+.ud-infeed-btn-follow {
+  width: 100%;
+  padding: 6px 0;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 7px;
+  border: 1px solid #5A2CE4;
+  background: #5A2CE4;
+  color: #FFFFFF;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.ud-infeed-btn-follow:hover {
+  background: #471EC9;
+  border-color: #471EC9;
+}
+
+.ud-infeed-btn-follow.is-followed {
+  background: #F3F4F6;
+  color: #374151;
+  border-color: #D1D5DB;
+}
+
+.ud-infeed-btn-follow.is-pending {
+  background: #FEF3C7;
+  color: #92400E;
+  border-color: #FCD34D;
+}
+
+/* Mobile version of infeed suggested */
+.ud-infeed-suggested-mob {
+  margin: 12px 14px;
+  padding: 12px 12px 14px;
+  border-radius: 12px;
+  width: calc(100% - 28px);
+}
+.ud-infeed-suggested-mob .ud-infeed-person-card {
+  flex: 0 0 145px;
+  width: 145px;
+  padding: 12px 8px 10px;
+}
+.ud-infeed-suggested-mob .ud-infeed-avatar-ring {
+  width: 54px;
+  height: 54px;
+}
+
+/* =========================================================
+   INSTAGRAM STYLE PHOTO/VIDEO DISPLAY & DOUBLE TAP HEART POPUP
+   ========================================================= */
+
+.ud-post-image-box {
+  position: relative !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  border-radius: 12px !important;
+  overflow: hidden !important;
+  background: #09090B !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  margin: 8px 0 10px 0 !important;
+  user-select: none !important;
+  cursor: pointer !important;
+}
+
+.ud-post-img {
+  width: 100% !important;
+  height: auto !important;
+  max-height: 560px !important;
+  object-fit: contain !important;
+  border-radius: 12px !important;
+  display: block !important;
+}
+
+.ud-mob-post-banner-wrap {
+  width: 100% !important;
+  border-radius: 12px !important;
+  overflow: hidden !important;
+  position: relative !important;
+  margin: 8px 0 10px !important;
+  background: #09090B !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  user-select: none !important;
+  cursor: pointer !important;
+}
+
+.ud-mob-post-banner-img {
+  width: 100% !important;
+  height: auto !important;
+  max-height: 480px !important;
+  object-fit: contain !important;
+  display: block !important;
+  border-radius: 12px !important;
+}
+
+/* Instagram Double-Tap Heart Animation Overlay */
+.ud-insta-heart-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 30;
+}
+
+.ud-insta-heart-icon {
+  width: 95px;
+  height: 95px;
+  filter: drop-shadow(0 6px 18px rgba(0, 0, 0, 0.45));
+  animation: instaHeartPopAnim 0.85s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+@keyframes instaHeartPopAnim {
+  0% {
+    transform: scale(0) rotate(-14deg);
+    opacity: 0;
+  }
+  25% {
+    transform: scale(1.28) rotate(0deg);
+    opacity: 1;
+  }
+  45% {
+    transform: scale(0.95);
+    opacity: 1;
+  }
+  70% {
+    transform: scale(1);
+    opacity: 0.95;
+  }
+  100% {
+    transform: scale(1.35);
+    opacity: 0;
+  }
+}
+
+/* Refined in-feed header matching user design */
+.ud-infeed-suggested-title-group {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+.ud-infeed-header-icon {
+  width: 24px !important;
+  height: 24px !important;
+  object-fit: contain !important;
+  display: block !important;
+  flex-shrink: 0 !important;
+}
+
+.ud-infeed-suggested-title {
+  font-family: 'Inter', sans-serif !important;
+  font-size: 18px !important;
+  font-weight: 700 !important;
+  color: #1F1735 !important;
+  margin: 0 !important;
+  line-height: 1.2 !important;
+  display: inline-block !important;
+}
+
+/* =========================================================
+   HIDE ALL SCROLLBARS (IN-FEED CAROUSEL & MAIN CONTAINER)
+   ========================================================= */
+
+.ud-infeed-scroll-container,
+.ud-content-scroll-container,
+.ud-sidebar-left,
+.ud-services-list,
+.ud-events-mini-list,
+.ud-groups-list,
+.ud-mob-stories-row,
+.ud-mob-posts-feed {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+.ud-infeed-scroll-container::-webkit-scrollbar,
+.ud-content-scroll-container::-webkit-scrollbar,
+.ud-sidebar-left::-webkit-scrollbar,
+.ud-services-list::-webkit-scrollbar,
+.ud-events-mini-list::-webkit-scrollbar,
+.ud-groups-list::-webkit-scrollbar,
+.ud-mob-stories-row::-webkit-scrollbar,
+.ud-mob-posts-feed::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}

@@ -37,8 +37,6 @@ import {
   FiFileText,
   FiPlus,
   FiMic,
-  FiEdit3,
-  FiMapPin,
   FiHome,
   FiUsers,
   FiAward,
@@ -54,7 +52,6 @@ import {
   BsPeopleFill,
   BsPersonCheckFill,
   BsFileEarmarkPdfFill,
-  BsAwardFill,
   BsThreeDots,
 } from 'react-icons/bs';
 import {
@@ -62,14 +59,14 @@ import {
   IoCheckmark,
   IoCheckmarkDone,
   IoPlayCircle,
-  IoPaperPlaneOutline,
 } from 'react-icons/io5';
 import { FaCrown } from 'react-icons/fa';
 
 // Asset Images
 import userAvatarRahul from '../../assets/dashboard/user_avatar_rahul.png';
-import chatBannerMountainBg from '../../assets/chat_banner_mountain_bg.png';
 import GroupMembersModal from '../../components/modals/GroupMembersModal';
+import IncomingCallModal from '../../components/modals/IncomingCallModal';
+import CallModal from '../../components/modals/CallModal';
 import './MessagesPage.css';
 
 // Popular Emojis categorized for the interactive picker
@@ -137,6 +134,81 @@ export default function MessagesPage() {
       return currentUserId || null;
     }
   }, [currentUser, currentUserId]);
+
+  // ── 📞 1-on-1 Audio & Video Calling State ──
+  const [activeCall, setActiveCall] = useState(null);
+  const [incomingCallData, setIncomingCallData] = useState(null);
+
+  // Listen for Incoming Calls
+  useEffect(() => {
+    const s = getSocket();
+    if (!s) return;
+
+    const handleIncomingCall = (callData) => {
+      if (activeCall) {
+        // User is already in an active call, signal busy
+        s.emit('call_reject', { toUserId: callData.fromUserId, reason: 'busy' });
+        return;
+      }
+      setIncomingCallData(callData);
+    };
+
+    s.on('call_incoming', handleIncomingCall);
+
+    return () => {
+      s.off('call_incoming', handleIncomingCall);
+    };
+  }, [activeCall]);
+
+  const handleStartCall = (callType = 'video') => {
+    if (!selectedContact || !selectedContact.user_id) {
+      toast.error('Select a contact to start a call');
+      return;
+    }
+    if (selectedContact.category === 'Group' || String(selectedContact.user_id).startsWith('group_')) {
+      toast.error('Group calling coming soon!');
+      return;
+    }
+
+    const s = getSocket();
+    if (!s || !s.connected) {
+      toast.error('Connecting to chat server, please retry in a second');
+      return;
+    }
+
+    setActiveCall({
+      isCaller: true,
+      callType,
+      targetUser: {
+        id: selectedContact.user_id,
+        name: selectedContact.name || selectedContact.username || 'Fortaa Leader',
+        avatarUrl: selectedContact.avatar || selectedContact.avatarUrl || null,
+        role: selectedContact.role || 'Member',
+      },
+    });
+  };
+
+  const handleAcceptIncomingCall = (callData) => {
+    setIncomingCallData(null);
+    setActiveCall({
+      isCaller: false,
+      callType: callData.callType || 'video',
+      targetUser: {
+        id: callData.fromUserId,
+        name: callData.callerName,
+        avatarUrl: callData.callerAvatar,
+        role: callData.callerRole,
+      },
+    });
+  };
+
+  const handleDeclineIncomingCall = (callData) => {
+    const s = getSocket();
+    if (s && callData?.fromUserId) {
+      s.emit('call_reject', { toUserId: callData.fromUserId, reason: 'declined' });
+    }
+    setIncomingCallData(null);
+  };
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -761,41 +833,6 @@ export default function MessagesPage() {
               <p className="msg-list-subtitle">Stay connected with your team, network and leads.</p>
             </div>
 
-            {/* Mobile List Header Banner (Figma Image 1) */}
-            <div
-              className="msg-mobile-list-banner mobile-only-banner"
-              style={{
-                backgroundImage: `url(${chatBannerMountainBg})`,
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
-              }}
-            >
-              <div className="msg-mob-banner-top-actions">
-                <button
-                  type="button"
-                  className="msg-mob-circle-action-btn"
-                  title="Messages"
-                  onClick={() => toast('All conversations')}
-                >
-                  <IoPaperPlaneOutline />
-                </button>
-                <div className="msg-mob-title-box">
-                  <h1 className="msg-mob-title-text">Messages</h1>
-                  <p className="msg-mob-subtitle-text">
-                    Stay connected with your team, network and leads.
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  className="msg-mob-circle-action-btn"
-                  title="Compose"
-                  onClick={() => toast('New message compose')}
-                >
-                  <FiEdit3 />
-                </button>
-              </div>
-            </div>
-
             {/* Search Bar + Filter Button (Figma Image 2) */}
             <div className="msg-search-row">
               <div className="msg-search-bar-wrap">
@@ -995,18 +1032,8 @@ export default function MessagesPage() {
           <main className="msg-right-panel">
             {selectedContact ? (
               <>
-                {/* ── Profile Banner with Strict Online Status & Mobile Back Button ── */}
-                <div
-                  className="msg-chat-profile-banner"
-                  style={{
-                    backgroundImage: `url(${chatBannerMountainBg})`,
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'center',
-                    backgroundRepeat: 'no-repeat',
-                  }}
-                >
-                  <div className="msg-banner-overlay" />
-
+                {/* ── Compact Instagram/WhatsApp Style Chat Header ── */}
+                <div className="msg-chat-header-bar">
                   {/* Mobile Back Button (<) */}
                   <button
                     type="button"
@@ -1018,7 +1045,7 @@ export default function MessagesPage() {
                   </button>
 
                   <div
-                    className="msg-banner-content"
+                    className="msg-header-user-info"
                     style={{
                       cursor:
                         String(selectedContact?.user_id).startsWith('group_') ||
@@ -1041,28 +1068,28 @@ export default function MessagesPage() {
                         : undefined
                     }
                   >
-                    <div className="msg-banner-avatar-wrap">
+                    <div className="msg-header-avatar-wrap">
                       <img
                         src={selectedContact.avatar_url || userAvatarRahul}
                         alt={selectedContact.name || 'User'}
-                        className="msg-banner-avatar"
+                        className="msg-header-avatar"
                         onError={(e) => {
                           e.currentTarget.onerror = null;
                           e.currentTarget.src = userAvatarRahul;
                         }}
                       />
                       {isContactOnline && !String(selectedContact.user_id).startsWith('group_') && (
-                        <span className="msg-banner-online-indicator" />
+                        <span className="msg-header-online-indicator" />
                       )}
                     </div>
 
-                    <div className="msg-banner-info">
-                      <div className="msg-banner-title-line">
-                        <h2 className="msg-banner-name">{selectedContact.name || 'User'}</h2>
+                    <div className="msg-header-text-col">
+                      <div className="msg-header-name-row">
+                        <h2 className="msg-header-name">{selectedContact.name || 'User'}</h2>
                         {selectedContact.verified && (
-                          <div className="msg-mob-crown-circle" title="Verified Member">
-                            <FaCrown className="msg-crown-icon" />
-                          </div>
+                          <span className="msg-header-verified-crown" title="Verified Member">
+                            <FaCrown />
+                          </span>
                         )}
                         {(String(selectedContact.user_id).startsWith('group_') ||
                           selectedContact.category === 'Group') && (
@@ -1070,85 +1097,51 @@ export default function MessagesPage() {
                         )}
                       </div>
 
-                      <div className="msg-banner-badge-row">
-                        <div className="msg-banner-leader-badge">
-                          <span className="msg-medal-circle">
-                            {String(selectedContact.user_id).startsWith('group_') ||
-                            selectedContact.category === 'Group' ? (
-                              <FiUsers className="msg-leader-medal" />
-                            ) : (
-                              <BsAwardFill className="msg-leader-medal" />
-                            )}
-                          </span>
-                          <span className="msg-badge-text">
-                            {selectedContact.company_brand || (String(selectedContact.user_id).startsWith('group_') ? 'Fortaa Community' : 'Fortaa')}
-                          </span>
-                          <span className="msg-badge-divider">|</span>
-                          <span className="msg-badge-subtext">
-                            {selectedContact.role || 'Member'}
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="msg-banner-status-row">
+                      <div className="msg-header-status-subline">
                         {String(selectedContact.user_id).startsWith('group_') ||
                         selectedContact.category === 'Group' ? (
-                          <span className="msg-banner-role-label" style={{ color: '#818cf8', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-                            <FiUsers /> Tap to view members
+                          <span className="msg-header-group-sub">
+                            <FiUsers className="msg-sub-icon" /> Tap to view members
+                          </span>
+                        ) : isContactOnline ? (
+                          <span className="msg-header-online-status">
+                            <span className="msg-online-dot-mini" /> Active now
                           </span>
                         ) : (
-                          <>
-                            <span className="msg-banner-role-label">
-                              {selectedContact.role || 'Business Partner'}
-                            </span>
-                            {/* Strictly Real Online / Offline Indicator */}
-                            {isContactOnline ? (
-                              <span className="msg-banner-online-text">
-                                <span className="msg-online-dot-inline" /> Online
-                              </span>
-                            ) : (
-                              <span className="msg-banner-offline-text">
-                                <span className="msg-offline-dot-inline" /> Offline
-                              </span>
-                            )}
-                          </>
+                          <span className="msg-header-offline-status">
+                            {selectedContact.role ? `${selectedContact.role} • Offline` : 'Offline'}
+                          </span>
                         )}
-                      </div>
-
-                      {/* Location label */}
-                      <div className="msg-banner-location-row">
-                        <FiMapPin className="msg-location-icon" />
-                        <span>India</span>
                       </div>
                     </div>
                   </div>
 
-                  {/* Action Buttons on Right (Frame 358, 359, 360: Phone, Video, Three Dots) */}
-                  <div className="msg-banner-right-actions">
+                  {/* Action Buttons on Right: Phone, Video, Three Dots */}
+                  <div className="msg-header-right-actions">
                     {!String(selectedContact?.user_id).startsWith('group_') && selectedContact?.category !== 'Group' && (
                       <>
                         <button
                           type="button"
-                          className="msg-banner-action-btn"
+                          className="msg-header-action-btn"
                           title="Voice Call"
-                          onClick={() => toast('Starting voice call...')}
+                          onClick={() => handleStartCall('audio')}
                         >
                           <FiPhone />
                         </button>
                         <button
                           type="button"
-                          className="msg-banner-action-btn"
+                          className="msg-header-action-btn"
                           title="Video Call"
-                          onClick={() => toast('Starting video call...')}
+                          onClick={() => handleStartCall('video')}
                         >
                           <FiVideo />
                         </button>
                       </>
                     )}
-                    <div className="msg-banner-menu-anchor" ref={groupMenuRef} style={{ position: 'relative' }}>
+                    <div className="msg-header-menu-anchor" ref={groupMenuRef} style={{ position: 'relative' }}>
                       <button
                         type="button"
-                        className="msg-banner-action-btn"
+                        className="msg-header-action-btn"
                         title="Options"
                         onClick={() => setGroupMenuOpen((prev) => !prev)}
                       >
@@ -1608,6 +1601,32 @@ export default function MessagesPage() {
             setActiveTab('Direct');
           }}
         />
+
+        {/* 📞 Incoming Call Alert Modal */}
+        <IncomingCallModal
+          isOpen={Boolean(incomingCallData)}
+          callData={incomingCallData}
+          onAccept={handleAcceptIncomingCall}
+          onDecline={handleDeclineIncomingCall}
+        />
+
+        {/* 📹 Active Audio & Video Call Modal (WebRTC Peer-to-Peer) */}
+        {activeCall && (
+          <CallModal
+            isOpen={Boolean(activeCall)}
+            isCaller={activeCall.isCaller}
+            callType={activeCall.callType}
+            targetUser={activeCall.targetUser}
+            currentUser={{
+              id: effectiveUserId || currentUserId,
+              name: currentUser.name || 'Fortaa Leader',
+              avatarUrl: currentUser.avatarUrl || currentUser.avatar || null,
+              role: currentUser.designation || currentUser.role || 'Member',
+            }}
+            socket={getSocket()}
+            onClose={() => setActiveCall(null)}
+          />
+        )}
       </main>
         </div>
       </div>

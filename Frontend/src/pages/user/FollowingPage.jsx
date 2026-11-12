@@ -40,7 +40,30 @@ export default function FollowingPage() {
   } catch {
     storedUser = {};
   }
-  const currentUserId = storedUser.id || 1;
+  const [resolvedUserId, setResolvedUserId] = useState(() => storedUser.id || storedUser._id || null);
+  const currentUserId = resolvedUserId || storedUser.id || 1;
+
+  useEffect(() => {
+    if (storedUser.id || storedUser._id) {
+      setResolvedUserId(storedUser.id || storedUser._id);
+      return;
+    }
+    if (storedUser.email) {
+      fetch(`/api/dashboard/overview?email=${encodeURIComponent(storedUser.email)}`)
+        .then((r) => r.json())
+        .then((data) => {
+          if (data?.success && data?.user?.id) {
+            setResolvedUserId(data.user.id);
+            try {
+              const cur = JSON.parse(localStorage.getItem('fortaa_user') || '{}');
+              localStorage.setItem('fortaa_user', JSON.stringify({ ...cur, id: data.user.id, ...data.user }));
+              window.dispatchEvent(new CustomEvent('fortaa_user_synced', { detail: data.user }));
+            } catch {}
+          }
+        })
+        .catch(() => {});
+    }
+  }, [storedUser.id, storedUser._id, storedUser.email]);
 
   // Load Following data from DB & connect live events
   useEffect(() => {

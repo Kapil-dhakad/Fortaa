@@ -250,7 +250,7 @@ async function getPosts(req, res) {
 // 3. Create a New Post
 async function createPost(req, res) {
   try {
-    const { content, tags, imageUrl, videoUrl, mediaType, authorName, authorRole, authorAvatar, userId } = req.body;
+    const { content, tags, imageUrl, videoUrl, mediaType, authorName, authorRole, authorAvatar, userId, pollData } = req.body;
 
     if (!content || !content.trim()) {
       return res.status(400).json({ success: false, message: 'Post content cannot be empty' });
@@ -262,15 +262,16 @@ async function createPost(req, res) {
     const postVideo = videoUrl || (mediaType === 'video' ? imageUrl : null);
     const postImage = postVideo ? null : (imageUrl || null);
     const postMediaType = mediaType || (postVideo ? 'video' : 'image');
-    const postTags = tags || '#Fortaa #NetworkMarketing';
+    const postTags = tags && tags.trim() ? tags.trim() : null;
     const postUserId = userId || req.userId || null;
+    const postPollData = pollData ? (typeof pollData === 'object' ? JSON.stringify(pollData) : pollData) : null;
 
     if (db.isDBConnected()) {
       const result = await db.query(
-        `INSERT INTO posts (user_id, author_name, author_role, author_avatar, content, tags, image_url, video_url, media_type, likes_count, comments_count)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 0, 0)
+        `INSERT INTO posts (user_id, author_name, author_role, author_avatar, content, tags, image_url, video_url, media_type, poll_data, likes_count, comments_count)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 0, 0)
          RETURNING *`,
-        [postUserId, postAuthor, postRole, postAvatar, content.trim(), postTags, postImage, postVideo, postMediaType]
+        [postUserId, postAuthor, postRole, postAvatar, content.trim(), postTags, postImage, postVideo, postMediaType, postPollData]
       );
       return res.status(201).json({
         success: true,
@@ -291,6 +292,7 @@ async function createPost(req, res) {
       image_url: postImage,
       video_url: postVideo,
       media_type: postMediaType,
+      poll_data: postPollData,
       likes_count: 0,
       comments_count: 0,
       created_at: new Date().toISOString(),
@@ -305,6 +307,80 @@ async function createPost(req, res) {
   } catch (error) {
     console.error('createPost error:', error);
     return res.status(500).json({ success: false, message: 'Failed to create post' });
+  }
+}
+
+// 3.5 Vote on a Poll
+async function votePoll(req, res) {
+  try {
+    const postId = parseInt(req.params.id, 10);
+    const { optionId, userId } = req.body;
+
+    if (optionId === undefined || optionId === null) {
+      return res.status(400).json({ success: false, message: 'optionId is required' });
+    }
+
+    const voterKey = String(userId || req.userId || 'user_' + Date.now());
+
+    if (db.isDBConnected()) {
+      const postRes = await db.query('SELECT * FROM posts WHERE id = $1', [postId]);
+      if (postRes.rows.length === 0) {
+        return res.status(404).json({ success: false, message: 'Post not found' });
+      }
+
+      const post = postRes.rows[0];
+      let poll = null;
+      try {
+        poll = typeof post.poll_data === 'string' ? JSON.parse(post.poll_data) : post.poll_data;
+      } catch (e) {}
+
+      if (!poll || !Array.isArray(poll.options)) {
+        return res.status(400).json({ success: false, message: 'No poll found on this post' });
+      }
+
+      poll.voters = poll.voters || {};
+      const prevOptionId = poll.voters[voterKey];
+
+      if (prevOptionId === optionId) {
+        return res.status(200).json({ success: true, pollData: poll });
+      }
+
+      poll.options = poll.options.map((opt) => {
+        let votes = Number(opt.votes) || 0;
+        if (opt.id === prevOptionId) votes = Math.max(0, votes - 1);
+        if (opt.id === optionId) votes += 1;
+        return { ...opt, votes };
+      });
+
+      poll.voters[voterKey] = optionId;
+      poll.totalVotes = poll.options.reduce((sum, o) => sum + (Number(o.votes) || 0), 0);
+
+      const updatedStr = JSON.stringify(poll);
+      await db.query('UPDATE posts SET poll_data = $1 WHERE id = $2', [updatedStr, postId]);
+
+      return res.status(200).json({ success: true, pollData: poll });
+    }
+
+    // Fallback
+    const post = fallbackData.posts.find((p) => p.id === postId);
+    if (!post) return res.status(404).json({ success: false, message: 'Post not found' });
+    let poll = typeof post.poll_data === 'string' ? JSON.parse(post.poll_data) : post.poll_data;
+    if (!poll) return res.status(400).json({ success: false, message: 'No poll' });
+    poll.voters = poll.voters || {};
+    const prev = poll.voters[voterKey];
+    poll.options = poll.options.map((opt) => {
+      let votes = Number(opt.votes) || 0;
+      if (opt.id === prev) votes = Math.max(0, votes - 1);
+      if (opt.id === optionId) votes += 1;
+      return { ...opt, votes };
+    });
+    poll.voters[voterKey] = optionId;
+    poll.totalVotes = poll.options.reduce((sum, o) => sum + (Number(o.votes) || 0), 0);
+    post.poll_data = poll;
+    return res.status(200).json({ success: true, pollData: poll });
+  } catch (error) {
+    console.error('votePoll error:', error);
+    return res.status(500).json({ success: false, message: 'Failed to record vote' });
   }
 }
 
@@ -409,19 +485,50 @@ async function getLeaders(req, res) {
   try {
     const currentUserId = parseInt(req.query.userId || req.userId, 10);
     if (db.isDBConnected()) {
-      let queryStr = `
-        SELECT id, name, email,
-               COALESCE(designation, 'Business Leader') as role,
-               avatar_url,
-               COALESCE(company_brand, 'Fortaa') as company_brand
-        FROM users
-      `;
-      const queryParams = [];
+      let queryStr = '';
+      let queryParams = [];
+
       if (currentUserId && !isNaN(currentUserId)) {
-        queryStr += ' WHERE id != $1';
-        queryParams.push(currentUserId);
+        queryStr = `
+          SELECT u.id, u.name, u.email, u.username,
+                 COALESCE(u.designation, 'Business Leader') as role,
+                 u.avatar_url,
+                 COALESCE(u.company_brand, u.business_name, 'Fortaa') as company_brand,
+                 u.location,
+                 u.bio,
+                 u.skills,
+                 u.created_at,
+                 (SELECT COUNT(*) FROM follows WHERE following_id = u.id AND (status = 'accepted' OR status IS NULL))::int AS followers_count,
+                 (SELECT COUNT(*) FROM follows WHERE follower_id = u.id AND (status = 'accepted' OR status IS NULL))::int AS following_count,
+                 (SELECT COUNT(*) FROM posts WHERE user_id = u.id)::int AS posts_count,
+                 COALESCE(
+                   (SELECT status FROM follows WHERE follower_id = $1 AND following_id = u.id LIMIT 1),
+                   'none'
+                 ) AS follow_status
+          FROM users u
+          WHERE u.id != $1
+          ORDER BY u.id DESC LIMIT 50
+        `;
+        queryParams = [currentUserId];
+      } else {
+        queryStr = `
+          SELECT u.id, u.name, u.email, u.username,
+                 COALESCE(u.designation, 'Business Leader') as role,
+                 u.avatar_url,
+                 COALESCE(u.company_brand, u.business_name, 'Fortaa') as company_brand,
+                 u.location,
+                 u.bio,
+                 u.skills,
+                 u.created_at,
+                 (SELECT COUNT(*) FROM follows WHERE following_id = u.id AND (status = 'accepted' OR status IS NULL))::int AS followers_count,
+                 (SELECT COUNT(*) FROM follows WHERE follower_id = u.id AND (status = 'accepted' OR status IS NULL))::int AS following_count,
+                 (SELECT COUNT(*) FROM posts WHERE user_id = u.id)::int AS posts_count,
+                 'none' AS follow_status
+          FROM users u
+          ORDER BY u.id DESC LIMIT 50
+        `;
+        queryParams = [];
       }
-      queryStr += ' ORDER BY id DESC LIMIT 20';
 
       const usersRes = await db.query(queryStr, queryParams);
       if (usersRes.rows.length > 0) {
@@ -793,6 +900,7 @@ module.exports = {
   getDashboardOverview,
   getPosts,
   createPost,
+  votePoll,
   likePost,
   updatePost,
   deletePost,

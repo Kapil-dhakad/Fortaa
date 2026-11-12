@@ -6,20 +6,37 @@ import iconSearchPurple from '../assets/figma/icon_search_purple.png';
 import './Navbar.css';
 
 const navLinks = [
-  { label: 'Home', href: '/' },
-  { label: 'Companies', href: '/#companies' },
-  { label: 'Opportunities', href: '/#opportunities' },
-  { label: 'Products', href: '/#products' },
-  { label: 'Leaders', href: '/#leaders' },
-  { label: 'Promotions', href: '/#promotions' },
-  { label: 'News', href: '/#news' },
-  { label: 'Events', href: '/#events' },
+  { label: 'Home', href: '/', targetId: 'home' },
+  { label: 'Companies', href: '/#companies', targetId: 'companies' },
+  { label: 'Opportunities', href: '/#opportunities', targetId: 'opportunities' },
+  { label: 'Services', href: '/#services', targetId: 'services' },
+  { label: 'Leaders', href: '/#leaders', targetId: 'leaders' },
+  { label: 'Promotions', href: '/#promotions', targetId: 'promotions' },
+  { label: 'News', href: '/#news', targetId: 'news' },
+  { label: 'Events', href: '/#events', targetId: 'events' },
 ];
 
 export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const location = useLocation();
+
+  const handleNavClick = (e, targetId) => {
+    setMenuOpen(false);
+    if (location.pathname === '/') {
+      e.preventDefault();
+      if (targetId === 'home') {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        window.history.pushState(null, '', '/');
+      } else {
+        const el = document.getElementById(targetId);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          window.history.pushState(null, '', `/#${targetId}`);
+        }
+      }
+    }
+  };
 
   return (
     <header className="figma-navbar">
@@ -42,7 +59,7 @@ export default function Navbar() {
                 key={link.label}
                 href={link.href}
                 className={`figma-nav-item ${isActive ? 'active' : ''}`}
-                onClick={() => setMenuOpen(false)}
+                onClick={(e) => handleNavClick(e, link.targetId)}
               >
                 {link.label}
               </a>

@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { FaCheck, FaUsers, FaUserFriends, FaRegAddressCard, FaShieldAlt, FaRegThumbsUp, FaThumbsUp, FaRegComment } from 'react-icons/fa';
+import { FaRegThumbsUp, FaThumbsUp, FaRegComment, FaVolumeMute, FaVolumeUp } from 'react-icons/fa';
 import { RiShareForwardLine } from 'react-icons/ri';
 import './UserDashboard.css';
 import UserHeader from '../../components/layout/UserHeader';
 import UserSidebar from '../../components/layout/UserSidebar';
+import UserMobileBottomNav from '../../components/layout/UserMobileBottomNav';
 import PostComments from '../../components/posts/PostComments';
 import ShareModal from '../../components/posts/ShareModal';
 import PostActionMenu from '../../components/posts/PostActionMenu';
@@ -22,6 +23,8 @@ import {
   fetchPosts,
   submitPost,
   likePostApi,
+  votePollApi,
+  deletePostApi,
   fetchTrainers,
   fetchLeaders,
   fetchServices,
@@ -55,7 +58,6 @@ import sidebarMegaphoneImg from '../../assets/dashboard/sidebar_megaphone_3d.png
 import oppDigitalImg from '../../assets/dashboard/opp_digital_marketing.png';
 import oppLeadershipImg from '../../assets/dashboard/opp_leadership.png';
 import oppWellnessImg from '../../assets/dashboard/opp_wellness.png';
-import whatsappIconImg from '../../assets/dashboard/whatsaap-icon.png';
 import bellIconImg from '../../assets/dashboard/bell-icon.png';
 import messageIconImg from '../../assets/dashboard/message-icon.png';
 import searchIconPurple from '../../assets/dashboard/search_icon_purple.png';
@@ -84,6 +86,407 @@ import navMessagesIcon from '../../assets/sidebar/nav_messages.png';
 import navGroupsIcon from '../../assets/sidebar/nav_groups.png';
 import navResourcesIcon from '../../assets/sidebar/nav_resources.png';
 import navSettingsIcon from '../../assets/sidebar/nav_settings.png';
+
+const MOBILE_SIDEBAR_NAV_ITEMS = [
+  { label: 'Home', icon: navHomeIcon, path: '/dashboard' },
+  { label: 'My Profile', icon: navProfileIcon, path: '/profile' },
+  { label: 'Services', icon: navServicesIcon },
+  { label: 'Market Place', icon: navMarketplaceIcon },
+  { label: 'Companies', icon: navCompaniesIcon },
+  { label: 'Products', icon: navProductsIcon },
+  { label: 'Leaders', icon: navLeadersIcon, path: '/leaders' },
+  { label: 'Promotions', icon: navPromotionsIcon },
+  { label: 'Events', icon: navEventsIcon },
+  { label: 'News & Updates', icon: navNewsIcon },
+  { label: 'Messages', icon: navMessagesIcon, path: '/messages' },
+  { label: 'Groups', icon: navGroupsIcon },
+  { label: 'Resources', icon: navResourcesIcon },
+  { label: 'Settings', icon: navSettingsIcon },
+];
+
+
+function InFeedSuggestedPeople({
+  type = 'trainers',
+  trainers,
+  leaders,
+  followingIds,
+  pendingIds,
+  onToggleFollow,
+  navigate,
+  isMobile,
+}) {
+  const isTrainers = type === 'trainers';
+  const title = isTrainers ? 'Trainers' : 'Leaders';
+  const [dismissedKeys, setDismissedKeys] = useState([]);
+
+  const items = React.useMemo(() => {
+    if (isTrainers) {
+      const tList = trainers || [];
+      return tList.map((t, i) => ({
+        key: `trainer-${t.id || i}`,
+        id: t.id,
+        name: t.name,
+        role: t.role || 'Diamond Leader',
+        stats: t.followers || t.network || '2K Followers',
+        avatar: t.avatar_url || userAvatarImg,
+        isTrainer: true,
+      }));
+    } else {
+      const lList = leaders || [];
+      return lList.map((l, i) => ({
+        key: `leader-${l.id || i}`,
+        id: l.id,
+        name: l.name,
+        role: l.role || 'Business Leader',
+        stats: 'Direct Selling Leader',
+        avatar: l.avatar_url || userAvatarImg,
+        isTrainer: false,
+      }));
+    }
+  }, [isTrainers, trainers, leaders]);
+
+  const visibleItems = items.filter((p) => !dismissedKeys.includes(p.key));
+
+  if (!visibleItems.length) return null;
+
+  return (
+    <div className={`ud-infeed-suggested ${isMobile ? 'ud-infeed-suggested-mob' : ''}`}>
+      <div className="ud-infeed-suggested-header">
+        <div className="ud-infeed-suggested-title-group">
+          <img
+            src={navServicesIcon}
+            alt=""
+            className="ud-infeed-header-icon"
+          />
+          <h3 className="ud-infeed-suggested-title">{title}</h3>
+        </div>
+        <button
+          type="button"
+          className="ud-infeed-see-all-btn"
+          onClick={() => navigate(isTrainers ? '#trainers' : '/leaders')}
+        >
+          View All →
+        </button>
+      </div>
+
+      <div className="ud-infeed-scroll-container">
+        {visibleItems.map((person) => {
+          const isFollowed = person.id ? followingIds.map(Number).includes(Number(person.id)) : false;
+          const isPending = person.id ? pendingIds.map(Number).includes(Number(person.id)) : false;
+
+          return (
+            <div key={person.key} className="ud-infeed-person-card">
+              {/* Dismiss X button */}
+              <button
+                type="button"
+                className="ud-infeed-dismiss-btn"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setDismissedKeys((prev) => [...prev, person.key]);
+                }}
+                title="Dismiss"
+                aria-label="Dismiss"
+              >
+                ✕
+              </button>
+              <div className="ud-infeed-avatar-ring">
+                <img
+                  src={person.avatar}
+                  alt={person.name}
+                  className="ud-infeed-avatar-img"
+                  onError={(e) => {
+                    e.currentTarget.onerror = null;
+                    e.currentTarget.src = userAvatarImg;
+                  }}
+                />
+                {person.isTrainer && <span className="ud-infeed-trainer-badge" title="Certified Trainer">⭐</span>}
+              </div>
+
+              <h4 className="ud-infeed-person-name" title={person.name}>{person.name}</h4>
+              <span className="ud-infeed-person-role">{person.role}</span>
+              <span className="ud-infeed-person-stats">{person.stats}</span>
+
+              <button
+                type="button"
+                className={`ud-infeed-btn-follow ${isFollowed ? 'is-followed' : isPending ? 'is-pending' : ''}`}
+                onClick={() => {
+                  if (person.id) {
+                    onToggleFollow(person.id, person.name);
+                  } else {
+                    toast.success(`Followed ${person.name}!`);
+                  }
+                }}
+              >
+                {isFollowed ? 'Following ✓' : isPending ? 'Request Pending' : person.isTrainer ? 'Follow' : 'Connect'}
+              </button>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ── Global Video Sound Manager (Instagram / Reels style persistence) ──
+// When a user un-mutes any video, subsequent videos in the feed will also play un-muted.
+let globalFeedAudioMuted = (() => {
+  try {
+    const saved = localStorage.getItem('fortaa_feed_video_muted');
+    return saved !== null ? saved === 'true' : true;
+  } catch {
+    return true;
+  }
+})();
+
+const broadcastFeedAudioState = (muted) => {
+  globalFeedAudioMuted = muted;
+  try {
+    localStorage.setItem('fortaa_feed_video_muted', String(muted));
+  } catch {}
+  window.dispatchEvent(new CustomEvent('fortaa:feed_video_mute_toggle', { detail: { muted } }));
+};
+
+// ── Feed Video with Instagram-style Autoplay & Audio Toggle ──
+function FeedVideo({ src, onDoubleTap, onSingleTap, isHeartActive, isMobile = false }) {
+  const videoRef = useRef(null);
+  const [isMuted, setIsMuted] = useState(globalFeedAudioMuted);
+  const [isPlaying, setIsPlaying] = useState(false);
+
+  // Sync sound state across all feed videos in real time
+  useEffect(() => {
+    const handleAudioToggle = (e) => {
+      const nextMuted = e.detail?.muted;
+      if (typeof nextMuted === 'boolean') {
+        setIsMuted(nextMuted);
+        if (videoRef.current) {
+          videoRef.current.muted = nextMuted;
+        }
+      }
+    };
+
+    window.addEventListener('fortaa:feed_video_mute_toggle', handleAudioToggle);
+    return () => {
+      window.removeEventListener('fortaa:feed_video_mute_toggle', handleAudioToggle);
+    };
+  }, []);
+
+  // Inherit global audio preference whenever src or component updates
+  useEffect(() => {
+    if (videoRef.current) {
+      videoRef.current.muted = globalFeedAudioMuted;
+      setIsMuted(globalFeedAudioMuted);
+    }
+  }, [src]);
+
+  useEffect(() => {
+    const el = videoRef.current;
+    if (!el) return;
+
+    const playSafely = () => {
+      if (!el.paused) return;
+      el.muted = globalFeedAudioMuted;
+      el.play()
+        .then(() => setIsPlaying(true))
+        .catch(() => {
+          // If browser policy prevents unmuted autoplay on a new video,
+          // temporarily mute to guarantee playback never gets stuck
+          if (!el.muted) {
+            el.muted = true;
+            setIsMuted(true);
+            el.play().then(() => setIsPlaying(true)).catch(() => {});
+          }
+        });
+    };
+
+    const checkVisibility = () => {
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      const windowHeight = window.innerHeight || document.documentElement.clientHeight;
+
+      const visibleTop = Math.max(0, rect.top);
+      const visibleBottom = Math.min(windowHeight, rect.bottom);
+      const visibleHeight = Math.max(0, visibleBottom - visibleTop);
+      const visibleRatio = rect.height > 0 ? visibleHeight / rect.height : 0;
+
+      // When scrolled out of screen or less than 35% visible: immediately auto-pause (turn off)
+      const isOffScreen = rect.bottom <= 40 || rect.top >= (windowHeight - 40) || visibleRatio < 0.35;
+
+      if (isOffScreen) {
+        if (!el.paused) {
+          el.pause();
+          setIsPlaying(false);
+        }
+      } else if (visibleRatio >= 0.5) {
+        // Comfortably in screen: autoplay with global audio state
+        playSafely();
+      }
+    };
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting && entry.intersectionRatio >= 0.45) {
+            playSafely();
+          } else {
+            el.pause();
+            setIsPlaying(false);
+          }
+        });
+      },
+      { threshold: [0, 0.25, 0.45, 0.75] }
+    );
+
+    observer.observe(el);
+
+    // Capture all scrolling events across window and inner containers (.ud-content-scroll-container, mobile wrapper, document)
+    window.addEventListener('scroll', checkVisibility, { passive: true, capture: true });
+    window.addEventListener('resize', checkVisibility, { passive: true });
+
+    // Initial check
+    checkVisibility();
+
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('scroll', checkVisibility, { capture: true });
+      window.removeEventListener('resize', checkVisibility);
+    };
+  }, [src]);
+
+  const toggleSound = (e) => {
+    e.stopPropagation();
+    if (!videoRef.current) return;
+    const nextMuted = !isMuted;
+    videoRef.current.muted = nextMuted;
+    setIsMuted(nextMuted);
+    // Broadcast globally to all other feed videos and persist
+    broadcastFeedAudioState(nextMuted);
+  };
+
+  const togglePlay = (e) => {
+    e.stopPropagation();
+    if (!videoRef.current) return;
+    if (videoRef.current.paused) {
+      videoRef.current.play().then(() => setIsPlaying(true)).catch(() => {});
+    } else {
+      videoRef.current.pause();
+      setIsPlaying(false);
+    }
+  };
+
+  return (
+    <div
+      className={isMobile ? "ud-mob-post-banner-wrap ud-post-video-box" : "ud-post-image-box ud-post-video-box"}
+      onClick={togglePlay}
+      onDoubleClick={onDoubleTap}
+      onTouchEnd={onSingleTap}
+      style={{ position: 'relative', cursor: 'pointer', overflow: 'hidden', background: '#000' }}
+    >
+      <video
+        ref={videoRef}
+        src={src}
+        playsInline
+        loop
+        muted={isMuted}
+        preload="metadata"
+        className={isMobile ? "ud-mob-post-banner-img ud-feed-video-el" : "ud-post-img ud-feed-video-el"}
+        onPlay={() => setIsPlaying(true)}
+        onPause={() => setIsPlaying(false)}
+      />
+
+      {/* Floating Instagram-style sound toggle icon button (icon only) */}
+      <button
+        type="button"
+        className="ud-video-sound-circle-btn"
+        onClick={toggleSound}
+        title={isMuted ? 'Unmute' : 'Mute'}
+        aria-label={isMuted ? 'Unmute' : 'Mute'}
+      >
+        {isMuted ? <FaVolumeMute size={15} /> : <FaVolumeUp size={15} />}
+      </button>
+
+      {/* Pause indicator overlay */}
+      {!isPlaying && (
+        <div className="ud-video-play-center-btn" title="Click to play">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="#ffffff">
+            <polygon points="5 3 19 12 5 21 5 3" />
+          </svg>
+        </div>
+      )}
+
+      {/* Double-tap heart animation */}
+      {isHeartActive && (
+        <div className="ud-insta-heart-overlay">
+          <svg className="ud-insta-heart-icon" viewBox="0 0 24 24" fill="#FF2D55">
+            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+          </svg>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Interactive Poll Component for Feed Posts ──
+function PostPoll({ pollData, postId, onVote, currentUserId }) {
+  let poll = null;
+  try {
+    poll = typeof pollData === 'string' ? JSON.parse(pollData) : pollData;
+  } catch {
+    poll = null;
+  }
+
+  if (!poll || !poll.options || !Array.isArray(poll.options)) return null;
+
+  const voters = poll.voters || {};
+  const userVote = voters[currentUserId] !== undefined ? voters[currentUserId] : null;
+  const hasVoted = userVote !== null;
+  const totalVotes = poll.totalVotes !== undefined
+    ? Number(poll.totalVotes)
+    : poll.options.reduce((sum, o) => sum + (Number(o.votes) || 0), 0);
+
+  return (
+    <div className="ud-poll-card" onClick={(e) => e.stopPropagation()}>
+      <div className="ud-poll-question">
+        <span className="ud-poll-icon">📊</span>
+        <span>{poll.question}</span>
+      </div>
+      <div className="ud-poll-options">
+        {poll.options.map((opt) => {
+          const votes = Number(opt.votes) || 0;
+          const pct = totalVotes > 0 ? Math.round((votes / totalVotes) * 100) : 0;
+          const isSelected = Number(userVote) === Number(opt.id);
+
+          return (
+            <button
+              key={opt.id}
+              type="button"
+              className={`ud-poll-option-btn ${isSelected ? 'selected' : ''} ${hasVoted ? 'voted' : ''}`}
+              onClick={() => onVote(opt.id)}
+            >
+              {hasVoted && (
+                <div
+                  className="ud-poll-option-fill"
+                  style={{ width: `${pct}%` }}
+                />
+              )}
+              <span className="ud-poll-option-text">
+                <span className={`ud-poll-radio ${isSelected ? 'checked' : ''}`}></span>
+                <span>{opt.text}</span>
+              </span>
+              {hasVoted && (
+                <span className="ud-poll-option-pct">{pct}%</span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+      <div className="ud-poll-footer">
+        <span>{totalVotes} {totalVotes === 1 ? 'vote' : 'votes'}</span>
+        <span>•</span>
+        <span>{hasVoted ? 'You have voted' : 'Tap an option to vote'}</span>
+      </div>
+    </div>
+  );
+}
 
 export default function UserDashboard() {
   const navigate = useNavigate();
@@ -127,12 +530,53 @@ export default function UserDashboard() {
 
   const [isCreatePostModalOpen, setIsCreatePostModalOpen] = useState(false);
   const [isInviteTeamModalOpen, setIsInviteTeamModalOpen] = useState(false);
+  const [heartAnimPostIds, setHeartAnimPostIds] = useState({});
+  const lastTapTimes = useRef({});
+  const tapTimerRef = useRef({});
+
+  const triggerDoubleTapLike = (postId) => {
+    const post = posts.find((p) => p.id === postId);
+    if (!post?.has_liked) {
+      handleLike(postId);
+    }
+    setHeartAnimPostIds((prev) => ({ ...prev, [postId]: true }));
+    setTimeout(() => {
+      setHeartAnimPostIds((prev) => {
+        const next = { ...prev };
+        delete next[postId];
+        return next;
+      });
+    }, 850);
+  };
+
+  const handlePostMediaTouch = (e, post) => {
+    const now = Date.now();
+    const lastTime = lastTapTimes.current[post.id] || 0;
+    if (now - lastTime < 320) {
+      // Double tap!
+      if (tapTimerRef.current[post.id]) {
+        clearTimeout(tapTimerRef.current[post.id]);
+        delete tapTimerRef.current[post.id];
+      }
+      triggerDoubleTapLike(post.id);
+      lastTapTimes.current[post.id] = 0;
+    } else {
+      lastTapTimes.current[post.id] = now;
+      tapTimerRef.current[post.id] = setTimeout(() => {
+        setInstagramModalPost(post);
+        delete tapTimerRef.current[post.id];
+      }, 280);
+    }
+  };
   const [isJoinGroupModalOpen, setIsJoinGroupModalOpen] = useState(false);
   const [submittingPost, setSubmittingPost] = useState(false);
   const [postImageFile, setPostImageFile] = useState(null);
   const [postImagePreview, setPostImagePreview] = useState(null);
   const [postVideoFile, setPostVideoFile] = useState(null);
   const [postVideoPreview, setPostVideoPreview] = useState(null);
+  const [showPollCreator, setShowPollCreator] = useState(false);
+  const [pollQuestion, setPollQuestion] = useState('');
+  const [pollOptions, setPollOptions] = useState(['', '']);
   const photoInputRef = useRef(null);
   const videoInputRef = useRef(null);
   const postInputRef = useRef(null);
@@ -140,6 +584,7 @@ export default function UserDashboard() {
   const [unreadMsgCount, setUnreadMsgCount] = useState(0);
   const [unreadNotifCount, setUnreadNotifCount] = useState(0);
   const [notifOpen, setNotifOpen] = useState(false);
+  const [mobileMoreMenuOpen, setMobileMoreMenuOpen] = useState(false);
 
   // Sync real-time message and notification counts for mobile header
   useEffect(() => {
@@ -202,13 +647,15 @@ export default function UserDashboard() {
             avatarUrl: freshAvatar,
           });
 
-          // Sync localStorage if fresh avatar came from DB
-          if (overview.user.avatar_url && storedUser.avatarUrl !== overview.user.avatar_url) {
+          // Sync localStorage so id and profile info are always accurately persisted
+          try {
+            const cur = JSON.parse(localStorage.getItem('fortaa_user') || '{}');
             localStorage.setItem(
               'fortaa_user',
-              JSON.stringify({ ...storedUser, avatarUrl: overview.user.avatar_url })
+              JSON.stringify({ ...cur, id: currentId, ...overview.user })
             );
-          }
+            window.dispatchEvent(new CustomEvent('fortaa_user_synced', { detail: overview.user }));
+          } catch {}
         }
         if (overview.stats) {
           setStats(overview.stats);
@@ -333,11 +780,31 @@ export default function UserDashboard() {
     return false;
   };
 
-  // Submit Post to Backend (supports description only, with photo, or with video)
+  // Submit Post to Backend (supports description only, with photo, video, or interactive poll)
   const handleCreatePost = async () => {
-    if (!postText.trim()) {
-      toast.error('Please enter a description for your post');
+    if (!postText.trim() && !showPollCreator) {
+      toast.error('Please enter a description or question for your post');
       return;
+    }
+
+    let pollPayload = null;
+    if (showPollCreator) {
+      const q = (pollQuestion || postText).trim();
+      const validOptions = pollOptions.map((o) => o.trim()).filter(Boolean);
+      if (!q) {
+        toast.error('Please enter a question for your poll');
+        return;
+      }
+      if (validOptions.length < 2) {
+        toast.error('Please provide at least 2 options for your poll');
+        return;
+      }
+      pollPayload = {
+        question: q,
+        options: validOptions.map((optText, idx) => ({ id: idx + 1, text: optText, votes: 0 })),
+        voters: {},
+        totalVotes: 0,
+      };
     }
 
     setSubmittingPost(true);
@@ -356,11 +823,12 @@ export default function UserDashboard() {
       }
 
       const createdPost = await submitPost({
-        content: postText.trim(),
-        tags: '#Fortaa #NetworkMarketing #GrowTogether',
+        content: postText.trim() || (pollPayload ? pollPayload.question : ''),
+        tags: null,
         imageUrl: uploadedImageUrl,
         videoUrl: uploadedVideoUrl,
         mediaType: uploadedVideoUrl ? 'video' : 'image',
+        pollData: pollPayload,
         authorName: profile.name,
         authorRole: profile.role,
         authorAvatar: profile.avatarUrl || null,
@@ -373,16 +841,68 @@ export default function UserDashboard() {
       setPostImagePreview(null);
       setPostVideoFile(null);
       setPostVideoPreview(null);
+      setShowPollCreator(false);
+      setPollQuestion('');
+      setPollOptions(['', '']);
       setIsCreatePostModalOpen(false);
       setStats((prev) => ({
         ...prev,
         totalPosts: (Number(prev.totalPosts) || 0) + 1,
       }));
-      toast.success(uploadedVideoUrl ? 'Video post published successfully! 🚀' : 'Post published successfully! 🚀');
+      toast.success(
+        pollPayload
+          ? 'Poll published successfully! 📊'
+          : uploadedVideoUrl
+          ? 'Video post published successfully! 🚀'
+          : 'Post published successfully! 🚀'
+      );
     } catch (err) {
       toast.error(err.message || 'Failed to publish post');
     } finally {
       setSubmittingPost(false);
+    }
+  };
+
+  // Vote on an Interactive Poll in Feed
+  const handleVotePoll = async (postId, optionId) => {
+    const voterId = profile.id;
+    // Optimistic UI update
+    setPosts((prevPosts) =>
+      prevPosts.map((p) => {
+        if (p.id !== postId) return p;
+        let poll = null;
+        try {
+          poll = typeof p.poll_data === 'string' ? JSON.parse(p.poll_data) : p.poll_data;
+        } catch {
+          poll = null;
+        }
+        if (!poll || !poll.options) return p;
+
+        poll = { ...poll, voters: { ...(poll.voters || {}) } };
+        const prevOptionId = poll.voters[voterId];
+        if (prevOptionId === optionId) return p; // already selected
+
+        poll.options = (poll.options || []).map((opt) => {
+          let votes = Number(opt.votes) || 0;
+          if (opt.id === prevOptionId) votes = Math.max(0, votes - 1);
+          if (opt.id === optionId) votes += 1;
+          return { ...opt, votes };
+        });
+        poll.voters[voterId] = optionId;
+        poll.totalVotes = poll.options.reduce((sum, o) => sum + (Number(o.votes) || 0), 0);
+        return { ...p, poll_data: poll };
+      })
+    );
+
+    try {
+      const res = await votePollApi(postId, optionId, voterId);
+      if (res?.success && res.pollData) {
+        setPosts((prevPosts) =>
+          prevPosts.map((p) => (p.id === postId ? { ...p, poll_data: res.pollData } : p))
+        );
+      }
+    } catch (err) {
+      console.warn('Vote poll error:', err);
     }
   };
 
@@ -496,26 +1016,6 @@ export default function UserDashboard() {
     toast.success('Logged out successfully');
     navigate('/login');
   };
-
-  // Navigation Items
-  const navItems = [
-    { label: 'Home', icon: navHomeIcon },
-    { label: 'My Profile', icon: navProfileIcon },
-    { label: 'Services', icon: navServicesIcon },
-    { label: 'My Team', icon: navTeamIcon },
-    { label: 'Following', icon: navFollowingIcon },
-    { label: 'Market Place', icon: navMarketplaceIcon },
-    { label: 'Companies', icon: navCompaniesIcon },
-    { label: 'Products', icon: navProductsIcon },
-    { label: 'Leaders', icon: navLeadersIcon },
-    { label: 'Promotions', icon: navPromotionsIcon },
-    { label: 'Events', icon: navEventsIcon },
-    { label: 'News & Updates', icon: navNewsIcon },
-    { label: 'Messages', icon: navMessagesIcon },
-    { label: 'Groups', icon: navGroupsIcon },
-    { label: 'Resources', icon: navResourcesIcon },
-    { label: 'Settings', icon: navSettingsIcon },
-  ];
 
   // Quick Action Buttons
   const quickActions = [
@@ -658,157 +1158,103 @@ export default function UserDashboard() {
           <div className="ud-content-columns">
             {/* ── PANEL 2: MAIN FEED & DISCOVERY ── */}
             <main className="ud-feed-main">
-          {/* User Hero Identity Banner */}
-          <div className="ud-hero-banner">
-            <div className="ud-hero-content">
-              {/* Top Row: Avatar + User Details Column (Name, Index Tech badge, View My Profile) */}
-              <div className="ud-hero-top-row">
-                <div className="ud-hero-avatar-wrap">
-                  <img src={profile.avatarUrl || userAvatarImg} alt={profile.name} className="ud-hero-avatar" />
-                  <span className="ud-hero-verified-badge" title="Verified Member">
-                    <FaCheck />
-                  </span>
-                </div>
-
-                <div className="ud-hero-user-details">
-                  <h2 className="ud-hero-name">{profile.name}</h2>
-                  <div className="ud-hero-badge-capsule">
-                    <span className="ud-badge-shield-icon">
-                      <FaShieldAlt />
-                    </span>
-                    <span className="ud-badge-tech">{profile.company}</span>
-                    <span className="ud-badge-sep">|</span>
-                    <span className="ud-badge-role">{profile.role}</span>
-                  </div>
-                  <button className="ud-btn-view-profile" onClick={() => navigate('/profile')}>
-                    View My Profile
-                  </button>
-                </div>
-              </div>
-
-              {/* Bottom Row: Horizontal Stats Row with react-icons */}
-              <div className="ud-hero-stats-row">
-                <div className="ud-stat-item ud-stat-frame">
-                  <div className="ud-stat-icon-wrap">
-                    <FaUsers />
-                  </div>
-                  <div className="ud-stat-texts">
-                    <span className="ud-stat-label">Network</span>
-                    <span className="ud-stat-val">{stats.network}</span>
-                  </div>
-                </div>
-
-                <div className="ud-stat-item ud-stat-frame">
-                  <div className="ud-stat-icon-wrap">
-                    <FaUserFriends />
-                  </div>
-                  <div className="ud-stat-texts">
-                    <span className="ud-stat-label">Followers</span>
-                    <span className="ud-stat-val">{stats.followers}</span>
-                  </div>
-                </div>
-
-                <div className="ud-stat-item ud-stat-frame ud-stat-following">
-                  <div className="ud-stat-icon-wrap">
-                    <FaRegAddressCard />
-                  </div>
-                  <div className="ud-stat-texts">
-                    <span className="ud-stat-label">Following</span>
-                    <span className="ud-stat-val">{stats.following}</span>
-                  </div>
-                </div>
-
-                <div className="ud-stat-item ud-stat-frame">
-                  <div className="ud-stat-icon-wrap">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                      <circle cx="12" cy="12" r="9" stroke="rgba(255, 255, 255, 0.15)" strokeWidth="2.8" />
-                      <circle
-                        cx="12"
-                        cy="12"
-                        r="9"
-                        stroke="url(#udDonutGrad)"
-                        strokeWidth="2.8"
-                        strokeDasharray="56.5"
-                        strokeDashoffset="8.5"
-                        strokeLinecap="round"
-                        transform="rotate(-90 12 12)"
-                      />
-                      <defs>
-                        <linearGradient id="udDonutGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                          <stop offset="0%" stopColor="#00E5FF" />
-                          <stop offset="100%" stopColor="#A855F7" />
-                        </linearGradient>
-                      </defs>
-                    </svg>
-                  </div>
-                  <div className="ud-stat-texts">
-                    <span className="ud-stat-label">Total Post</span>
-                    <span className="ud-stat-val">{stats.totalPosts}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Quick Action Capsules */}
-          <div className="ud-quick-actions-bar">
-            {quickActions.map((qa, i) => (
-              <button
-                key={i}
-                className="ud-quick-btn"
-                onClick={() => {
-                  if (qa.label === 'Create Post') {
-                    setIsCreatePostModalOpen(true);
-                  } else if (qa.label === 'Add Photo') {
-                    setIsCreatePostModalOpen(true);
-                    setTimeout(() => photoInputRef.current?.click(), 100);
-                  } else if (qa.label === 'Invite Team') {
-                    setIsInviteTeamModalOpen(true);
-                  } else if (qa.label === 'Join Group') {
-                    setIsJoinGroupModalOpen(true);
-                  } else {
-                    toast(`${qa.label} action triggered!`);
-                  }
-                }}
-              >
-                <div className="ud-quick-icon-circle" style={{ backgroundColor: qa.bgColor }}>
-                  <img src={qa.icon} alt={qa.label} className="ud-quick-action-img" />
-                </div>
-                <span className="ud-quick-text">{qa.label}</span>
-              </button>
-            ))}
-          </div>
-
-          {/* Center 2-Column Split: Feed vs Trainers/Leaders */}
+              {/* Wide Feed Column */}
           <div className="ud-center-split-grid">
             {/* Feed Column (Left) */}
             <div className="ud-feed-column">
               {/* Create a Post Box */}
               <div className="ud-create-post-card">
                 <div className="ud-cp-header">
-                  <span className="ud-cp-title">✍️ Create a Post</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#232356" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="ud-cp-title-icon">
+                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                      <circle cx="12" cy="7" r="4" />
+                    </svg>
+                    <span className="ud-cp-title">Create a Post</span>
+                  </div>
                 </div>
                 <div className="ud-cp-input-row">
                   <img src={profile.avatarUrl || userAvatarImg} alt="" className="ud-cp-avatar" />
-                  <input
+                  <textarea
                     ref={postInputRef}
-                    type="text"
-                    className="ud-cp-input"
-                    placeholder="Share your thoughts, business, opportunity or updates..."
+                    className="ud-cp-textarea"
+                    rows={2}
+                    placeholder={showPollCreator ? "Add a description or note with your poll..." : "Share your thoughts, business opportunity or updates..."}
                     value={postText}
                     onChange={(e) => setPostText(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && !e.shiftKey) {
-                        e.preventDefault();
-                        handleCreatePost();
-                      }
-                    }}
                   />
                 </div>
 
+                {/* Poll Creator Box */}
+                {showPollCreator && (
+                  <div className="ud-cp-poll-box">
+                    <div className="ud-cp-poll-head">
+                      <span className="ud-cp-poll-badge">📊 Create a Poll</span>
+                      <button
+                        type="button"
+                        className="ud-cp-poll-close"
+                        onClick={() => {
+                          setShowPollCreator(false);
+                          setPollQuestion('');
+                          setPollOptions(['', '']);
+                        }}
+                        title="Cancel poll"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                    <input
+                      type="text"
+                      className="ud-cp-poll-q-input"
+                      placeholder="Ask a question..."
+                      value={pollQuestion}
+                      onChange={(e) => setPollQuestion(e.target.value)}
+                    />
+                    <div className="ud-cp-poll-opts">
+                      {pollOptions.map((opt, oIdx) => (
+                        <div key={oIdx} className="ud-cp-poll-opt-row">
+                          <span className="ud-cp-poll-opt-num">{oIdx + 1}.</span>
+                          <input
+                            type="text"
+                            className="ud-cp-poll-opt-input"
+                            placeholder={`Option ${oIdx + 1}`}
+                            value={opt}
+                            onChange={(e) => {
+                              const newOpts = [...pollOptions];
+                              newOpts[oIdx] = e.target.value;
+                              setPollOptions(newOpts);
+                            }}
+                          />
+                          {pollOptions.length > 2 && (
+                            <button
+                              type="button"
+                              className="ud-cp-poll-del-opt"
+                              onClick={() => {
+                                setPollOptions(pollOptions.filter((_, i) => i !== oIdx));
+                              }}
+                              title="Remove option"
+                            >
+                              ✕
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                    {pollOptions.length < 4 && (
+                      <button
+                        type="button"
+                        className="ud-cp-poll-add-btn"
+                        onClick={() => setPollOptions([...pollOptions, ''])}
+                      >
+                        + Add Option
+                      </button>
+                    )}
+                  </div>
+                )}
+
                 {/* Photo Preview if attached */}
                 {postImagePreview && (
-                  <div style={{ position: 'relative', margin: '8px 12px', borderRadius: '8px', overflow: 'hidden' }}>
+                  <div style={{ position: 'relative', margin: '8px 0', borderRadius: '8px', overflow: 'hidden' }}>
                     <img
                       src={postImagePreview}
                       alt="Preview"
@@ -841,7 +1287,7 @@ export default function UserDashboard() {
 
                 {/* Video Preview if attached */}
                 {postVideoPreview && (
-                  <div style={{ position: 'relative', margin: '8px 12px', borderRadius: '8px', overflow: 'hidden', background: '#000' }}>
+                  <div style={{ position: 'relative', margin: '8px 0', borderRadius: '8px', overflow: 'hidden', background: '#000' }}>
                     <video
                       src={postVideoPreview}
                       controls
@@ -893,23 +1339,24 @@ export default function UserDashboard() {
                   <div className="ud-cp-tags">
                     <button
                       type="button"
-                      className="ud-cp-tag"
+                      className={`ud-cp-tag ud-cp-tag-photo ${postImagePreview ? 'active' : ''}`}
                       onClick={() => photoInputRef.current?.click()}
                     >
                       📷 Photo
                     </button>
                     <button
                       type="button"
-                      className="ud-cp-tag"
+                      className={`ud-cp-tag ud-cp-tag-video ${postVideoPreview ? 'active' : ''}`}
                       onClick={() => videoInputRef.current?.click()}
                     >
                       🎥 Video
                     </button>
-                    <button type="button" className="ud-cp-tag" onClick={() => toast('Poll feature coming soon!')}>
+                    <button
+                      type="button"
+                      className={`ud-cp-tag ud-cp-tag-poll ${showPollCreator ? 'active' : ''}`}
+                      onClick={() => setShowPollCreator(!showPollCreator)}
+                    >
                       📊 Poll
-                    </button>
-                    <button type="button" className="ud-cp-tag" onClick={() => toast('Marketplace tagged!')}>
-                      🛍️ Market Place
                     </button>
                   </div>
                   <button
@@ -926,8 +1373,9 @@ export default function UserDashboard() {
               {/* ── POST SECTION (Real User Feed - Max 2 Posts to preserve layout) ── */}
               <div className="ud-post-section">
                 {posts.length > 0 ? (
-                  posts.slice(0, 2).map((post, pIdx) => (
-                    <div key={post.id || pIdx} className={`ud-post-item ${pIdx === 0 ? 'ud-post-item-first' : 'ud-post-item-second'}`}>
+                  posts.map((post, pIdx) => (
+                    <React.Fragment key={post.id || pIdx}>
+                      <div className={`ud-post-item ${pIdx === 0 ? 'ud-post-item-first' : 'ud-post-item-second'}`}>
                       <div className="ud-post-header">
                         <div
                           className="ud-post-avatar-wrap"
@@ -963,19 +1411,26 @@ export default function UserDashboard() {
                           </div>
                         </div>
                         {(() => {
-                          const isSelf = post.user_id && Number(post.user_id) === Number(profile.id);
+                          const myId = Number(profile.id || storedUser.id || 13);
+                          const isSelf =
+                            (post.user_id && Number(post.user_id) === myId) ||
+                            (post.author_name && profile.name && post.author_name.toLowerCase().trim() === profile.name.toLowerCase().trim());
                           if (isSelf) return null;
                           const targetId = post.user_id ? Number(post.user_id) : null;
                           if (!targetId) return null;
                           const isFollowed = followingIds.map(Number).includes(targetId);
                           const isPending = pendingIds.map(Number).includes(targetId);
+
+                          // Once follow request is sent (pending) or already followed, hide follow button completely from dashboard
+                          if (isFollowed || isPending) return null;
+
                           return (
                             <button
                               type="button"
-                              className={`ud-btn-follow-post ${isFollowed ? 'following-active' : isPending ? 'pending-active' : ''}`}
+                              className="ud-btn-follow-post"
                               onClick={() => handleToggleFollow(targetId, post.author_name || 'Leader')}
                             >
-                              {isFollowed ? 'Following ✓' : isPending ? 'Pending' : 'Follow'}
+                              Follow
                             </button>
                           );
                         })()}
@@ -998,24 +1453,37 @@ export default function UserDashboard() {
                         <p className="ud-post-text">{post.content}</p>
                         {post.tags && <p className="ud-post-tags">{post.tags}</p>}
 
-                        {/* Post Media (Video or Image) */}
+                        {/* Interactive Poll if attached */}
+                        {post.poll_data && (
+                          <PostPoll
+                            pollData={post.poll_data}
+                            postId={post.id}
+                            onVote={(optionId) => handleVotePoll(post.id, optionId)}
+                            currentUserId={profile.id}
+                          />
+                        )}
+
+                        {/* Post Media (Video with Instagram Autoplay or Image) */}
                         {isPostVideo(post) ? (
+                          <FeedVideo
+                            src={post.video_url || post.image_url}
+                            onDoubleTap={(e) => {
+                              e.stopPropagation();
+                              triggerDoubleTapLike(post.id);
+                            }}
+                            onSingleTap={(e) => handlePostMediaTouch(e, post)}
+                            isHeartActive={Boolean(heartAnimPostIds[post.id])}
+                            isMobile={false}
+                          />
+                        ) : post.image_url ? (
                           <div
                             className="ud-post-image-box"
-                            style={{ background: '#000', borderRadius: '12px', overflow: 'hidden' }}
-                            onClick={(e) => e.stopPropagation()}
+                            onDoubleClick={(e) => {
+                              e.stopPropagation();
+                              triggerDoubleTapLike(post.id);
+                            }}
+                            onTouchEnd={(e) => handlePostMediaTouch(e, post)}
                           >
-                            <video
-                              src={post.video_url || post.image_url}
-                              controls
-                              playsInline
-                              preload="metadata"
-                              className="ud-post-img"
-                              style={{ width: '100%', maxHeight: '420px', objectFit: 'contain', background: '#000', display: 'block' }}
-                            />
-                          </div>
-                        ) : post.image_url ? (
-                          <div className="ud-post-image-box">
                             <img
                               src={post.image_url}
                               alt="Post Media"
@@ -1024,6 +1492,13 @@ export default function UserDashboard() {
                             <div className="ud-post-img-logo-badge">
                               <img src={logoTextImg} alt="FORTAA" className="ud-post-logo-badge-img" />
                             </div>
+                            {heartAnimPostIds[post.id] && (
+                              <div className="ud-insta-heart-overlay">
+                                <svg className="ud-insta-heart-icon" viewBox="0 0 24 24" fill="#FF2D55">
+                                  <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                                </svg>
+                              </div>
+                            )}
                           </div>
                         ) : null}
                       </div>
@@ -1054,30 +1529,36 @@ export default function UserDashboard() {
                       <div className="ud-post-interact-bar">
                         <button
                           type="button"
-                          className={`ud-interact-btn ${post.has_liked ? 'liked-active' : ''}`}
+                          className={`ud-interact-btn ud-btn-like ${post.has_liked ? 'liked-active' : ''}`}
                           onClick={() => handleLike(post.id)}
                         >
-                          {post.has_liked ? (
-                            <FaThumbsUp size={15} color="#3A23D5" />
-                          ) : (
-                            <FaRegThumbsUp size={15} />
-                          )}
+                          <span className="ud-interact-icon-wrap">
+                            {post.has_liked ? (
+                              <FaThumbsUp size={16} className="ud-like-icon" />
+                            ) : (
+                              <FaRegThumbsUp size={16} className="ud-like-icon" />
+                            )}
+                          </span>
                           <span>{post.has_liked ? 'Liked' : 'Like'}</span>
                         </button>
                         <button
                           type="button"
-                          className={`ud-interact-btn ${openCommentsPostId === post.id ? 'active' : ''}`}
+                          className={`ud-interact-btn ud-btn-comment ${openCommentsPostId === post.id ? 'active' : ''}`}
                           onClick={() => setOpenCommentsPostId(openCommentsPostId === post.id ? null : post.id)}
                         >
-                          <FaRegComment size={15} />
+                          <span className="ud-interact-icon-wrap">
+                            <FaRegComment size={16} className="ud-comment-icon" />
+                          </span>
                           <span>Comment</span>
                         </button>
                         <button
                           type="button"
-                          className="ud-interact-btn"
+                          className="ud-interact-btn ud-btn-share"
                           onClick={() => setShareModalPost(post)}
                         >
-                          <RiShareForwardLine size={17} />
+                          <span className="ud-interact-icon-wrap">
+                            <RiShareForwardLine size={18} className="ud-share-icon" />
+                          </span>
                           <span>Share</span>
                         </button>
                       </div>
@@ -1095,7 +1576,32 @@ export default function UserDashboard() {
                           }}
                         />
                       )}
-                    </div>
+                      </div>
+                      {/* 1st Slot: Trainers (after 5 posts, or every 10 posts starting at 5) */}
+                      {((pIdx + 1) % 10 === 5 || (posts.length <= 5 && pIdx === posts.length - 1)) && (
+                        <InFeedSuggestedPeople
+                          type="trainers"
+                          trainers={trainersList.length ? trainersList : trainers}
+                          leaders={leadersList}
+                          followingIds={followingIds}
+                          pendingIds={pendingIds}
+                          onToggleFollow={handleToggleFollow}
+                          navigate={navigate}
+                        />
+                      )}
+                      {/* 2nd Slot: Leaders (after 10 posts, or at the end if between 6 and 9 posts) */}
+                      {((pIdx + 1) % 10 === 0 || (posts.length > 5 && posts.length < 10 && pIdx === posts.length - 1) || (posts.length <= 5 && pIdx === posts.length - 1)) && (
+                        <InFeedSuggestedPeople
+                          type="leaders"
+                          trainers={trainersList.length ? trainersList : trainers}
+                          leaders={leadersList}
+                          followingIds={followingIds}
+                          pendingIds={pendingIds}
+                          onToggleFollow={handleToggleFollow}
+                          navigate={navigate}
+                        />
+                      )}
+                    </React.Fragment>
                   ))
                 ) : (
                   <div
@@ -1116,106 +1622,12 @@ export default function UserDashboard() {
                   </div>
                 )}
 
-                {/* View All Button inside the Post Section */}
-                {posts.length > 0 && (
-                  <button
-                    type="button"
-                    className="ud-btn-view-all-wide ud-feed-view-all"
-                    onClick={() => navigate('/all-posts')}
-                  >
-                    View All →
-                  </button>
-                )}
+                
               </div>
             </div>
 
 
-            {/* Trainers & Leaders Column (Middle Column: 423px) */}
-            <div className="ud-trainers-column">
-              {/* Trainers Box (Figma Frame 230: 423x275px) */}
-              <div className="ud-side-card ud-trainers-card">
-                <div className="ud-side-card-header">
-                  <h3 className="ud-side-card-title">Trainers</h3>
-                  <a href="#trainers" className="ud-side-card-view-all">View All →</a>
-                </div>
-                <div className="ud-trainers-grid">
-                  {(trainersList.length ? trainersList : trainers).map((t, idx) => (
-                    <div key={t.id || idx} className="ud-trainer-card">
-                      <div className="ud-trainer-avatar-wrap">
-                        <img src={t.avatar_url || userAvatarImg} alt={t.name} />
-                      </div>
-                      <h4 className="ud-trainer-name">{t.name}</h4>
-                      <span className="ud-trainer-role">{t.role}</span>
-                      <span className="ud-trainer-stat">{t.network || '1.2K Network'}</span>
-                      <span className="ud-trainer-stat">{t.followers || '2K Followers'}</span>
-                      <button className="ud-btn-trainer-follow" onClick={() => toast.success(`Following ${t.name}!`)}>
-                        Follow
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Leaders Box (Figma Frame 231: 423x510px) */}
-              <div className="ud-side-card ud-leaders-card">
-                <div className="ud-side-card-header">
-                  <h3 className="ud-side-card-title"># Leaders</h3>
-                  <button type="button" onClick={() => navigate("/leaders")} className="ud-side-card-view-all" style={{ border: "none", background: "transparent", cursor: "pointer", padding: 0 }}>View All →</button>
-                </div>
-                <div className="ud-leaders-list">
-                  {leadersList.length === 0 ? (
-                    <div style={{ padding: '24px 16px', textAlign: 'center', color: '#8E8A9F' }}>
-                      <span style={{ fontSize: '28px' }}>✨</span>
-                      <p style={{ marginTop: '8px', fontWeight: '700', color: '#1F1735', fontSize: '15px' }}>
-                        All caught up!
-                      </p>
-                      <p style={{ fontSize: '13px' }}>
-                        You are following all suggested leaders.
-                      </p>
-                    </div>
-                  ) : (
-                    leadersList.map((lead, idx) => {
-                      const isFollowed = followingIds.map(Number).includes(Number(lead.id));
-                      const isPending = pendingIds.map(Number).includes(Number(lead.id));
-                      return (
-                        <div key={lead.id || idx} className="ud-leader-item">
-                          <div className="ud-leader-avatar">
-                            <img src={lead.avatar_url || userAvatarImg} alt={lead.name} />
-                          </div>
-                          <div className="ud-leader-info">
-                            <span className="ud-leader-name">{lead.name}</span>
-                            <span className="ud-leader-role">{lead.role || 'Business Leader'}</span>
-                          </div>
-                          <div className="ud-leader-actions">
-                            <button
-                              className="ud-btn-lead-msg"
-                              onClick={() => navigate(`/messages?userId=${lead.id}`)}
-                            >
-                              Message
-                            </button>
-                            <button
-                              className={`ud-btn-lead-conn ${isFollowed ? 'following-active' : isPending ? 'pending-active' : ''}`}
-                              onClick={() => handleToggleFollow(lead.id, lead.name)}
-                            >
-                              {isFollowed ? 'Following ✓' : isPending ? 'Pending' : 'Connect'}
-                            </button>
-                          </div>
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
-
-                {/* Leaders View All Button (Figma Image 2) */}
-                <button
-                  type="button"
-                  className="ud-btn-view-all-wide"
-                  onClick={() => navigate('/leaders')}
-                >
-                  View All →
-                </button>
-              </div>
-            </div>
+            
           </div>
         </main>
 
@@ -1224,7 +1636,10 @@ export default function UserDashboard() {
           {/* Services & Market place (Figma Frame 138: 403x605px) */}
           <div className="ud-right-box ud-services-box">
             <div className="ud-side-card-header">
-              <h3 className="ud-side-card-title">✨ Services &amp; Market place</h3>
+              <h3 className="ud-side-card-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <img src={navServicesIcon} alt="" style={{ width: 22, height: 22, objectFit: 'contain' }} />
+                <span>Services &amp; Market place</span>
+              </h3>
               <a href="#services" className="ud-side-card-view-all">View All →</a>
             </div>
             <div className="ud-services-list">
@@ -1311,70 +1726,7 @@ export default function UserDashboard() {
         </aside>
           </div>
 
-          {/* ───────────────── BOTTOM HORIZONTAL CAROUSEL: SCROLL OPPORTUNITIES ───────────────── */}
-          <section className="ud-bottom-opportunities-section">
-            <div className="ud-opp-header">
-              <h2 className="ud-opp-title">Scroll Opportunities</h2>
-              <p className="ud-opp-subtitle">Discover the best opportunities for your growth</p>
-            </div>
-
-            <div className="ud-opp-cards-row">
-              {(opportunitiesList.length ? opportunitiesList : opportunities).map((opp, idx) => (
-                <div key={opp.id || idx} className={`ud-opp-card ${idx === 2 ? 'ud-opp-card-with-nav' : ''}`}>
-                  <div className="ud-opp-img-wrap">
-                    <img
-                      src={opp.image || opp.image_url || (idx % 2 === 0 ? oppDigitalImg : oppLeadershipImg)}
-                      alt={opp.title}
-                      className="ud-opp-img"
-                    />
-                    {opp.is_new || opp.isNew ? <span className="ud-opp-badge-new">New</span> : null}
-                    {idx === 2 && (
-                      <button
-                        type="button"
-                        className="ud-opp-carousel-arrow"
-                        onClick={() => toast('Showing next opportunities...')}
-                        aria-label="Next opportunities"
-                      >
-                        ›
-                      </button>
-                    )}
-                  </div>
-                  <div className="ud-opp-card-body">
-                    <h3 className="ud-opp-card-title">{opp.title}</h3>
-                    <div className="ud-opp-pill-row">
-                      {(opp.tags || ['Work from Home', 'High Earning']).map((tag, tIdx) => (
-                        <span key={tIdx} className="ud-opp-pill">{tag}</span>
-                      ))}
-                    </div>
-                    <div className="ud-opp-footer">
-                      <span className="ud-opp-price">{opp.price}</span>
-                      <button className="ud-btn-apply" onClick={() => toast.success(`Applied for ${opp.title}!`)}>
-                        Apply Now →
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-
-              {/* Unlock Your Full Potential Card */}
-              <div className="ud-potential-frame">
-                <div
-                  className="ud-opp-card ud-potential-card"
-                  style={{ backgroundImage: `url(${unlockPotentialBg})` }}
-                >
-                  <h3 className="ud-potential-title">
-                    Unlock Your<br />Full Potential
-                  </h3>
-                  <p className="ud-potential-desc">
-                    Join the Fortaa community and start your journey to success.
-                  </p>
-                  <button className="ud-btn-join-now" onClick={() => toast.success('Welcome to Fortaa Community!')}>
-                    Join Now →
-                  </button>
-                </div>
-              </div>
-            </div>
-          </section>
+          
 
           {/* ───────────────── FOOTER ───────────────── */}
           <footer className="ud-footer">
@@ -1424,15 +1776,6 @@ export default function UserDashboard() {
             </Link>
 
             <div className="ud-mob-header-actions">
-              <button
-                type="button"
-                className="ud-mob-icon-btn"
-                title="WhatsApp"
-                onClick={() => toast.success('Connecting to WhatsApp...')}
-              >
-                <img src={whatsappIconImg} alt="WhatsApp" className="ud-mob-action-img" />
-              </button>
-
               <div style={{ position: 'relative' }}>
                 <button
                   type="button"
@@ -1494,7 +1837,52 @@ export default function UserDashboard() {
 
         {/* Main Content Card: Frame 109 (White container with soft glow) */}
         <div className="ud-mob-frame109">
-          {/* Create Post Strip */}
+          {/* Stories / Highlights Row (Frame 188 - 192) - Positioned on Top */}
+          <div className="ud-mob-stories-row">
+            {/* Story 1: Add Story */}
+            <div className="ud-mob-story-card story-add" onClick={() => setIsCreatePostModalOpen(true)}>
+              <div className="ud-mob-story-avatar-wrap">
+                <div className="ud-mob-story-add-icon">+</div>
+              </div>
+              <span className="ud-mob-story-name">Add Story</span>
+            </div>
+
+            {/* Story 2: Amit Yadav */}
+            <div className="ud-mob-story-card story-amit">
+              <div className="ud-mob-story-avatar-wrap">
+                <img src={userAvatarImg} alt="Amit Yadav" className="ud-mob-story-img" />
+                <span className="ud-mob-story-badge">+</span>
+              </div>
+              <span className="ud-mob-story-name">Amit Yadav</span>
+            </div>
+
+            {/* Story 3: Neha Gupta */}
+            <div className="ud-mob-story-card story-neha">
+              <div className="ud-mob-story-avatar-wrap">
+                <img src={priyaSharmaImg} alt="Neha Gupta" className="ud-mob-story-img" />
+                <span className="ud-mob-story-badge">+</span>
+              </div>
+              <span className="ud-mob-story-name">Neha Gupta</span>
+            </div>
+
+            {/* Story 4: Upcoming Event */}
+            <div className="ud-mob-story-card story-event">
+              <div className="ud-mob-story-avatar-wrap">
+                <div className="ud-mob-story-calendar-icon">📅</div>
+              </div>
+              <span className="ud-mob-story-name">Upcoming Event</span>
+            </div>
+
+            {/* Story 5: Top Leaders */}
+            <div className="ud-mob-story-card story-leaders" onClick={() => navigate("/leaders")} style={{ cursor: "pointer" }}>
+              <div className="ud-mob-story-avatar-wrap">
+                <div className="ud-mob-story-crown-icon">👑</div>
+              </div>
+              <span className="ud-mob-story-name">Top Leaders</span>
+            </div>
+          </div>
+
+          {/* Create Post Strip - Positioned Below Stories */}
           <div className="ud-mob-create-post-strip">
             <div className="ud-mob-cp-top">
               <img src={profile.avatarUrl || userAvatarImg} alt="" className="ud-mob-cp-avatar" />
@@ -1575,80 +1963,97 @@ export default function UserDashboard() {
               </div>
             )}
 
+            {/* Mobile Poll Creator Box */}
+            {showPollCreator && (
+              <div className="ud-cp-poll-box" style={{ margin: '6px 12px 10px' }}>
+                <div className="ud-cp-poll-head">
+                  <span className="ud-cp-poll-badge">📊 Create a Poll</span>
+                  <button
+                    type="button"
+                    className="ud-cp-poll-close"
+                    onClick={() => {
+                      setShowPollCreator(false);
+                      setPollQuestion('');
+                      setPollOptions(['', '']);
+                    }}
+                    title="Cancel poll"
+                  >
+                    ✕
+                  </button>
+                </div>
+                <input
+                  type="text"
+                  className="ud-cp-poll-q-input"
+                  placeholder="Ask a question..."
+                  value={pollQuestion}
+                  onChange={(e) => setPollQuestion(e.target.value)}
+                />
+                <div className="ud-cp-poll-opts">
+                  {pollOptions.map((opt, oIdx) => (
+                    <div key={oIdx} className="ud-cp-poll-opt-row">
+                      <span className="ud-cp-poll-opt-num">{oIdx + 1}.</span>
+                      <input
+                        type="text"
+                        className="ud-cp-poll-opt-input"
+                        placeholder={`Option ${oIdx + 1}`}
+                        value={opt}
+                        onChange={(e) => {
+                          const newOpts = [...pollOptions];
+                          newOpts[oIdx] = e.target.value;
+                          setPollOptions(newOpts);
+                        }}
+                      />
+                      {pollOptions.length > 2 && (
+                        <button
+                          type="button"
+                          className="ud-cp-poll-del-opt"
+                          onClick={() => {
+                            setPollOptions(pollOptions.filter((_, i) => i !== oIdx));
+                          }}
+                          title="Remove option"
+                        >
+                          ✕
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                {pollOptions.length < 4 && (
+                  <button
+                    type="button"
+                    className="ud-cp-poll-add-btn"
+                    onClick={() => setPollOptions([...pollOptions, ''])}
+                  >
+                    + Add Option
+                  </button>
+                )}
+              </div>
+            )}
+
             <div className="ud-mob-cp-pills">
-              <button type="button" className="ud-mob-cp-pill" onClick={() => photoInputRef.current?.click()}>
+              <button type="button" className={`ud-mob-cp-pill ${postImagePreview ? 'active' : ''}`} onClick={() => photoInputRef.current?.click()}>
                 <span>📷</span>
                 <span>Photo</span>
               </button>
 
-              <button type="button" className="ud-mob-cp-pill" onClick={() => videoInputRef.current?.click()}>
+              <button type="button" className={`ud-mob-cp-pill ${postVideoPreview ? 'active' : ''}`} onClick={() => videoInputRef.current?.click()}>
                 <span>📹</span>
                 <span>Video</span>
               </button>
 
-              <button type="button" className="ud-mob-cp-pill" onClick={() => toast('Polls feature active!')}>
-                <span>💬</span>
+              <button type="button" className={`ud-mob-cp-pill ${showPollCreator ? 'active' : ''}`} onClick={() => setShowPollCreator(!showPollCreator)}>
+                <span>📊</span>
                 <span>Poll</span>
-              </button>
-
-              <button type="button" className="ud-mob-cp-pill" onClick={() => navigate('/marketplace')}>
-                <span>🎯</span>
-                <span>Market Place</span>
               </button>
 
               <button
                 type="button"
                 className="ud-mob-cp-post-btn"
                 onClick={handleCreatePost}
-                disabled={submittingPost || !postText.trim()}
+                disabled={submittingPost || (!postText.trim() && !showPollCreator)}
               >
                 {submittingPost ? '...' : 'Post'}
               </button>
-            </div>
-          </div>
-
-          {/* Stories / Highlights Row (Frame 188 - 192) */}
-          <div className="ud-mob-stories-row">
-            {/* Story 1: Add Story */}
-            <div className="ud-mob-story-card story-add" onClick={() => setIsCreatePostModalOpen(true)}>
-              <div className="ud-mob-story-avatar-wrap">
-                <div className="ud-mob-story-add-icon">+</div>
-              </div>
-              <span className="ud-mob-story-name">Add Story</span>
-            </div>
-
-            {/* Story 2: Amit Yadav */}
-            <div className="ud-mob-story-card story-amit">
-              <div className="ud-mob-story-avatar-wrap">
-                <img src={userAvatarImg} alt="Amit Yadav" className="ud-mob-story-img" />
-                <span className="ud-mob-story-badge">+</span>
-              </div>
-              <span className="ud-mob-story-name">Amit Yadav</span>
-            </div>
-
-            {/* Story 3: Neha Gupta */}
-            <div className="ud-mob-story-card story-neha">
-              <div className="ud-mob-story-avatar-wrap">
-                <img src={priyaSharmaImg} alt="Neha Gupta" className="ud-mob-story-img" />
-                <span className="ud-mob-story-badge">+</span>
-              </div>
-              <span className="ud-mob-story-name">Neha Gupta</span>
-            </div>
-
-            {/* Story 4: Upcoming Event */}
-            <div className="ud-mob-story-card story-event">
-              <div className="ud-mob-story-avatar-wrap">
-                <div className="ud-mob-story-calendar-icon">📅</div>
-              </div>
-              <span className="ud-mob-story-name">Upcoming Event</span>
-            </div>
-
-            {/* Story 5: Top Leaders */}
-            <div className="ud-mob-story-card story-leaders" onClick={() => navigate("/leaders")} style={{ cursor: "pointer" }}>
-              <div className="ud-mob-story-avatar-wrap">
-                <div className="ud-mob-story-crown-icon">👑</div>
-              </div>
-              <span className="ud-mob-story-name">Top Leaders</span>
             </div>
           </div>
 
@@ -1656,7 +2061,8 @@ export default function UserDashboard() {
           <div className="ud-mob-posts-feed">
             {posts && posts.length > 0 ? (
               posts.map((post, pIdx) => (
-                <article key={post.id || pIdx} className="ud-mob-post-card">
+                <React.Fragment key={post.id || pIdx}>
+                  <article className="ud-mob-post-card">
                   <div className="ud-mob-post-header">
                     <div className="ud-mob-post-author">
                       <div
@@ -1693,18 +2099,26 @@ export default function UserDashboard() {
 
                     <div className="ud-mob-post-header-right">
                       {(() => {
-                        const isSelf = post.user_id && Number(post.user_id) === Number(profile.id);
+                        const myId = Number(profile.id || storedUser.id || 13);
+                        const isSelf =
+                          (post.user_id && Number(post.user_id) === myId) ||
+                          (post.author_name && profile.name && post.author_name.toLowerCase().trim() === profile.name.toLowerCase().trim());
                         if (isSelf) return null;
-                        const targetId = post.user_id ? Number(post.user_id) : (pIdx === 0 ? 21 : 22);
+                        const targetId = post.user_id ? Number(post.user_id) : null;
+                        if (!targetId) return null;
                         const isFollowed = followingIds.map(Number).includes(targetId);
                         const isPending = pendingIds.map(Number).includes(targetId);
+
+                        // Once follow request is sent (pending) or already followed, hide follow button completely from dashboard
+                        if (isFollowed || isPending) return null;
+
                         return (
                           <button
                             type="button"
-                            className={`ud-mob-btn-follow ${isFollowed ? 'following-active' : isPending ? 'pending-active' : ''}`}
+                            className="ud-mob-btn-follow"
                             onClick={() => handleToggleFollow(targetId, post.author_name || 'Leader')}
                           >
-                            {isFollowed ? 'Following ✓' : isPending ? 'Pending' : 'Follow'}
+                            Follow
                           </button>
                         );
                       })()}
@@ -1735,25 +2149,47 @@ export default function UserDashboard() {
                       </div>
                     )}
 
-                    {/* Post Media (Video or Image) */}
-                    {isPostVideo(post) ? (
-                      <div
-                        className="ud-mob-post-banner-wrap"
-                        style={{ background: '#000', borderRadius: '12px', overflow: 'hidden' }}
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <video
-                          src={post.video_url || post.image_url}
-                          controls
-                          playsInline
-                          preload="metadata"
-                          className="ud-mob-post-banner-img"
-                          style={{ width: '100%', maxHeight: '380px', objectFit: 'contain', background: '#000', display: 'block' }}
+                    {/* Interactive Poll if attached */}
+                    {post.poll_data && (
+                      <div style={{ margin: '8px 12px' }}>
+                        <PostPoll
+                          pollData={post.poll_data}
+                          postId={post.id}
+                          onVote={(optionId) => handleVotePoll(post.id, optionId)}
+                          currentUserId={profile.id}
                         />
                       </div>
+                    )}
+
+                    {/* Post Media (Video with Instagram Autoplay or Image) */}
+                    {isPostVideo(post) ? (
+                      <FeedVideo
+                        src={post.video_url || post.image_url}
+                        onDoubleTap={(e) => {
+                          e.stopPropagation();
+                          triggerDoubleTapLike(post.id);
+                        }}
+                        onSingleTap={(e) => handlePostMediaTouch(e, post)}
+                        isHeartActive={Boolean(heartAnimPostIds[post.id])}
+                        isMobile={true}
+                      />
                     ) : post.image_url ? (
-                      <div className="ud-mob-post-banner-wrap">
+                      <div
+                        className="ud-mob-post-banner-wrap"
+                        onDoubleClick={(e) => {
+                          e.stopPropagation();
+                          triggerDoubleTapLike(post.id);
+                        }}
+                        onTouchEnd={(e) => handlePostMediaTouch(e, post)}
+                      >
                         <img src={post.image_url} alt="Post content" className="ud-mob-post-banner-img" />
+                        {heartAnimPostIds[post.id] && (
+                          <div className="ud-insta-heart-overlay">
+                            <svg className="ud-insta-heart-icon" viewBox="0 0 24 24" fill="#FF2D55">
+                              <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                            </svg>
+                          </div>
+                        )}
                       </div>
                     ) : null}
                   </div>
@@ -1780,34 +2216,36 @@ export default function UserDashboard() {
                   <div className="ud-mob-post-actions-row">
                     <button
                       type="button"
-                      className="ud-mob-post-action-btn"
+                      className={`ud-mob-post-action-btn ud-btn-like ${post.has_liked ? 'liked-active' : ''}`}
                       onClick={() => handleLike(post.id)}
-                      style={{
-                        color: post.has_liked ? '#5A2CE4' : 'inherit',
-                        fontWeight: post.has_liked ? '700' : '500',
-                      }}
                     >
-                      {post.has_liked ? (
-                        <FaThumbsUp size={14} color="#5A2CE4" />
-                      ) : (
-                        <FaRegThumbsUp size={14} />
-                      )}
+                      <span className="ud-interact-icon-wrap">
+                        {post.has_liked ? (
+                          <FaThumbsUp size={15} className="ud-like-icon" />
+                        ) : (
+                          <FaRegThumbsUp size={15} className="ud-like-icon" />
+                        )}
+                      </span>
                       <span>{post.has_liked ? 'Liked' : 'Like'}</span>
                     </button>
                     <button
                       type="button"
-                      className={`ud-mob-post-action-btn ${openCommentsPostId === post.id ? 'active' : ''}`}
+                      className={`ud-mob-post-action-btn ud-btn-comment ${openCommentsPostId === post.id ? 'active' : ''}`}
                       onClick={() => setOpenCommentsPostId(openCommentsPostId === post.id ? null : post.id)}
                     >
-                      <FaRegComment size={14} />
+                      <span className="ud-interact-icon-wrap">
+                        <FaRegComment size={15} className="ud-comment-icon" />
+                      </span>
                       <span>Comment</span>
                     </button>
                     <button
                       type="button"
-                      className="ud-mob-post-action-btn"
+                      className="ud-mob-post-action-btn ud-btn-share"
                       onClick={() => setShareModalPost(post)}
                     >
-                      <RiShareForwardLine size={15} />
+                      <span className="ud-interact-icon-wrap">
+                        <RiShareForwardLine size={16} className="ud-share-icon" />
+                      </span>
                       <span>Share</span>
                     </button>
                   </div>
@@ -1825,7 +2263,34 @@ export default function UserDashboard() {
                       }}
                     />
                   )}
-                </article>
+                  </article>
+                  {/* 1st Slot: Trainers (after 5 posts) */}
+                  {((pIdx + 1) % 10 === 5 || (posts.length <= 5 && pIdx === posts.length - 1)) && (
+                    <InFeedSuggestedPeople
+                      type="trainers"
+                      isMobile={true}
+                      trainers={trainersList.length ? trainersList : trainers}
+                      leaders={leadersList}
+                      followingIds={followingIds}
+                      pendingIds={pendingIds}
+                      onToggleFollow={handleToggleFollow}
+                      navigate={navigate}
+                    />
+                  )}
+                  {/* 2nd Slot: Leaders (after 10 posts, or at the end if between 6 and 9 posts) */}
+                  {((pIdx + 1) % 10 === 0 || (posts.length > 5 && posts.length < 10 && pIdx === posts.length - 1) || (posts.length <= 5 && pIdx === posts.length - 1)) && (
+                    <InFeedSuggestedPeople
+                      type="leaders"
+                      isMobile={true}
+                      trainers={trainersList.length ? trainersList : trainers}
+                      leaders={leadersList}
+                      followingIds={followingIds}
+                      pendingIds={pendingIds}
+                      onToggleFollow={handleToggleFollow}
+                      navigate={navigate}
+                    />
+                  )}
+                </React.Fragment>
               ))
             ) : (
               <div
@@ -1851,69 +2316,11 @@ export default function UserDashboard() {
           </div>
         </div>
 
-        {/* Fixed Bottom Navigation Bar ("Home Navbar") */}
-        <nav className="ud-mob-bottom-navbar">
-          <button
-            type="button"
-            className={`ud-mob-bnav-item ${activeTab === 'Home' ? 'active' : ''}`}
-            onClick={() => setActiveTab('Home')}
-          >
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" />
-            </svg>
-            <span>Home</span>
-          </button>
-
-          <button
-            type="button"
-            className={`ud-mob-bnav-item ${activeTab === 'Network' ? 'active' : ''}`}
-            onClick={() => navigate('/leaders')}
-          >
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-              <circle cx="9" cy="7" r="4" />
-              <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-              <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-            </svg>
-            <span>Network</span>
-          </button>
-
-          {/* Center Floating Plus FAB */}
-          <button
-            type="button"
-            className="ud-mob-bnav-fab"
-            onClick={() => setIsCreatePostModalOpen(true)}
-            aria-label="Create Post"
-          >
-            +
-          </button>
-
-          <button
-            type="button"
-            className={`ud-mob-bnav-item ${activeTab === 'Opportunity' ? 'active' : ''}`}
-            onClick={() => setActiveTab('Opportunity')}
-          >
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="12" cy="12" r="10" />
-              <circle cx="12" cy="12" r="6" />
-              <circle cx="12" cy="12" r="2" />
-            </svg>
-            <span>Opportunity</span>
-          </button>
-
-          <button
-            type="button"
-            className={`ud-mob-bnav-item ${activeTab === 'More' ? 'active' : ''}`}
-            onClick={() => navigate('/profile')}
-          >
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
-              <circle cx="12" cy="12" r="2.5" />
-              <circle cx="19" cy="12" r="2.5" />
-              <circle cx="5" cy="12" r="2.5" />
-            </svg>
-            <span>More</span>
-          </button>
-        </nav>
+        {/* Fixed Mobile Bottom Navigation Bar & Slide-up Menu Drawer */}
+        <UserMobileBottomNav
+          active="Home"
+          onPlusClick={() => setIsCreatePostModalOpen(true)}
+        />
       </div>
 
       {/* ───────────────── CREATE POST POPUP MODAL ───────────────── */}
@@ -2069,14 +2476,35 @@ export default function UserDashboard() {
         }}
       />
 
-      {/* ── Post Action Menu (Three dots options) ── */}
+      {/* ── Post Action Menu (Three dots options: Report, Follow/Unfollow, Copy link, Share, etc.) ── */}
       <PostActionMenu
         isOpen={Boolean(activeMenuPost)}
         onClose={() => setActiveMenuPost(null)}
         post={activeMenuPost}
+        currentUserId={profile.id}
+        isFollowed={
+          activeMenuPost?.user_id
+            ? followingIds.map(Number).includes(Number(activeMenuPost.user_id))
+            : false
+        }
+        isPending={
+          activeMenuPost?.user_id
+            ? pendingIds.map(Number).includes(Number(activeMenuPost.user_id))
+            : false
+        }
+        onToggleFollow={(targetId, authorName) => handleToggleFollow(targetId, authorName)}
         onAboutAccount={(p) => setAboutAccountPost(p)}
         onGoToPost={(p) => setInstagramModalPost(p)}
         onShare={(p) => setShareModalPost(p)}
+        onDeletePost={async (postId) => {
+          setPosts((prev) => prev.filter((p) => p.id !== postId));
+          toast.success('Post deleted successfully');
+          try {
+            await deletePostApi(postId, profile.id);
+          } catch (e) {
+            console.error('Delete post error:', e);
+          }
+        }}
       />
 
       {/* ── About This Account Modal ── */}

@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import iconNetwork from '../assets/figma/icon_network.png';
 import iconRightArrow from '../assets/figma/icon_right_arrow.png';
 import companyForever from '../assets/figma/company_forever.png';
@@ -44,35 +45,74 @@ const allCompanies = [
     rating: '4.7 (1.5k+ reviews)',
     shapeType: 'polygon',
   },
+  {
+    id: 'vestige',
+    name: 'Vestige Marketing',
+    customLogo: (
+      <div className="custom-brand-logo vestige-brand">
+        <span className="brand-icon">🌿</span>
+        <span className="brand-text">VESTIGE</span>
+      </div>
+    ),
+    badgeClass: 'badge-solid',
+    rating: '4.6 (3.2k+ reviews)',
+    shapeType: 'ellipse',
+  },
+  {
+    id: 'tupperware',
+    name: 'Tupperware Brands',
+    customLogo: (
+      <div className="custom-brand-logo tupperware-brand">
+        <span className="brand-icon">📦</span>
+        <span className="brand-text">Tupperware</span>
+      </div>
+    ),
+    badgeClass: 'badge-grad',
+    rating: '4.7 (2.1k+ reviews)',
+    shapeType: 'polygon',
+  },
+  {
+    id: 'modicare',
+    name: 'Modicare Enterprise',
+    customLogo: (
+      <div className="custom-brand-logo modicare-brand">
+        <span className="brand-icon">✨</span>
+        <span className="brand-text">modicare</span>
+      </div>
+    ),
+    badgeClass: 'badge-solid',
+    rating: '4.5 (1.8k+ reviews)',
+    shapeType: 'ellipse',
+  },
+  {
+    id: 'milifestyle',
+    name: 'Mi Lifestyle Marketing',
+    customLogo: (
+      <div className="custom-brand-logo milifestyle-brand">
+        <span className="brand-icon">💎</span>
+        <span className="brand-text">Mi Lifestyle</span>
+      </div>
+    ),
+    badgeClass: 'badge-grad',
+    rating: '4.6 (1.9k+ reviews)',
+    shapeType: 'polygon',
+  },
 ];
 
 export default function FeaturedCompanies() {
-  const [startIndex, setStartIndex] = useState(0);
-  const [isMobile, setIsMobile] = useState(
-    typeof window !== 'undefined' ? window.innerWidth <= 768 : false
-  );
+  const navigate = useNavigate();
+  const scrollContainerRef = useRef(null);
 
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth <= 768);
-    };
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
-
-  const handleNext = () => {
-    setStartIndex((prev) => (prev + 1) % allCompanies.length);
+  const handleScroll = (direction) => {
+    if (scrollContainerRef.current) {
+      const scrollAmount = direction === 'left' ? -350 : 350;
+      scrollContainerRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+    }
   };
 
-  // On mobile show 3 cards starting from startIndex; on desktop show all 4
-  const visibleCompanies = isMobile
-    ? [
-        allCompanies[startIndex % allCompanies.length],
-        allCompanies[(startIndex + 1) % allCompanies.length],
-        allCompanies[(startIndex + 2) % allCompanies.length],
-      ]
-    : allCompanies;
+  const handleAction = () => {
+    navigate('/login');
+  };
 
   return (
     <section className="figma-featured-companies-sec" id="companies">
@@ -86,27 +126,63 @@ export default function FeaturedCompanies() {
             </div>
             <h2 className="figma-fc-title">Discover Featured Companies</h2>
             <p className="figma-fc-subtitle">
-              Explore business gaining visibility across the Fortaa community.
+              Explore businesses gaining visibility across the Fortaa community.
             </p>
           </div>
 
-          <a href="#all-companies" className="figma-fc-view-all">
-            <span>View All Categories</span>
-            <svg width="18" height="16" viewBox="0 0 24 24" fill="none" stroke="#750292" strokeWidth="2.2">
-              <path d="M5 12h14M13 6l6 6-6 6" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </a>
+          <div className="figma-fc-header-right">
+            {/* Carousel navigation arrows */}
+            <div className="figma-fc-nav-controls">
+              <button
+                type="button"
+                className="figma-fc-scroll-btn"
+                aria-label="Scroll left"
+                onClick={() => handleScroll('left')}
+                title="Previous companies"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#5A2CE4" strokeWidth="2.5">
+                  <path d="M15 18l-6-6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
+              <button
+                type="button"
+                className="figma-fc-scroll-btn"
+                aria-label="Scroll right"
+                onClick={() => handleScroll('right')}
+                title="Next companies"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#5A2CE4" strokeWidth="2.5">
+                  <path d="M9 18l6-6-6-6" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleAction}
+              className="figma-fc-view-all"
+            >
+              <span>View All Categories</span>
+              <svg width="18" height="16" viewBox="0 0 24 24" fill="none" stroke="#750292" strokeWidth="2.2">
+                <path d="M5 12h14M13 6l6 6-6 6" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
+          </div>
         </div>
 
-        {/* 3 Visible Cards side-by-side with pink slide arrow */}
+        {/* Scrollable Cards Row */}
         <div className="figma-fc-cards-wrapper">
-          <div className="figma-fc-cards-row">
-            {visibleCompanies.map((c) => (
+          <div className="figma-fc-cards-row" ref={scrollContainerRef}>
+            {allCompanies.map((c) => (
               <div key={c.id} className="figma-fc-card">
                 {/* Left side: Logo + Decorative Soft Shape */}
                 <div className="figma-fc-card-left">
-                  <div className={`figma-fc-logo-wrap ${c.logoClass}`}>
-                    <img src={c.logo} alt={c.name} />
+                  <div className={`figma-fc-logo-wrap ${c.logoClass || ''}`}>
+                    {c.logo ? (
+                      <img src={c.logo} alt={c.name} />
+                    ) : (
+                      c.customLogo
+                    )}
                   </div>
 
                   {c.shapeType === 'ellipse' ? (
@@ -138,27 +214,18 @@ export default function FeaturedCompanies() {
                     <span className="figma-fc-rating-text">{c.rating}</span>
                   </div>
 
-                  <a href={`#company-${c.id}`} className="figma-fc-btn-view">
+                  <button
+                    type="button"
+                    onClick={handleAction}
+                    className="figma-fc-btn-view"
+                  >
                     <span>View Company</span>
                     <img src={iconRightArrow} alt="" />
-                  </a>
+                  </button>
                 </div>
               </div>
             ))}
           </div>
-
-          {/* Figma Frame 108: Pink forward arrow */}
-          <button
-            type="button"
-            className="figma-fc-next-arrow"
-            aria-label="Next companies"
-            onClick={handleNext}
-            title="Next companies"
-          >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="2.5">
-              <path d="M9 18l6-6-6-6" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </button>
         </div>
       </div>
     </section>

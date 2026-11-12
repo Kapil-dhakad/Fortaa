@@ -65,6 +65,36 @@
   color: #5B21B6;
 }
 
+.pam-item-danger {
+  color: #ED4956;
+  font-weight: 600;
+}
+
+.pam-item-danger:hover {
+  background: #FFF1F2;
+  color: #DC2626;
+}
+
+.pam-item-warning {
+  color: #D97706;
+  font-weight: 600;
+}
+
+.pam-item-warning:hover {
+  background: #FFFBEB;
+  color: #B45309;
+}
+
+.pam-item-primary {
+  color: #7C3AED;
+  font-weight: 600;
+}
+
+.pam-item-primary:hover {
+  background: #FAF5FF;
+  color: #6D28D9;
+}
+
 .pam-item-cancel {
   color: #64748B;
   font-weight: 500;

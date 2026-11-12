@@ -1,13 +1,13 @@
 /* =========================================================
    FIGMA EXACT FEATURED COMPANIES SECTION (Frame 48)
-   Container: width 1381px, height 311px, left 53px
-   4 Cards: width 334px, height 192px, radius 10px, border 1px #E8E9FE
+   Scrollable cards row + interactive controls + animations
    ========================================================= */
 
 .figma-featured-companies-sec {
   width: 100%;
   background: #ffffff;
-  padding: 12px 0 24px;
+  padding: 16px 0 28px;
+  position: relative;
 }
 
 .figma-fc-frame48 {
@@ -16,7 +16,8 @@
   min-height: 311px;
   margin: 0 auto;
   padding-left: 53px;
-  padding-right: 6px;
+  padding-right: 45px;
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -25,10 +26,9 @@
 /* Header Row */
 .figma-fc-header {
   display: flex;
-  align-items: flex-start;
+  align-items: flex-end;
   justify-content: space-between;
-  padding-right: 45px;
-  margin-bottom: 16px;
+  margin-bottom: 20px;
 }
 
 .figma-fc-header-left {
@@ -52,7 +52,7 @@
 .figma-fc-tag span {
   font-family: 'Inter', sans-serif;
   font-size: 16px;
-  font-weight: 400;
+  font-weight: 500;
   line-height: 100%;
   letter-spacing: 0.02em;
   color: #D31BFF;
@@ -61,8 +61,8 @@
 
 .figma-fc-title {
   font-family: 'Inter', sans-serif;
-  font-size: 24px;
-  font-weight: 600;
+  font-size: 26px;
+  font-weight: 700;
   line-height: 100%;
   letter-spacing: 0.02em;
   color: #0F123F;
@@ -75,8 +75,49 @@
   font-weight: 400;
   line-height: 100%;
   letter-spacing: 0.02em;
-  color: #0F123F;
+  color: #555770;
   margin: 0;
+}
+
+.figma-fc-header-right {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.figma-fc-nav-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.figma-fc-scroll-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #F4F1FD;
+  border: 1px solid #E5DBFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 6px rgba(90, 44, 228, 0.08);
+}
+
+.figma-fc-scroll-btn:hover {
+  background: #5A2CE4;
+  border-color: #5A2CE4;
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 0 6px 14px rgba(90, 44, 228, 0.25);
+}
+
+.figma-fc-scroll-btn:hover svg {
+  stroke: #ffffff;
+}
+
+.figma-fc-scroll-btn:active {
+  transform: scale(0.95);
 }
 
 .figma-fc-view-all {
@@ -84,61 +125,83 @@
   align-items: center;
   gap: 8px;
   font-family: 'Inter', sans-serif;
-  font-size: 18px;
+  font-size: 17px;
   font-weight: 600;
   line-height: 100%;
   color: #750292;
   text-decoration: none;
-  margin-top: 6px;
-  transition: opacity 0.15s ease;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 8px 12px;
+  border-radius: 8px;
+  transition: all 0.2s ease;
 }
 
 .figma-fc-view-all:hover {
-  opacity: 0.8;
+  color: #5A2CE4;
+  background: rgba(117, 2, 146, 0.06);
+  transform: translateX(3px);
 }
 
-/* 4 Cards in 1 Single Row: each 334px × 192px */
+/* Horizontal Scrollable Row */
 .figma-fc-cards-wrapper {
   position: relative;
   width: 100%;
-}
-
-.figma-fc-cards-viewport {
-  width: 100%;
-}
-
-.figma-fc-next-arrow {
-  display: none;
+  overflow: visible;
 }
 
 .figma-fc-cards-row {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 334px));
-  gap: 15px;
+  display: flex;
+  align-items: center;
+  gap: 18px;
   width: 100%;
-  max-width: 1381px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-behavior: smooth;
+  padding: 6px 4px 16px 2px;
+  scrollbar-width: thin;
+  scrollbar-color: #D5B8FF #F3EDFD;
+  -webkit-overflow-scrolling: touch;
+}
+
+.figma-fc-cards-row::-webkit-scrollbar {
+  height: 6px;
+}
+
+.figma-fc-cards-row::-webkit-scrollbar-track {
+  background: #F3EDFD;
+  border-radius: 10px;
+}
+
+.figma-fc-cards-row::-webkit-scrollbar-thumb {
+  background: linear-gradient(90deg, #9D55F8, #5A2CE4);
+  border-radius: 10px;
 }
 
 /* Individual Card: 334 × 192px, radius 10px, border 1px solid #E8E9FE */
 .figma-fc-card {
-  width: 100%;
-  max-width: 334px;
+  flex: 0 0 334px;
+  width: 334px;
   height: 192px;
   background: #ffffff;
   border: 1px solid #E8E9FE;
-  border-radius: 10px;
-  padding: 12px 14px;
+  border-radius: 12px;
+  padding: 14px 16px;
   display: flex;
   gap: 12px;
   justify-content: space-between;
   position: relative;
   overflow: hidden;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  box-sizing: border-box;
+  transition: all 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
 }
 
 .figma-fc-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 8px 24px rgba(90, 44, 228, 0.12);
+  transform: translateY(-5px);
+  border-color: #B48DF8;
+  box-shadow: 0 12px 28px rgba(90, 44, 228, 0.14);
 }
 
 /* Left Column inside Card */
@@ -147,7 +210,7 @@
   flex-direction: column;
   justify-content: space-between;
   align-items: flex-start;
-  width: 85px;
+  width: 90px;
   flex-shrink: 0;
 }
 
@@ -182,6 +245,46 @@
   object-fit: contain;
 }
 
+/* Custom Brands for new added companies */
+.custom-brand-logo {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 2px;
+  padding: 4px 6px;
+  border-radius: 6px;
+}
+
+.custom-brand-logo .brand-icon {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.custom-brand-logo .brand-text {
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.vestige-brand .brand-text {
+  color: #16A34A;
+}
+
+.tupperware-brand .brand-text {
+  color: #0284C7;
+  font-style: italic;
+}
+
+.modicare-brand .brand-text {
+  color: #D946EF;
+}
+
+.milifestyle-brand .brand-text {
+  color: #7C3AED;
+}
+
 /* Soft decorative shapes in bottom-left of card */
 .figma-fc-ellipse-shape {
   width: 75px;
@@ -211,18 +314,17 @@
   min-width: 0;
 }
 
-/* Featured Pill: compact fit so it never clips */
 .figma-fc-badge {
   align-self: flex-end;
-  padding: 4px 16px;
-  height: 26px;
+  padding: 4px 14px;
+  height: 24px;
   border-radius: 30px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   font-family: 'Inter', sans-serif;
-  font-size: 13px;
-  font-weight: 500;
+  font-size: 12px;
+  font-weight: 600;
   line-height: 100%;
   letter-spacing: 0.02em;
   color: #ffffff;
@@ -237,27 +339,25 @@
   background: linear-gradient(90deg, #8B17F8 0%, #A938E1 100%);
 }
 
-/* Company Name: 17px / 500 / #000000 */
 .figma-fc-company-name {
   width: 100%;
   text-align: left;
   font-family: 'Inter', sans-serif;
   font-size: 17px;
-  font-weight: 500;
-  line-height: 1.18;
+  font-weight: 600;
+  line-height: 1.2;
   letter-spacing: 0.01em;
-  color: #000000;
-  margin: 2px 0;
+  color: #0F123F;
+  margin: 4px 0 2px;
   word-break: break-word;
 }
 
-/* Rating Row */
 .figma-fc-rating-row {
   width: 100%;
   display: flex;
   align-items: center;
   gap: 5px;
-  margin-bottom: 2px;
+  margin-bottom: 4px;
 }
 
 .figma-fc-star {
@@ -268,21 +368,23 @@
 
 .figma-fc-rating-text {
   font-family: 'Inter', sans-serif;
-  font-size: 13.5px;
+  font-size: 13px;
   font-weight: 400;
   line-height: 100%;
   letter-spacing: 0.01em;
-  color: #000000;
+  color: #4A4D68;
   white-space: nowrap;
 }
 
-/* View Company Button: fully visible, never cut off */
+/* View Company Button */
 .figma-fc-btn-view {
   width: 100%;
   max-width: 195px;
-  height: 32px;
+  height: 34px;
   border-radius: 10px;
   background: #5A2CE4;
+  border: none;
+  cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -294,327 +396,82 @@
   line-height: 100%;
   letter-spacing: 0.01em;
   color: #ffffff;
-  text-decoration: none;
   white-space: nowrap;
-  transition: opacity 0.15s ease, transform 0.15s ease;
+  transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
   box-sizing: border-box;
+  box-shadow: 0 2px 8px rgba(90, 44, 228, 0.2);
 }
 
 .figma-fc-btn-view:hover {
-  opacity: 0.92;
-  transform: translateY(-1px);
+  background: #4719D3;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(90, 44, 228, 0.35);
+}
+
+.figma-fc-btn-view:active {
+  transform: scale(0.97);
 }
 
 .figma-fc-btn-view img {
   width: 16px;
   height: 16px;
   object-fit: contain;
+  transition: transform 0.2s ease;
 }
 
-/* Responsive Breakpoints */
-@media (max-width: 1420px) {
+.figma-fc-btn-view:hover img {
+  transform: translateX(3px);
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
   .figma-fc-frame48 {
-    padding: 0 24px;
-  }
-  .figma-fc-header {
-    padding-right: 0;
-  }
-}
-
-@media (max-width: 1180px) {
-  .figma-fc-cards-row {
-    grid-template-columns: repeat(2, 334px);
-    justify-content: center;
+    padding-left: 24px;
+    padding-right: 24px;
   }
 }
 
 @media (max-width: 768px) {
   .figma-featured-companies-sec {
-    padding: 10px 0 14px !important;
-    width: 100% !important;
-    overflow: hidden !important;
-    background: #ffffff !important;
+    padding: 12px 0 20px;
   }
 
-  /* Frame 48: width 412px max, min-height 194px, 6px padding left & right */
   .figma-fc-frame48 {
-    padding: 0 6px !important;
-    max-width: 412px !important;
-    width: 100% !important;
-    margin: 0 auto !important;
-    box-sizing: border-box !important;
-    position: relative !important;
-    min-height: 194px !important;
+    padding: 0 16px;
   }
 
   .figma-fc-header {
-    flex-direction: column !important;
-    align-items: flex-start !important;
-    justify-content: flex-start !important;
-    gap: 2px !important;
-    margin-bottom: 8px !important;
-    padding: 0 !important;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
   }
 
-  /* Frame 24: EXPLORE FORTAA Tag */
-  .figma-fc-tag {
-    display: flex !important;
-    align-items: center !important;
-    gap: 6px !important;
+  .figma-fc-header-right {
+    width: 100%;
+    justify-content: space-between;
   }
 
-  .figma-fc-tag-icon {
-    width: 20px !important;
-    height: 20px !important;
-    object-fit: contain !important;
-  }
-
-  .figma-fc-tag span {
-    font-size: 12px !important;
-    line-height: 15px !important;
-    font-weight: 400 !important;
-    letter-spacing: 0.02em !important;
-    color: #D31BFF !important;
-  }
-
-  /* Discover Featured Companies */
   .figma-fc-title {
-    font-size: 16px !important;
-    line-height: 19px !important;
-    font-weight: 600 !important;
-    letter-spacing: 0.02em !important;
-    color: #0F123F !important;
-    margin: 2px 0 1px !important;
+    font-size: 20px;
   }
 
-  /* Explore business gaining visibility across the Fortaa community. */
   .figma-fc-subtitle {
-    font-size: 12px !important;
-    line-height: 15px !important;
-    font-weight: 400 !important;
-    letter-spacing: 0.02em !important;
-    color: #0F123F !important;
-    margin: 0 !important;
+    font-size: 13px;
   }
 
-  .figma-fc-view-all {
-    display: none !important;
-  }
-
-  /* Cards wrapper: exactly 3 cards side-by-side + pink arrow on right */
-  .figma-fc-cards-wrapper {
-    position: relative !important;
-    width: 100% !important;
-    display: flex !important;
-    flex-direction: row !important;
-    align-items: center !important;
-    justify-content: space-between !important;
-    gap: 6px !important;
-    box-sizing: border-box !important;
-  }
-
-  .figma-fc-cards-viewport {
-    display: contents !important;
-  }
-
-  /* Exactly 3 cards fit side-by-side with 6px gap */
-  .figma-fc-cards-row {
-    display: flex !important;
-    flex-direction: row !important;
-    align-items: center !important;
-    justify-content: space-between !important;
-    gap: 6px !important;
-    flex: 1 1 auto !important;
-    width: calc(100% - 26px) !important;
-    max-width: calc(100% - 26px) !important;
-    box-sizing: border-box !important;
-    padding: 0 !important;
-    margin: 0 !important;
-    overflow: visible !important;
-    transform: none !important;
-  }
-
-  /* Card: exactly 121px x 113px, radius 10px, border 1px solid #E8E9FE */
   .figma-fc-card {
-    flex: 1 1 0 !important;
-    width: calc((100% - 12px) / 3) !important;
-    max-width: 121px !important;
-    min-width: 0 !important;
-    height: 113px !important;
-    min-height: 113px !important;
-    max-height: 113px !important;
-    border-radius: 10px !important;
-    border: 1px solid #E8E9FE !important;
-    background: #FFFFFF !important;
-    padding: 5px 3px 6px 3px !important;
-    box-sizing: border-box !important;
-    display: flex !important;
-    flex-direction: column !important;
-    align-items: center !important;
-    justify-content: space-between !important;
-    text-align: center !important;
-    overflow: hidden !important;
-    flex-shrink: 0 !important;
+    flex: 0 0 280px;
+    width: 280px;
+    height: 175px;
+    padding: 12px;
   }
 
-  /* Guarantee exactly 3 cards on mobile - 4th card never overflows */
-  .figma-fc-card:nth-child(n+4) {
-    display: none !important;
-  }
-
-  .figma-fc-card-left {
-    width: 100% !important;
-    display: flex !important;
-    justify-content: center !important;
-    align-items: center !important;
-    position: relative !important;
-    height: 38px !important;
-  }
-
-  .figma-fc-logo-wrap {
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    width: 100% !important;
-    height: 100% !important;
-  }
-
-  /* Exact Logo Sizes from Figma */
-  .logo-forever img {
-    width: 31px !important;
-    height: 40px !important;
-    object-fit: contain !important;
-  }
-
-  .logo-amway img {
-    width: 55px !important;
-    height: 24px !important;
-    object-fit: contain !important;
-  }
-
-  .logo-oriflame img {
-    width: 80px !important;
-    height: 18px !important;
-    object-fit: contain !important;
-  }
-
-  .logo-herbalife img {
-    width: 70px !important;
-    height: 22px !important;
-    object-fit: contain !important;
-  }
-
-  .figma-fc-ellipse-shape,
-  .figma-fc-polygon-shape,
-  .figma-fc-badge {
-    display: none !important;
-  }
-
-  .figma-fc-card-right {
-    width: 100% !important;
-    display: flex !important;
-    flex-direction: column !important;
-    align-items: center !important;
-  }
-
-  /* Company Name: fits cleanly without ... truncation */
   .figma-fc-company-name {
-    font-size: 8.5px !important;
-    line-height: 11px !important;
-    font-weight: 500 !important;
-    letter-spacing: -0.01em !important;
-    color: #000000 !important;
-    margin: 2px 0 1px !important;
-    white-space: normal !important;
-    word-break: break-word !important;
-    overflow: hidden !important;
-    width: 100% !important;
-    text-align: center !important;
+    font-size: 15px;
   }
 
-  .fc-name-1,
-  .fc-name-2 {
-    display: inline-block !important;
-  }
-
-  /* Rating: Frame 27 */
-  .figma-fc-rating-row {
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    gap: 2px !important;
-    margin-bottom: 3px !important;
-  }
-
-  .figma-fc-star {
-    font-size: 8.5px !important;
-    color: #F59E0B !important;
-  }
-
-  .figma-fc-rating-text {
-    font-size: 8px !important;
-    line-height: 11px !important;
-    font-weight: 400 !important;
-    color: #000000 !important;
-    white-space: nowrap !important;
-  }
-
-  /* Frame 28: View Company button */
   .figma-fc-btn-view {
-    width: 84px !important;
-    max-width: 95% !important;
-    height: 20px !important;
-    min-height: 20px !important;
-    max-height: 20px !important;
-    background: #5A2CE4 !important;
-    border-radius: 10px !important;
-    padding: 0 4px !important;
-    display: inline-flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    gap: 3px !important;
-    color: #FFFFFF !important;
-    font-size: 8px !important;
-    line-height: 10px !important;
-    font-weight: 400 !important;
-    letter-spacing: 0.02em !important;
-    text-decoration: none !important;
-    white-space: nowrap !important;
-  }
-
-  .figma-fc-btn-view img {
-    width: 9px !important;
-    height: 9px !important;
-    object-fit: contain !important;
-  }
-
-  /* Frame 108: Pink scroll navigation arrow */
-  .figma-fc-next-arrow {
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    position: relative !important;
-    width: 20px !important;
-    min-width: 20px !important;
-    height: 20px !important;
-    border-radius: 50% !important;
-    background: #FF45D7 !important;
-    border: none !important;
-    cursor: pointer !important;
-    flex-shrink: 0 !important;
-    box-shadow: 0 2px 6px rgba(255, 69, 215, 0.4) !important;
-    padding: 0 !important;
-    transition: transform 0.15s ease, background 0.15s ease !important;
-  }
-
-  .figma-fc-next-arrow:hover {
-    transform: scale(1.08) !important;
-    background: #E018CE !important;
-  }
-
-  .figma-fc-next-arrow svg {
-    width: 11px !important;
-    height: 11px !important;
-    stroke: #FFFFFF !important;
+    height: 30px;
+    font-size: 13px;
   }
 }

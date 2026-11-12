@@ -11,7 +11,6 @@ import './UserNavigation.css';
 import logoIconImg from '../../assets/figma/logo_icon_img.png';
 import logoTextImg from '../../assets/figma/logo_text_img.png';
 import searchIconPurple from '../../assets/dashboard/search_icon_purple.png';
-import whatsappIconImg from '../../assets/dashboard/whatsaap-icon.png';
 import bellIconImg from '../../assets/dashboard/bell-icon.png';
 import messageIconImg from '../../assets/dashboard/message-icon.png';
 import userAvatarImg from '../../assets/dashboard/user_avatar_rahul.png';
@@ -41,7 +40,44 @@ export default function UserHeader({
   const displayName = user?.name || storedUser.name || 'User';
   const displayRole = user?.role || user?.userRole || storedUser.designation || storedUser.role || 'Leader';
   const displayAvatar = user?.avatarUrl || user?.avatarImg || storedUser.avatarUrl || userAvatarImg;
-  const currentUserId = user?.id || storedUser.id;
+  const [resolvedUserId, setResolvedUserId] = useState(() => user?.id || storedUser.id || storedUser._id || null);
+  const currentUserId = user?.id || resolvedUserId || storedUser.id;
+
+  // Auto-resolve real user id from backend if missing in localStorage
+  useEffect(() => {
+    const knownId = user?.id || storedUser.id || storedUser._id;
+    if (knownId) {
+      setResolvedUserId(knownId);
+      return;
+    }
+
+    const email = user?.email || storedUser.email;
+    if (email) {
+      fetch(`/api/dashboard/overview?email=${encodeURIComponent(email)}`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (data?.success && data?.user?.id) {
+            setResolvedUserId(data.user.id);
+            try {
+              const cur = JSON.parse(localStorage.getItem('fortaa_user') || '{}');
+              localStorage.setItem('fortaa_user', JSON.stringify({ ...cur, id: data.user.id, ...data.user }));
+              window.dispatchEvent(new CustomEvent('fortaa_user_synced', { detail: data.user }));
+            } catch {}
+          }
+        })
+        .catch((err) => console.log('[UserHeader] resolve user error:', err));
+    }
+  }, [user?.id, user?.email, storedUser.id, storedUser._id, storedUser.email]);
+
+  useEffect(() => {
+    const handleUserSynced = (e) => {
+      if (e?.detail?.id) {
+        setResolvedUserId(e.detail.id);
+      }
+    };
+    window.addEventListener('fortaa_user_synced', handleUserSynced);
+    return () => window.removeEventListener('fortaa_user_synced', handleUserSynced);
+  }, []);
 
   const [notifOpen, setNotifOpen] = useState(false);
   const [realNotifCount, setRealNotifCount] = useState(0);
@@ -108,27 +144,54 @@ export default function UserHeader({
     // Socket live listener
     joinChat(currentUserId);
     const s = getSocket();
+
+    const handleFollowRequestNotif = (data) => {
+      refreshNotifCount();
+      const requesterName = data?.requesterName || 'A member';
+      toast(
+        (t) => (
+          <div
+            style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}
+            onClick={() => {
+              setNotifOpen(true);
+              toast.dismiss(t.id);
+            }}
+          >
+            <span style={{ fontSize: '20px' }}>🔔</span>
+            <div>
+              <div style={{ fontWeight: 700, fontSize: '13px', color: '#1E1B4B' }}>New Follow Request!</div>
+              <div style={{ fontSize: '12px', color: '#4B5563' }}>{requesterName} sent you a follow request. Click to view.</div>
+            </div>
+          </div>
+        ),
+        { duration: 6000, position: 'top-right' }
+      );
+    };
+
     s.on('new_notification', refreshNotifCount);
-    s.on('follow_request_received', refreshNotifCount);
+    s.on('follow_request_received', handleFollowRequestNotif);
 
     s.on('new_message', refreshMsgCount);
     s.on('messages_read', refreshMsgCount);
     s.on('messages_marked_read', refreshMsgCount);
 
     // Custom window event for instant local updates across tabs / components
-    const handleCountRefresh = () => refreshMsgCount();
+    const handleCountRefresh = () => {
+      refreshNotifCount();
+      refreshMsgCount();
+    };
     window.addEventListener('messages_count_refresh', handleCountRefresh);
 
-    // 5s background sync
+    // 3s background sync
     const interval = setInterval(() => {
       refreshNotifCount();
       refreshMsgCount();
-    }, 5000);
+    }, 3000);
 
     return () => {
       isMounted = false;
       s.off('new_notification', refreshNotifCount);
-      s.off('follow_request_received', refreshNotifCount);
+      s.off('follow_request_received', handleFollowRequestNotif);
       s.off('new_message', refreshMsgCount);
       s.off('messages_read', refreshMsgCount);
       s.off('messages_marked_read', refreshMsgCount);
@@ -203,15 +266,6 @@ export default function UserHeader({
 
         {/* Topbar Actions & Profile Pill */}
         <div className="ud-topbar-right">
-          <button
-            type="button"
-            className="ud-icon-circle-btn ud-wa-btn"
-            title="WhatsApp"
-            onClick={() => toast.success('WhatsApp connected!')}
-          >
-            <img src={whatsappIconImg} alt="WhatsApp" className="ud-wa-img-icon" />
-          </button>
-
           <div style={{ position: 'relative' }}>
             <button
               type="button"
@@ -285,7 +339,22 @@ export default function UserHeader({
                   onClick={handleLogout}
                   onMouseDown={(e) => e.stopPropagation()}
                 >
-                  <span className="ud-dropdown-icon">🚪</span>
+                  <span className="ud-dropdown-icon ud-dropdown-logout-icon">
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                      <polyline points="16 17 21 12 16 7" />
+                      <line x1="21" y1="12" x2="9" y2="12" />
+                    </svg>
+                  </span>
                   <span>Log Out</span>
                 </button>
               </div>
@@ -307,15 +376,6 @@ export default function UserHeader({
           </Link>
 
           <div className="ud-mob-header-actions">
-            <button
-              type="button"
-              className="ud-mob-icon-btn"
-              title="WhatsApp"
-              onClick={() => toast.success('Connecting to WhatsApp...')}
-            >
-              <img src={whatsappIconImg} alt="WhatsApp" className="ud-mob-action-img" />
-            </button>
-
             <div style={{ position: 'relative' }}>
               <button
                 type="button"
@@ -380,7 +440,22 @@ export default function UserHeader({
                     onClick={handleLogout}
                     onMouseDown={(e) => e.stopPropagation()}
                   >
-                    <span className="ud-dropdown-icon">🚪</span>
+                    <span className="ud-dropdown-icon ud-dropdown-logout-icon">
+                      <svg
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2.2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                        <polyline points="16 17 21 12 16 7" />
+                        <line x1="21" y1="12" x2="9" y2="12" />
+                      </svg>
+                    </span>
                     <span>Log Out</span>
                   </button>
                 </div>

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import './UserNavigation.css';
@@ -12,8 +12,6 @@ import sidebarMegaphoneImg from '../../assets/dashboard/sidebar_megaphone_3d.png
 import navHomeIcon from '../../assets/sidebar/nav_home.png';
 import navProfileIcon from '../../assets/sidebar/nav_profile.png';
 import navServicesIcon from '../../assets/sidebar/nav_services.png';
-import navTeamIcon from '../../assets/sidebar/nav_team.png';
-import navFollowingIcon from '../../assets/sidebar/nav_following.png';
 import navMarketplaceIcon from '../../assets/sidebar/nav_marketplace.png';
 import navCompaniesIcon from '../../assets/sidebar/nav_companies.png';
 import navProductsIcon from '../../assets/sidebar/nav_products.png';
@@ -30,8 +28,6 @@ const NAV_ITEMS = [
   { label: 'Home', icon: navHomeIcon, path: '/dashboard' },
   { label: 'My Profile', icon: navProfileIcon, path: '/profile' },
   { label: 'Services', icon: navServicesIcon },
-  { label: 'My Team', icon: navTeamIcon },
-  { label: 'Following', icon: navFollowingIcon, path: '/following' },
   { label: 'Market Place', icon: navMarketplaceIcon },
   { label: 'Companies', icon: navCompaniesIcon },
   { label: 'Products', icon: navProductsIcon },
@@ -52,6 +48,7 @@ export default function UserSidebar({
   setMobileMenuOpen,
 }) {
   const navigate = useNavigate();
+  const [isHovered, setIsHovered] = useState(false);
 
   const handleItemClick = (item) => {
     setMobileMenuOpen?.(false);
@@ -75,8 +72,12 @@ export default function UserSidebar({
         />
       )}
 
-      {/* Permanently Pinned Left Sidebar */}
-      <aside className={`ud-sidebar-left ${mobileMenuOpen ? 'mobile-open' : ''}`}>
+      {/* Collapsible Left Sidebar (Icons only by default, expands on cursor hover) */}
+      <aside
+        className={`ud-sidebar-left ${isHovered ? 'is-hovered' : ''} ${mobileMenuOpen ? 'mobile-open' : ''}`}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+      >
         <nav className="ud-nav-list">
           {NAV_ITEMS.map((item) => (
             <button
@@ -84,9 +85,10 @@ export default function UserSidebar({
               type="button"
               className={`ud-nav-link ${activeTab === item.label ? 'active' : ''}`}
               onClick={() => handleItemClick(item)}
+              title={item.label}
             >
               <span className="ud-nav-icon">
-                <img src={item.icon} alt={item.label} className="ud-nav-icon-img" />
+                <img src={item.icon} alt={item.label} className={`ud-nav-icon-img ${item.label === 'Services' ? 'ud-nav-icon-white' : ''}`} />
               </span>
               <span className="ud-nav-label">{item.label}</span>
             </button>
