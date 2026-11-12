@@ -17,8 +17,8 @@
 
 /* ───────────────── TOP NAVBAR ───────────────── */
 .ud-topbar {
-  background: #020633;
-  height: 51px;
+  background: #2E0362;
+  height: 56px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   display: flex;
   align-items: center;
@@ -93,10 +93,10 @@
 
 .ud-logo-icon {
   position: absolute;
-  width: 31px;
-  height: 25px;
-  left: 5px;
-  top: 2px;
+  width: 28px;
+  height: 28px;
+  left: 6px;
+  top: 7px;
   object-fit: contain;
   display: block;
 }
@@ -107,24 +107,24 @@
 
 .ud-logo-word {
   position: absolute;
-  width: 91px;
-  height: 23px;
-  left: 31px;
-  top: 1px;
+  width: 96px;
+  height: 18px;
+  left: 38px;
+  top: 6px;
   object-fit: contain;
   display: block;
 }
 
 .ud-logo-tagline {
   position: absolute;
-  width: 121px;
-  height: 11px;
-  left: 25px;
-  top: 22px;
+  width: 110px;
+  height: 12px;
+  left: 38px;
+  top: 24px;
   font-family: 'Inter', sans-serif;
   font-style: normal;
-  font-weight: 400;
-  font-size: 10px;
+  font-weight: 500;
+  font-size: 8.5px;
   line-height: 12px;
   color: #232356;
   white-space: nowrap;
@@ -305,7 +305,7 @@
 .ud-main-wrapper {
   display: flex;
   width: 100%;
-  height: calc(100vh - 51px);
+  height: calc(100vh - 56px);
   overflow: hidden;
   box-sizing: border-box;
 }
@@ -382,13 +382,14 @@
   background: #94A3B8;
 }
 
-/* Content Grid: Feed (Cols 1 & 2: 855px) vs Right Panel (Col 3: 403px) */
+/* Content Grid: Feed (Flexible 1fr) vs Right Panel (380px) - Centered & Responsive */
 .ud-content-columns {
   display: grid;
-  grid-template-columns: minmax(0, 855px) 403px;
-  gap: 14px;
+  grid-template-columns: minmax(0, 1fr) 380px;
+  gap: 20px;
   width: 100%;
-  max-width: 1272px;
+  max-width: 1200px;
+  margin: 0 auto;
   box-sizing: border-box;
   align-items: start;
 }
@@ -1318,14 +1319,18 @@
 .ud-post-video-box {
   position: relative;
   background: #000;
-  border-radius: 8px;
+  border-radius: 10px;
   overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  max-height: 500px;
 }
 
 .ud-feed-video-el {
   width: 100%;
-  max-height: 480px;
-  object-fit: cover;
+  max-height: 500px;
+  object-fit: contain;
   display: block;
 }
 
@@ -2233,7 +2238,7 @@
 /* Services & Market place (Figma Frame 138: 403px width, radius 10px, border 1px #D9D9D9) */
 .ud-right-box.ud-services-box {
   width: 100%;
-  max-width: 403px;
+  max-width: 100%;
   height: auto;
   min-height: 580px;
   border-radius: 10px;
@@ -2372,7 +2377,7 @@
 /* Upcoming Events (Figma Frame 106: 403x236px, radius 10px, border 1px #D9D9D9) */
 .ud-right-box.ud-events-box {
   width: 100%;
-  max-width: 403px;
+  max-width: 100%;
   height: 236px;
   min-height: 236px;
   border-radius: 10px;
@@ -2483,7 +2488,7 @@
 /* Popular Groups (Figma Frame 136: 403x227px, radius 10px, border 1px #D9D9D9) */
 .ud-right-box.ud-groups-box {
   width: 100%;
-  max-width: 403px;
+  max-width: 100%;
   height: 227px;
   min-height: 227px;
   border-radius: 10px;
@@ -2903,21 +2908,34 @@
 /* Responsive Breakpoints */
 @media (min-width: 1600px) {
   .ud-content-columns {
-    grid-template-columns: minmax(0, 1fr) 380px;
-    gap: 22px;
+    grid-template-columns: minmax(0, 1fr) 390px;
+    gap: 24px;
+    max-width: 1260px;
+    margin: 0 auto;
   }
   .ud-center-split-grid {
     display: block;
     width: 100%;
   }
   .ud-search-wrapper {
-    max-width: 900px;
+    max-width: 800px;
   }
 }
 
-@media (max-width: 1140px) {
+@media (max-width: 1280px) {
+  .ud-content-columns {
+    grid-template-columns: minmax(0, 1fr) 340px;
+    gap: 16px;
+    max-width: 100%;
+    margin: 0 auto;
+  }
+}
+
+@media (max-width: 1080px) {
   .ud-content-columns {
     grid-template-columns: 1fr;
+    max-width: 740px;
+    margin: 0 auto;
     width: 100%;
   }
   .ud-feed-main {
@@ -3387,7 +3405,12 @@
    ========================================================= */
 
 .ud-desktop-only {
-  display: block;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100vh;
+  overflow: hidden;
+  background: #F4F6FC;
 }
 
 .ud-mobile-only {
