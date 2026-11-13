@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import { useEffect } from 'react';
 import toast, { Toaster, ToastBar } from 'react-hot-toast';
 import './index.css';
@@ -27,6 +27,24 @@ function ScrollToTop() {
   }, [pathname]);
 
   return null;
+}
+
+function ProtectedRoute({ children }) {
+  const location = useLocation();
+  let user = null;
+  try {
+    user = JSON.parse(localStorage.getItem('fortaa_user') || 'null');
+  } catch {
+    user = null;
+  }
+  const isAuth = Boolean(user && (user.id || user.email));
+
+  if (!isAuth) {
+    const redirect = encodeURIComponent(location.pathname + location.search + location.hash);
+    return <Navigate to={`/login?redirect=${redirect}`} replace />;
+  }
+
+  return children;
 }
 
 export default function App() {
@@ -104,21 +122,21 @@ export default function App() {
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignUpPage />} />
-        <Route path="/complete-profile" element={<CompleteProfilePage />} />
+        <Route path="/complete-profile" element={<ProtectedRoute><CompleteProfilePage /></ProtectedRoute>} />
         <Route path="/all-posts" element={<AllPostsPage />} />
-        <Route path="/following" element={<FollowingPage />} />
+        <Route path="/following" element={<ProtectedRoute><FollowingPage /></ProtectedRoute>} />
         <Route path="/leaders" element={<LeadersPage />} />
         <Route path="/leaders/:id" element={<LeaderProfilePage />} />
         <Route path="/leader/:id" element={<LeaderProfilePage />} />
         <Route path="/leader-profile" element={<LeaderProfilePage />} />
         <Route path="/network" element={<LeadersPage />} />
-        <Route path="/messages" element={<MessagesPage />} />
-        <Route path="/promotions" element={<PromotionsPage />} />
-        <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/messages" element={<ProtectedRoute><MessagesPage /></ProtectedRoute>} />
+        <Route path="/promotions" element={<ProtectedRoute><PromotionsPage /></ProtectedRoute>} />
+        <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
         <Route path="/groups" element={<GroupsPage />} />
         <Route path="/dashboard" element={<UserDashboard />} />
-        <Route path="/profile" element={<ProfilePage />} />
-        <Route path="/dashboard/profile" element={<ProfilePage />} />
+        <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
+        <Route path="/dashboard/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
         <Route path="/admin" element={<AdminDashboard />} />
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
         <Route path="/admin/users" element={<AdminUserDashboard />} />

@@ -1,23 +1,33 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { fetchPosts, likePostApi } from '../../services/dashboard.service';
 import { toggleFollowUser, fetchFollowingIds } from '../../services/follow.service';
 import { fetchDashboardOverview } from '../../services/dashboard.service';
+import { FaRegComment } from 'react-icons/fa';
+import { RiShareForwardLine } from 'react-icons/ri';
 import userAvatarImg from '../../assets/dashboard/user_avatar_rahul.png';
 import PostComments from '../../components/posts/PostComments';
 import ShareModal from '../../components/posts/ShareModal';
 import PostActionMenu from '../../components/posts/PostActionMenu';
 import AboutAccountModal from '../../components/posts/AboutAccountModal';
 import InstagramPostModal from '../../components/posts/InstagramPostModal';
+import PostLikersModal from '../../components/posts/PostLikersModal';
+import AuthGateModal from '../../components/auth/AuthGateModal';
+import { formatRelativeTime, renderFormattedContent } from './UserDashboard';
 import './AllPostsPage.css';
 
 export default function AllPostsPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const targetPostId = searchParams.get('post');
+
   const [storedUser] = useState(() => {
     try { return JSON.parse(localStorage.getItem('fortaa_user') || '{}'); }
     catch { return {}; }
   });
+
+  const isUserAuthenticated = Boolean(storedUser && (storedUser.id || storedUser.email));
 
   const [posts, setPosts] = useState([]);
   const [openCommentsPostId, setOpenCommentsPostId] = useState(null);
@@ -25,6 +35,7 @@ export default function AllPostsPage() {
   const [activeMenuPost, setActiveMenuPost] = useState(null);
   const [aboutAccountPost, setAboutAccountPost] = useState(null);
   const [instagramModalPost, setInstagramModalPost] = useState(null);
+  const [likesModalPostId, setLikesModalPostId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [followingIds, setFollowingIds] = useState([]);
   const [profileId, setProfileId] = useState(null);
@@ -48,7 +59,15 @@ export default function AllPostsPage() {
           ? fData.followingIds 
           : (Array.isArray(fData) ? fData : []);
         setFollowingIds(ids);
-        if (Array.isArray(livePosts)) setPosts(livePosts);
+        if (Array.isArray(livePosts)) {
+          setPosts(livePosts);
+          if (targetPostId && isUserAuthenticated) {
+            const found = livePosts.find((p) => String(p.id) === String(targetPostId));
+            if (found) {
+              setInstagramModalPost(found);
+            }
+          }
+        }
       } catch (err) {
         console.error('[AllPosts load error]:', err);
         toast.error('Could not load posts');
@@ -78,14 +97,15 @@ export default function AllPostsPage() {
 
   const handleAuthorClick = (post) => {
     if (!post) return;
-    const isSelf = post.user_id && Number(post.user_id) === Number(profileId || storedUser.id);
+    const targetId = post.user_id || post.author_id || post.userId || post.id;
+    const isSelf = targetId && Number(targetId) === Number(profileId || storedUser.id);
     if (isSelf) {
       navigate('/profile');
-    } else if (post.user_id) {
-      navigate(`/leaders/${post.user_id}`, {
+    } else if (targetId) {
+      navigate(`/leader/${targetId}`, {
         state: {
           leader: {
-            id: post.user_id,
+            id: targetId,
             name: post.author_name,
             avatar: post.author_avatar,
             levelTitle: post.author_role,
@@ -113,16 +133,23 @@ export default function AllPostsPage() {
     }
   };
 
+  const targetPost =
+    targetPostId && posts.length > 0 ? posts.find((p) => String(p.id) === String(targetPostId)) : null;
+
   return (
-    <div className="ap-page">
-      {/* Header */}
-      <div className="ap-topbar">
-        <button className="ap-back-btn" onClick={() => navigate('/dashboard')}>
-          ← Back to Dashboard
-        </button>
-        <h1 className="ap-title">All Posts</h1>
-        <span className="ap-count">{posts.length} posts</span>
-      </div>
+    <>
+      {!isUserAuthenticated && (
+        <AuthGateModal type="post" targetName={targetPost?.author_name || ''} />
+      )}
+      <div className={`ap-page ${!isUserAuthenticated ? 'auth-gated-blur' : ''}`}>
+        {/* Header */}
+        <div className="ap-topbar">
+          <button className="ap-back-btn" onClick={() => navigate('/dashboard')}>
+            ← Back to Dashboard
+          </button>
+          <h1 className="ap-title">All Posts</h1>
+          <span className="ap-count">{posts.length} posts</span>
+        </div>
 
       <div className="ap-container">
         {loading ? (
@@ -160,16 +187,13 @@ export default function AllPostsPage() {
                       >
                         {post.author_name}
                       </span>
-                      <span className="ap-post-badge">{post.author_role || 'Member'}</span>
+                    </div>
+                    <div className="ap-post-author-headline">
+                      {post.author_role || 'Senior Leader • Fortaa'}
+                    </div>
+                    <div className="ap-post-time-row">
                       <span className="ap-post-time">
-                        •{' '}
-                        {post.created_at
-                          ? new Date(post.created_at).toLocaleTimeString([], {
-                              hour: '2-digit',
-                              minute: '2-digit',
-                            })
-                          : 'Just now'}{' '}
-                        • 🌐
+                        {formatRelativeTime(post.created_at)}
                       </span>
                     </div>
                   </div>
@@ -197,7 +221,7 @@ export default function AllPostsPage() {
                   onClick={() => setInstagramModalPost(post)}
                   title="Click to view post"
                 >
-                  <p className="ap-post-text">{post.content}</p>
+                  <p className="ap-post-text">{renderFormattedContent(post.content)}</p>
                   {post.tags && <p className="ap-post-tags">{post.tags}</p>}
                   {post.image_url && (
                     <div className="ap-post-image-box">
@@ -211,13 +235,43 @@ export default function AllPostsPage() {
                 </div>
 
                 <div className="ap-post-reactions-row">
-                  <span>👍 ❤️ 👏 {post.likes_count || 0}</span>
-                  <span
-                    style={{ cursor: 'pointer' }}
-                    onClick={() => setOpenCommentsPostId(openCommentsPostId === post.id ? null : post.id)}
+                  <div
+                    className="ap-insta-like-text"
+                    style={{
+                      fontSize: '13.5px',
+                      color: '#334155',
+                      cursor: post.likes_count > 0 ? 'pointer' : 'default',
+                    }}
+                    onClick={() => {
+                      if (post.likes_count > 0) setLikesModalPostId(post.id);
+                    }}
+                    title={post.likes_count > 0 ? 'View who liked this post' : undefined}
                   >
-                    {post.comments_count || 0} comments · {post.shares_count || 12} shares
-                  </span>
+                    {post.likes_count > 0 ? (
+                      <>
+                        ❤️ Liked by <strong>{post.has_liked ? 'you' : (post.latest_liker_name || 'Fortaa member')}</strong>
+                        {post.likes_count > 1 ? ` and ${post.likes_count - 1} others` : ''}
+                      </>
+                    ) : (
+                      '0 likes'
+                    )}
+                  </div>
+                  <div
+                    className="ud-post-comment-counts"
+                    style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
+                    onClick={() => setOpenCommentsPostId(openCommentsPostId === post.id ? null : post.id)}
+                    title="View comments"
+                  >
+                    <span className="ud-metric-pill" title={`${post.comments_count || 0} comments`}>
+                      <FaRegComment size={14} className="ud-metric-icon" />
+                      <span>{post.comments_count || 0}</span>
+                    </span>
+                    <span className="ud-metric-dot">•</span>
+                    <span className="ud-metric-pill" title={`${post.shares_count || 12} shares`}>
+                      <RiShareForwardLine size={15} className="ud-metric-icon" />
+                      <span>{post.shares_count || 12}</span>
+                    </span>
+                  </div>
                 </div>
 
                 <div className="ap-post-interact-bar">
@@ -306,6 +360,18 @@ export default function AllPostsPage() {
         followingIds={followingIds}
         onToggleFollow={handleToggleFollow}
       />
+
+      {/* ── Instagram-Style Post Likers Modal ── */}
+      <PostLikersModal
+        isOpen={Boolean(likesModalPostId)}
+        onClose={() => setLikesModalPostId(null)}
+        postId={likesModalPostId}
+        currentUserId={profileId || storedUser?.id}
+        followingIds={followingIds}
+        onToggleFollow={handleToggleFollow}
+        onUserClick={(userId) => navigate(`/leader/${userId}`)}
+      />
     </div>
+    </>
   );
 }

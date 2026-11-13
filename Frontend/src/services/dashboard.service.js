@@ -14,11 +14,19 @@ export async function fetchDashboardOverview(email = '') {
   }
 }
 
-export async function fetchPosts(userId = null, filter = '') {
+export async function fetchPosts(userId = null, filter = '', currentUserId = null) {
   try {
+    let activeRequesterId = currentUserId;
+    if (!activeRequesterId) {
+      try {
+        const u = JSON.parse(localStorage.getItem('fortaa_user') || '{}');
+        activeRequesterId = u.id || u._id;
+      } catch {}
+    }
     const params = new URLSearchParams();
     if (userId) params.append('userId', userId);
     if (filter) params.append('filter', filter);
+    if (activeRequesterId) params.append('currentUserId', activeRequesterId);
     const queryString = params.toString() ? `?${params.toString()}` : '';
 
     const res = await fetch(`${BASE_URL}/posts${queryString}`);
@@ -71,6 +79,18 @@ export async function likePostApi(postId, userId) {
   } catch (err) {
     console.error('likePostApi error:', err);
     return null;
+  }
+}
+
+export async function fetchPostLikersApi(postId, userId) {
+  try {
+    const query = userId ? `?userId=${userId}` : '';
+    const res = await fetch(`${BASE_URL}/posts/${postId}/likes${query}`);
+    const data = await res.json();
+    return data?.likers || [];
+  } catch (err) {
+    console.error('fetchPostLikersApi error:', err);
+    return [];
   }
 }
 
@@ -169,9 +189,17 @@ export async function fetchOpportunities() {
   }
 }
 
-export async function fetchPostComments(postId) {
+export async function fetchPostComments(postId, userId) {
   try {
-    const res = await fetch(`${BASE_URL}/posts/${postId}/comments`);
+    let activeUserId = userId;
+    if (!activeUserId) {
+      try {
+        const u = JSON.parse(localStorage.getItem('fortaa_user') || '{}');
+        activeUserId = u.id || u._id;
+      } catch {}
+    }
+    const url = `${BASE_URL}/posts/${postId}/comments${activeUserId ? `?userId=${activeUserId}` : ''}`;
+    const res = await fetch(url);
     if (!res.ok) throw new Error('Failed to fetch comments');
     const data = await res.json();
     return data.comments || [];
@@ -196,11 +224,19 @@ export async function addPostCommentApi(postId, { content, userId, authorName, a
   }
 }
 
-export async function likePostCommentApi(commentId) {
+export async function likePostCommentApi(commentId, userId) {
   try {
+    let activeUserId = userId;
+    if (!activeUserId) {
+      try {
+        const u = JSON.parse(localStorage.getItem('fortaa_user') || '{}');
+        activeUserId = u.id || u._id;
+      } catch {}
+    }
     const res = await fetch(`${BASE_URL}/comments/${commentId}/like`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: activeUserId }),
     });
     return await res.json();
   } catch (err) {

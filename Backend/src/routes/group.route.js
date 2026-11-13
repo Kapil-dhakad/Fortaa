@@ -14,6 +14,7 @@ router.post('/join', joinGroup);
 router.post('/leave', leaveGroup);
 router.post('/create', createGroup);
 router.get('/my-groups/:userId', getUserGroups);
+router.get('/user/:userId', getUserGroups);
 router.get('/:groupId/members', getGroupMembers);
 
 module.exports = router;

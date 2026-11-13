@@ -4,6 +4,7 @@ import toast from 'react-hot-toast';
 import UserHeader from '../../components/layout/UserHeader';
 import UserSidebar from '../../components/layout/UserSidebar';
 import UserMobileBottomNav from '../../components/layout/UserMobileBottomNav';
+import AuthGateModal from '../../components/auth/AuthGateModal';
 import {
   sendFollowRequest,
   cancelFollowRequest,
@@ -29,7 +30,7 @@ const INITIAL_LEADERS = [
     following: '2.1k',
     posts: '8',
     quote: '“Small steps every day lead to big result.”',
-    tags: ['Marketing', 'Sales', 'Strategy'],
+    tags: [],
     role: 'Digital Marketing',
     bannerImg: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=600&auto=format&fit=crop&q=80',
     bannerGradient: 'linear-gradient(135deg, #FF6B6B 0%, #FFA07A 50%, #4A0E4E 100%)',
@@ -49,7 +50,7 @@ const INITIAL_LEADERS = [
     following: '21k',
     posts: '8',
     quote: '“Build your team, Build your dreams.”',
-    tags: ['Marketing', 'Sales', 'Strategy'],
+    tags: [],
     role: 'Team Building',
     bannerImg: 'https://images.unsplash.com/photo-1518495973542-4542c06a5843?w=600&auto=format&fit=crop&q=80',
     bannerGradient: 'linear-gradient(135deg, #6B11FF 0%, #B845ED 50%, #200052 100%)',
@@ -69,7 +70,7 @@ const INITIAL_LEADERS = [
     following: '1k',
     posts: '8',
     quote: '“Together we grow stronger.”',
-    tags: ['Marketing', 'Sales', 'Strategy'],
+    tags: [],
     role: 'Direct Selling',
     bannerImg: 'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=600&auto=format&fit=crop&q=80',
     bannerGradient: 'linear-gradient(135deg, #F39C12 0%, #E67E22 50%, #2C3E50 100%)',
@@ -89,7 +90,7 @@ const INITIAL_LEADERS = [
     following: '22k',
     posts: '8',
     quote: '“Small steps every day lead to big result.”',
-    tags: ['Marketing', 'Sales', 'Strategy'],
+    tags: [],
     role: 'Business Strategy',
     bannerImg: 'https://images.unsplash.com/photo-1509198397868-475647b2a1e5?w=600&auto=format&fit=crop&q=80',
     bannerGradient: 'linear-gradient(135deg, #0F2027 0%, #203A43 50%, #2C5364 100%)',
@@ -109,7 +110,7 @@ const INITIAL_LEADERS = [
     following: '2.1k',
     posts: '8',
     quote: '“Together we grow stronger.”',
-    tags: ['Marketing', 'Sales', 'Strategy'],
+    tags: [],
     role: 'Global Expansion',
     bannerImg: 'https://images.unsplash.com/photo-1511497584788-87676104235f?w=600&auto=format&fit=crop&q=80',
     bannerGradient: 'linear-gradient(135deg, #134E5E 0%, #71B280 100%)',
@@ -129,7 +130,7 @@ const INITIAL_LEADERS = [
     following: '2k',
     posts: '8',
     quote: '“Build your team, Build your dreams.”',
-    tags: ['Marketing', 'Sales', 'Strategy'],
+    tags: [],
     role: 'Sales Coach',
     bannerImg: 'https://images.unsplash.com/photo-1432405972618-c60b0225b8f9?w=600&auto=format&fit=crop&q=80',
     bannerGradient: 'linear-gradient(135deg, #1D2671 0%, #C33764 100%)',
@@ -404,8 +405,8 @@ export default function LeadersPage() {
             : '“Small steps every day lead to big result.”';
 
           const resolvedTags = u.skills
-            ? (typeof u.skills === 'string' ? u.skills.split(',').map((s) => s.trim()).filter(Boolean) : u.skills)
-            : [u.role || 'Business', 'Leadership'];
+            ? (typeof u.skills === 'string' ? u.skills.split(',').map((s) => s.trim()).filter(Boolean) : (Array.isArray(u.skills) ? u.skills : []))
+            : [];
 
           const resolvedLocation = u.location
             ? `${u.location}, India`
@@ -593,16 +594,22 @@ export default function LeadersPage() {
     return filteredLeaders.slice(start, start + itemsPerPage);
   }, [filteredLeaders, currentPage, itemsPerPage]);
 
+  const isUserAuthenticated = Boolean(storedUser && (storedUser.id || storedUser.email));
+
   return (
-    <div className="lead-page-root">
-      {/* Unified Global Header */}
-      <UserHeader
-        user={storedUser}
-        mobileMenuOpen={mobileMenuOpen}
-        setMobileMenuOpen={setMobileMenuOpen}
-        searchQuery={searchQuery}
-        onSearchChange={(e) => setSearchQuery(e.target.value)}
-      />
+    <>
+      {!isUserAuthenticated && (
+        <AuthGateModal type="profile" />
+      )}
+      <div className={`lead-page-root ${!isUserAuthenticated ? 'auth-gated-blur' : ''}`}>
+        {/* Unified Global Header */}
+        <UserHeader
+          user={storedUser}
+          mobileMenuOpen={mobileMenuOpen}
+          setMobileMenuOpen={setMobileMenuOpen}
+          searchQuery={searchQuery}
+          onSearchChange={(e) => setSearchQuery(e.target.value)}
+        />
 
       <div className="lead-main-wrapper">
         {/* Unified Pinned Left Sidebar (Stationary / Fixed) */}
@@ -812,18 +819,19 @@ export default function LeadersPage() {
                         {/* Quote */}
                         <p className="lead-card-quote">{leader.quote}</p>
 
-                        {/* Tags */}
-                        <div className="lead-card-tags-row">
-                          <span className="lead-tag-pill">
-                            <span className="lead-tag-icon">🎯</span> Marketing
-                          </span>
-                          <span className="lead-tag-pill">
-                            <span className="lead-tag-icon">📈</span> Sales
-                          </span>
-                          <span className="lead-tag-pill">
-                            <span className="lead-tag-icon">📑</span> Strategy
-                          </span>
-                        </div>
+                        {/* Real Skills Tags - only if user has skills */}
+                        {leader.tags && leader.tags.length > 0 && (
+                          <div className="lead-card-tags-row">
+                            {leader.tags.slice(0, 3).map((tag, tIdx) => (
+                              <span key={tIdx} className="lead-tag-pill">
+                                <span className="lead-tag-icon">
+                                  {tIdx === 0 ? '🎯' : tIdx === 1 ? '📈' : '⚡'}
+                                </span>{' '}
+                                {tag}
+                              </span>
+                            ))}
+                          </div>
+                        )}
 
                         {/* Action Buttons: Follow & Message */}
                         <div className="lead-card-actions-row">
@@ -1286,5 +1294,6 @@ export default function LeadersPage() {
       {/* Mobile Bottom Navigation Bar matching UserDashboard */}
       <UserMobileBottomNav active="Network" />
     </div>
+    </>
   );
 }

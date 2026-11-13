@@ -6,6 +6,7 @@ const {
   createPost,
   votePoll,
   likePost,
+  getPostLikers,
   updatePost,
   deletePost,
   getPostComments,
@@ -29,6 +30,7 @@ router.get('/posts', getPosts);
 router.post('/posts', createPost);
 router.post('/posts/:id/vote', votePoll);
 router.post('/posts/:id/like', likePost);
+router.get('/posts/:id/likes', getPostLikers);
 router.put('/posts/:id', updatePost);
 router.delete('/posts/:id', deletePost);
 

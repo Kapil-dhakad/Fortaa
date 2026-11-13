@@ -4,6 +4,7 @@ import toast from 'react-hot-toast';
 import UserHeader from '../../components/layout/UserHeader';
 import UserSidebar from '../../components/layout/UserSidebar';
 import UserMobileBottomNav from '../../components/layout/UserMobileBottomNav';
+import AuthGateModal from '../../components/auth/AuthGateModal';
 import { fetchUserProfile } from '../../services/user.service';
 import {
   sendFollowRequest,
@@ -33,16 +34,13 @@ import {
   FaRegCommentDots,
   FaGem,
   FaChevronLeft,
-  FaThumbsUp,
 } from 'react-icons/fa';
 import {
   HiChatAlt2,
   HiEye,
   HiUserGroup,
   HiShare,
-  HiCurrencyDollar,
   HiOutlineClock,
-  HiArrowRight,
   HiLightBulb,
   HiTrendingUp,
   HiSpeakerphone,
@@ -50,15 +48,11 @@ import {
   HiSparkles,
 } from 'react-icons/hi';
 import { MdLanguage, MdCampaign } from 'react-icons/md';
-import { BsThreeDotsVertical, BsGrid3X3Gap } from 'react-icons/bs';
+import { BsThreeDotsVertical } from 'react-icons/bs';
 import { FiShare2, FiLock } from 'react-icons/fi';
 
 // Assets
-import leaderHeroBg from '../../assets/leader_hero_wave_bg.png';
-import leaderPromoBg from '../../assets/leader_promo_neon_bg.png';
-import leaderOppFlower from '../../assets/leader_opp_flower.png';
 import userAvatarRahul from '../../assets/dashboard/user_avatar_rahul.png';
-import profileCoverPurple from '../../assets/dashboard/profile_cover_purple.png';
 
 import './LeaderProfilePage.css';
 
@@ -164,7 +158,6 @@ export default function LeaderProfilePage() {
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('Overview');
-  const [mobileActiveTab, setMobileActiveTab] = useState('Posts');
   const [topFollowMap, setTopFollowMap] = useState({});
   const [userPosts, setUserPosts] = useState([]);
   const [loadingPosts, setLoadingPosts] = useState(true);
@@ -252,7 +245,7 @@ export default function LeaderProfilePage() {
         const [fetched, counts, postsRes, leadersRes] = await Promise.all([
           fetchUserProfile(id),
           fetchUserSocialCounts(id),
-          fetchPosts(id, 'mine'),
+          fetchPosts(id, 'mine', currentUserId),
           fetchLeaders(currentUserId).catch(() => []),
         ]);
         if (isMounted) {
@@ -326,9 +319,7 @@ export default function LeaderProfilePage() {
         if (isPending) serverStatus = 'pending';
         else if (isFollowing) serverStatus = 'accepted';
 
-        if (serverStatus !== 'none') {
-          updateCachedFollowStatus(targetLeaderId, serverStatus);
-        }
+        updateCachedFollowStatus(targetLeaderId, serverStatus);
       })
       .catch((err) => console.warn('fetchFollowingIds error:', err));
 
@@ -450,12 +441,23 @@ export default function LeaderProfilePage() {
     });
   };
 
+  const isUserAuthenticated = Boolean(storedUser && (storedUser.id || storedUser.email));
+
   const handleShareProfile = () => {
-    if (navigator.clipboard) {
-      navigator.clipboard.writeText(window.location.href);
-      toast.success('Leader profile URL copied to clipboard!');
+    const profileUrl = `${window.location.origin}/leader/${id}`;
+    if (navigator.share) {
+      navigator
+        .share({
+          title: `${leader.name || 'Leader'} on Fortaa`,
+          text: `Check out ${leader.name || 'this leader'}'s profile on Fortaa:`,
+          url: profileUrl,
+        })
+        .catch(() => {});
+    } else if (navigator.clipboard) {
+      navigator.clipboard.writeText(profileUrl);
+      toast.success('Leader profile URL copied to clipboard! 📋');
     } else {
-      toast.success('Leader profile URL copied!');
+      toast.success(`Leader profile URL: ${profileUrl}`);
     }
   };
 
@@ -464,7 +466,11 @@ export default function LeaderProfilePage() {
   };
 
   return (
-    <div className="lp-root-container">
+    <>
+      {!isUserAuthenticated && (
+        <AuthGateModal type="profile" targetName={leader.name} />
+      )}
+      <div className={`lp-root-container ${!isUserAuthenticated ? 'auth-gated-blur' : ''}`}>
       {/* ====================================================================
           DESKTOP VIEW (Screen width > 768px)
           ==================================================================== */}
@@ -490,13 +496,8 @@ export default function LeaderProfilePage() {
             {/* TOP ROW: Hero Profile Banner (left) + Let's Grow Together (right, Frame 320: 316x179px) */}
             <div className="lp-top-row-banner">
               
-              {/* HERO PROFILE BANNER (Matching Figma 2nd image exactly) */}
-              <section
-                className="lp-hero-banner"
-                style={{
-                  backgroundImage: `url(${leaderHeroBg})`,
-                }}
-              >
+              {/* HERO PROFILE BANNER (Modern Gradient Mesh) */}
+              <section className="lp-hero-banner">
                 <div className="lp-hero-inner">
                   {/* Avatar with Badge & Camera */}
                   <div className="lp-hero-avatar-wrap">
@@ -536,7 +537,7 @@ export default function LeaderProfilePage() {
 
                     {/* Username */}
                     <div className="lp-hero-username">
-                      User Name: {leader.username}
+                      User Name: {leader.username ? (leader.username.startsWith('@') ? leader.username : `@${leader.username}`) : ''}
                     </div>
 
                     {/* Meta Row: Location, Joined, Followers, Following */}
@@ -592,65 +593,41 @@ export default function LeaderProfilePage() {
                 </div>
               </section>
 
-              {/* LET'S GROW TOGETHER BANNER (Frame 320: 316px x 179px, linear-gradient(90deg, #563E8B 0%, #8518F1 100%)) */}
-              <div
-                className="lp-promo-banner"
-                style={{
-                  backgroundImage: `url(${leaderPromoBg})`,
-                }}
-              >
-                <h3 className="lp-promo-title">Let’s Grow Together</h3>
-                <p className="lp-promo-text">
-                  Connect, collaborate and create new opportunities together.
-                </p>
-                {/* Frame 105: 163px x 30px white button, text #9E04C3 */}
-                <button
-                  type="button"
-                  className="lp-promo-btn"
-                  onClick={() => {
-                    handleFollowToggle();
-                    toast.success('Connection request sent!');
-                  }}
-                >
-                  <span className="lp-promo-btn-text">Connect Now</span>
-                  <HiArrowRight className="lp-promo-btn-arrow" />
-                </button>
-              </div>
-
             </div>
 
-            {/* TABS BAR (802px x 35px) */}
-            <div className="lp-tabs-bar">
-              {[
-                { id: 'Overview', label: 'Overview' },
-                { id: 'About Us', label: 'About Us' },
-                { id: 'Network', label: `Network (${leader.followers || '0'})` },
-                { id: 'Post', label: `Post (${leader.posts || '0'})` },
-              ].map((tab) => (
-                <button
-                  key={tab.id}
-                  type="button"
-                  className={`lp-tab-item ${activeTab === tab.id ? 'active' : ''}`}
-                  onClick={() => setActiveTab(tab.id)}
-                >
-                  {tab.label}
-                </button>
-              ))}
-            </div>
-
-            {/* THREE COLUMNS GRID OR PRIVATE ACCOUNT STATE */}
+            {/* THREE COLUMNS GRID OR PRIVATE ACCOUNT STATE (Instagram style) */}
             {!canViewContent ? (
               <div className="lp-private-account-card">
                 <div className="lp-private-lock-circle">
-                  <FiLock size={44} color="#7C3AED" />
+                  <FiLock size={36} color="#0F172A" />
                 </div>
-                <h3 className="lp-private-title">This Account is Private</h3>
+                <h3 className="lp-private-title">This profile is private</h3>
                 <p className="lp-private-desc">
-                  Follow this account to see their photos, videos, and network activity.
+                  Follow to see their photos and videos.
                 </p>
               </div>
             ) : (
-            <div className="lp-columns-grid">
+              <>
+                {/* TABS BAR (802px x 35px) */}
+                <div className="lp-tabs-bar">
+                  {[
+                    { id: 'Overview', label: 'Overview' },
+                    { id: 'About Us', label: 'About Us' },
+                    { id: 'Network', label: `Network (${leader.followers || '0'})` },
+                    { id: 'Post', label: `Post (${leader.posts || '0'})` },
+                  ].map((tab) => (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      className={`lp-tab-item ${activeTab === tab.id ? 'active' : ''}`}
+                      onClick={() => setActiveTab(tab.id)}
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="lp-columns-grid">
 
               {/* LEFT COLUMN: About Leader & Featured Opportunities */}
               <div className="lp-col-left">
@@ -732,68 +709,27 @@ export default function LeaderProfilePage() {
                   )}
                 </div>
 
-                {/* Card 2: Featured Opportunities */}
-                <div className="lp-card lp-opp-card">
+                {/* Card 2: Professional Experience & Background (Real Data) */}
+                <div className="lp-card lp-exp-card">
                   <div className="lp-card-head-row">
-                    <h3 className="lp-card-title">Featured Opportunities</h3>
-                    <button
-                      type="button"
-                      className="lp-view-all-link"
-                      onClick={() => toast.success('Viewing all opportunities')}
-                    >
-                      View All →
-                    </button>
+                    <h3 className="lp-card-title">Professional Background</h3>
                   </div>
 
-                  {/* Opportunity Thumbnail (Flower image) */}
-                  <div className="lp-opp-image-wrap">
-                    <img
-                      src={leaderOppFlower}
-                      alt="Featured Opportunity"
-                      className="lp-opp-img"
-                    />
-                  </div>
-
-                  {/* Content */}
-                  <div className="lp-opp-content">
-                    <h4 className="lp-opp-heading">Global Business Expansion</h4>
-
-                    {/* Tags */}
-                    <div className="lp-opp-tags-row">
-                      <span className="lp-opp-tag lp-tag-biz">Business</span>
-                      <span className="lp-opp-tag lp-tag-earn">High Earning</span>
-                    </div>
-
-                    <p className="lp-opp-desc">
-                      Join our growing network and be part of an international business opportunity.
-                    </p>
-
-                    {/* Meta stats & CTA */}
-                    <div className="lp-opp-footer">
-                      <div className="lp-opp-metrics">
-                        <div className="lp-opp-metric">
-                          <HiCurrencyDollar size={16} color="#059669" />
-                          <div>
-                            <span className="lp-metric-val">$500 - $10,000</span>
-                            <span className="lp-metric-lbl">Investment</span>
-                          </div>
-                        </div>
-                        <div className="lp-opp-metric">
-                          <HiOutlineClock size={16} color="#4F46E5" />
-                          <div>
-                            <span className="lp-metric-val">6-24</span>
-                            <span className="lp-metric-lbl">Duration</span>
-                          </div>
-                        </div>
+                  <div className="lp-exp-card-body">
+                    <div className="lp-exp-item">
+                      <div className="lp-exp-icon-box">
+                        <FaMedal size={22} color="#7C3AED" />
                       </div>
-
-                      <button
-                        type="button"
-                        className="lp-opp-btn"
-                        onClick={() => toast.success('Opportunity details opened')}
-                      >
-                        View Details →
-                      </button>
+                      <div className="lp-exp-details">
+                        <h4 className="lp-exp-role">{leader.levelTitle || leader.level || 'Leader'}</h4>
+                        <p className="lp-exp-company">{leader.company || 'Fortaa'}</p>
+                        <span className="lp-exp-duration">
+                          <FaCalendarAlt size={12} /> {leader.joinedDate || 'Active Member'}
+                        </span>
+                        <p className="lp-exp-desc">
+                          {leader.experience || `Active ${leader.level || 'Leader'} committed to team building, network expansion, and business growth.`}
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -803,61 +739,53 @@ export default function LeaderProfilePage() {
               {/* MIDDLE COLUMN: Skills, Achievements, Recent Activities */}
               <div className="lp-col-center">
 
-                {/* Card 1: Skills (4 circular icons) */}
+                {/* Card 1: Skills (Real user skills from DB) */}
                 <div className="lp-card lp-skills-card">
                   <div className="lp-card-head-row">
                     <h3 className="lp-card-title">Skills</h3>
-                    <button
-                      type="button"
-                      className="lp-view-all-link"
-                      onClick={() => toast.success('All skills')}
-                    >
-                      View All →
-                    </button>
                   </div>
 
-                  <div className="lp-skills-row">
-                    <div className="lp-skill-item">
-                      <div className="lp-skill-circle purple">
-                        <MdCampaign size={24} color="#7C3AED" />
-                      </div>
-                      <span className="lp-skill-name">Digital Marketing</span>
-                    </div>
+                  {(() => {
+                    const skillsList = (leader.specialization || leader.skills || '')
+                      .split(',')
+                      .map((s) => s.trim())
+                      .filter(Boolean);
 
-                    <div className="lp-skill-item">
-                      <div className="lp-skill-circle magenta">
-                        <FaHeadset size={20} color="#DB2777" />
-                      </div>
-                      <span className="lp-skill-name">Customer Services</span>
-                    </div>
+                    if (skillsList.length === 0) {
+                      return (
+                        <div style={{ padding: '24px 0', textAlign: 'center', color: '#94A3B8', fontSize: '13px' }}>
+                          No specific skills added yet by this leader.
+                        </div>
+                      );
+                    }
 
-                    <div className="lp-skill-item">
-                      <div className="lp-skill-circle amber">
-                        <HiLightBulb size={24} color="#D97706" />
-                      </div>
-                      <span className="lp-skill-name">Project Management</span>
-                    </div>
+                    const skillIcons = [
+                      <MdCampaign key="0" size={24} color="#7C3AED" />,
+                      <HiLightBulb key="1" size={24} color="#D97706" />,
+                      <HiTrendingUp key="2" size={24} color="#0284C7" />,
+                      <FaHeadset key="3" size={20} color="#DB2777" />,
+                    ];
+                    const colorClasses = ['purple', 'amber', 'cyan', 'magenta'];
 
-                    <div className="lp-skill-item">
-                      <div className="lp-skill-circle cyan">
-                        <HiTrendingUp size={24} color="#0284C7" />
+                    return (
+                      <div className="lp-skills-row">
+                        {skillsList.slice(0, 4).map((skill, idx) => (
+                          <div key={idx} className="lp-skill-item">
+                            <div className={`lp-skill-circle ${colorClasses[idx % colorClasses.length]}`}>
+                              {skillIcons[idx % skillIcons.length]}
+                            </div>
+                            <span className="lp-skill-name">{skill}</span>
+                          </div>
+                        ))}
                       </div>
-                      <span className="lp-skill-name">Business Development</span>
-                    </div>
-                  </div>
+                    );
+                  })()}
                 </div>
 
-                {/* Card 2: Achievements (4 badges) */}
+                {/* Card 2: Achievements (Dynamic milestones from real data) */}
                 <div className="lp-card lp-achieve-card">
                   <div className="lp-card-head-row">
                     <h3 className="lp-card-title">Achievements</h3>
-                    <button
-                      type="button"
-                      className="lp-view-all-link"
-                      onClick={() => toast.success('All achievements')}
-                    >
-                      View All →
-                    </button>
                   </div>
 
                   <div className="lp-achieve-row">
@@ -865,32 +793,32 @@ export default function LeaderProfilePage() {
                       <div className="lp-achieve-badge blue">
                         <FaCrown size={20} color="#2563EB" />
                       </div>
-                      <span className="lp-achieve-title">Top Leader</span>
-                      <span className="lp-achieve-tier">Diamond</span>
+                      <span className="lp-achieve-title">{leader.level || 'Leader'}</span>
+                      <span className="lp-achieve-tier">Tier Rank</span>
                     </div>
 
                     <div className="lp-achieve-item">
                       <div className="lp-achieve-badge orange">
                         <HiTrendingUp size={20} color="#EA580C" />
                       </div>
-                      <span className="lp-achieve-title">Growth Mentor</span>
-                      <span className="lp-achieve-tier">Diamond</span>
+                      <span className="lp-achieve-title">{leader.followers || '0'} Followers</span>
+                      <span className="lp-achieve-tier">Network</span>
                     </div>
 
                     <div className="lp-achieve-item">
                       <div className="lp-achieve-badge teal">
                         <FaGlobeAmericas size={20} color="#059669" />
                       </div>
-                      <span className="lp-achieve-title">Community</span>
-                      <span className="lp-achieve-tier">Diamond</span>
+                      <span className="lp-achieve-title">{leader.posts || '0'} Posts</span>
+                      <span className="lp-achieve-tier">Contributions</span>
                     </div>
 
                     <div className="lp-achieve-item">
                       <div className="lp-achieve-badge gold">
                         <FaUsers size={20} color="#CA8A04" />
                       </div>
-                      <span className="lp-achieve-title">Team Builder</span>
-                      <span className="lp-achieve-tier">Diamond</span>
+                      <span className="lp-achieve-title">{leader.company || 'Fortaa'}</span>
+                      <span className="lp-achieve-tier">Organization</span>
                     </div>
                   </div>
                 </div>
@@ -1077,6 +1005,7 @@ export default function LeaderProfilePage() {
               </div>
 
             </div>
+            </>
             )}
 
           </div>
@@ -1086,135 +1015,128 @@ export default function LeaderProfilePage() {
       {/* End Desktop View */}
 
       {/* ====================================================================
-          INSTAGRAM-STYLE DEDICATED MOBILE VIEW
+          LINKEDIN-STYLE DEDICATED MOBILE VIEW (Matching LinkedIn Profile App)
           ==================================================================== */}
-      <div className="lp-mobile-view">
-        {/* Cover Section with Silhouette & Sky */}
-        <div
-          className="lp-mob-cover-banner"
-          style={{
-            backgroundImage: `url(${profileCoverPurple})`,
-          }}
-        >
-          {/* Top Floating Nav: Back Arrow (left) & Share/Dots Pill (right) */}
-          <div className="lp-mob-top-nav-bar">
+      <div className="lp-mobile-view lp-li-mobile">
+        {/* 1. LinkedIn Cover Photo with Top Floating Actions */}
+        <div className="lp-li-cover">
+          <div className="lp-li-cover-overlay" />
+          <div className="lp-li-cover-nav">
             <button
               type="button"
-              className="lp-mob-circle-back-btn"
+              className="lp-li-nav-btn"
               onClick={() => navigate(-1)}
               aria-label="Back"
             >
-              <FaChevronLeft size={16} color="#1E293B" />
+              <FaChevronLeft size={16} />
             </button>
-
-            <div className="lp-mob-top-actions-pill">
+            <div className="lp-li-nav-right">
               <button
                 type="button"
-                className="lp-mob-pill-btn"
+                className="lp-li-nav-btn"
                 onClick={handleShareProfile}
                 title="Share Profile"
               >
-                <FiShare2 size={16} color="#1E293B" />
+                <FiShare2 size={16} />
               </button>
-              <div className="lp-mob-pill-divider" />
               <button
                 type="button"
-                className="lp-mob-pill-btn"
+                className="lp-li-nav-btn"
                 onClick={() => toast('Profile Options: Share, Copy URL, Report', { icon: 'ℹ️' })}
                 title="More"
               >
-                <BsThreeDotsVertical size={16} color="#1E293B" />
+                <BsThreeDotsVertical size={16} />
               </button>
             </div>
           </div>
         </div>
 
-        {/* Main Floating Instagram Profile Card */}
-        <div className="lp-mob-profile-card">
-          {/* Center Avatar (Bigger + Instagram Story Gradient Ring) */}
-          <div className="lp-mob-avatar-center-wrap">
-            <div className="lp-mob-avatar-story-ring">
+        {/* 2. Main Profile Header Card (LinkedIn Structure) */}
+        <div className="lp-li-main-card">
+          {/* Overlapping Avatar Row */}
+          <div className="lp-li-avatar-row">
+            <div className="lp-li-avatar-box">
               <img
                 src={leader.avatar || userAvatarRahul}
                 alt={leader.name}
-                className="lp-mob-avatar-img-centered"
+                className="lp-li-avatar-img"
                 onError={(e) => {
                   e.currentTarget.src = userAvatarRahul;
                 }}
               />
-              <div className="lp-mob-crown-badge-center" title="Top Leader">
+              <div className="lp-li-avatar-badge" title="Top Leader">
                 <FaCrown size={12} color="#FFFFFF" />
               </div>
             </div>
-          </div>
 
-          {/* Profile Identity Details (Centered) */}
-          <div className="lp-mob-identity-center">
-            {/* Name + Verified Badge */}
-            <div className="lp-mob-name-center-row">
-              <h2 className="lp-mob-leader-name-center">{leader.name}</h2>
-              <span className="lp-mob-verified-sparkle" title="Verified Leader">
-                <FaGem size={13} color="#7C3AED" />
-              </span>
-            </div>
-
-            {/* Rank Badge Pill (Purple with Diamond) */}
-            <div className="lp-mob-rank-badge-center">
-              <FaGem size={10} color="#FFFFFF" />
-              <span>{leader.levelTitle || leader.level || 'Diamond Leader'}</span>
-            </div>
-
-            {/* Meta Line: Location & Joined Date */}
-            <div className="lp-mob-meta-center">
-              <span className="lp-mob-meta-item">
-                <FaMapMarkerAlt className="lp-mob-ico text-red" />
-                <span>{leader.location || 'Fortaa, India'}</span>
-              </span>
-              <span className="lp-mob-meta-dot">•</span>
-              <span className="lp-mob-meta-item">
-                <FaCalendarAlt className="lp-mob-ico text-purple" />
-                <span>{leader.joinedDate || 'Joined Jan 2013'}</span>
-              </span>
-            </div>
-
-            {/* Quote / Bio */}
-            {cleanQuote && (
-              <p className="lp-mob-quote-center">
-                “{cleanQuote}”
-              </p>
+            {leader.company && (
+              <div className="lp-li-company-tag">
+                <FaMedal size={12} color="#7C3AED" />
+                <span className="lp-li-company-name">{leader.company}</span>
+              </div>
             )}
           </div>
 
-          {/* Instagram Stats Row (Posts, Followers, Following, Experience) */}
-          <div className="lp-mob-ig-stats-row">
-            <div className="lp-mob-ig-stat-col" onClick={() => setMobileActiveTab('Posts')}>
-              <div className="lp-mob-ig-stat-num">{leader.posts || '0'}</div>
-              <div className="lp-mob-ig-stat-label">Posts</div>
+          {/* Left-Aligned Identity Information */}
+          <div className="lp-li-info">
+            <div className="lp-li-name-row">
+              <h1 className="lp-li-name">{leader.name}</h1>
+              <span className="lp-li-verified-icon" title="Verified Leader">
+                <FaGem size={14} color="#7C3AED" />
+              </span>
+              <span className="lp-li-badge-pill">
+                {leader.levelTitle || leader.level || 'Leader'}
+              </span>
             </div>
-            <div className="lp-mob-ig-stat-divider" />
-            <div className="lp-mob-ig-stat-col" onClick={() => setMobileActiveTab('Network')}>
-              <div className="lp-mob-ig-stat-num">{leader.followers || '0'}</div>
-              <div className="lp-mob-ig-stat-label">Followers</div>
-            </div>
-            <div className="lp-mob-ig-stat-divider" />
-            <div className="lp-mob-ig-stat-col" onClick={() => setMobileActiveTab('Network')}>
-              <div className="lp-mob-ig-stat-num">{leader.following || '0'}</div>
-              <div className="lp-mob-ig-stat-label">Following</div>
-            </div>
-            <div className="lp-mob-ig-stat-divider" />
-            <div className="lp-mob-ig-stat-col" onClick={() => setMobileActiveTab('Achievements')}>
-              <div className="lp-mob-ig-stat-num">
-                {leader.experience ? leader.experience.replace(/in.*/i, '').trim() : (leader.joinedDate ? leader.joinedDate.replace('Joined ', '') : '-')}
+
+            {leader.username && (
+              <div className="lp-li-username">
+                {leader.username.startsWith('@') ? leader.username : `@${leader.username}`}
               </div>
-              <div className="lp-mob-ig-stat-label">Experience</div>
+            )}
+
+            <p className="lp-li-headline">
+              {leader.levelTitle || leader.role || 'Business Leader'} at {leader.company || 'Fortaa Network'}
+            </p>
+
+            <div className="lp-li-meta-line">
+              <span className="lp-li-location">
+                <FaMapMarkerAlt size={12} /> {leader.location || 'India'}
+              </span>
+              <span className="lp-li-meta-dot">•</span>
+              <span
+                className="lp-li-contact-link"
+                onClick={() => toast.success(`Website/Contact: ${leader.website || 'Fortaa Member'}`)}
+              >
+                Contact info
+              </span>
+            </div>
+
+            <div className="lp-li-social-proof">
+              <span className="lp-li-followers-highlight">
+                <strong>{leader.followers || '0'}</strong> followers
+              </span>
+              <span className="lp-li-meta-dot">•</span>
+              <span className="lp-li-following-sub">
+                {leader.following || '0'} connections
+              </span>
             </div>
           </div>
 
-          {/* Action Buttons Row (Instagram Style: Follow | Message | Share) */}
-          <div className="lp-mob-ig-actions-row">
+          {/* Action Buttons Row (LinkedIn Style) */}
+          <div className="lp-li-actions-row">
             <button
               type="button"
-              className={getFollowBtnClass('lp-mob-ig-btn lp-mob-ig-btn-follow')}
+              className="lp-li-btn-primary"
+              onClick={handleMessageClick}
+            >
+              <HiChatAlt2 size={16} />
+              <span>Message</span>
+            </button>
+
+            <button
+              type="button"
+              className={getFollowBtnClass('lp-li-btn-secondary')}
               onClick={handleFollowToggle}
             >
               {renderFollowBtnContent(true)}
@@ -1222,342 +1144,135 @@ export default function LeaderProfilePage() {
 
             <button
               type="button"
-              className="lp-mob-ig-btn lp-mob-ig-btn-secondary"
-              onClick={handleMessageClick}
-            >
-              <FaRegCommentDots size={14} />
-              <span>Message</span>
-            </button>
-
-            <button
-              type="button"
-              className="lp-mob-ig-btn lp-mob-ig-btn-secondary"
+              className="lp-li-btn-icon"
               onClick={handleShareProfile}
+              title="Share"
             >
-              <FiShare2 size={14} />
-              <span>Share</span>
+              <FiShare2 size={16} />
             </button>
           </div>
-
-          {/* Instagram Story Highlights (Dynamic Circular Badges Row) */}
-          {canViewContent && (
-            <div className="lp-mob-ig-highlights-scroll">
-            <div
-              className="lp-mob-ig-highlight-item"
-              onClick={() => setMobileActiveTab('Achievements')}
-            >
-              <div className="lp-mob-ig-highlight-circle circle-cyan">
-                <FaGem size={20} color="#06B6D4" />
-              </div>
-              <span className="lp-mob-ig-highlight-name">
-                {(leader.levelTitle || leader.level || 'Leader').replace(' Leader', '').replace(' Leaders', '')}
-              </span>
-            </div>
-
-            <div
-              className="lp-mob-ig-highlight-item"
-              onClick={() => setMobileActiveTab('Network')}
-            >
-              <div className="lp-mob-ig-highlight-circle circle-orange">
-                <FaUsers size={20} color="#EA580C" />
-              </div>
-              <span className="lp-mob-ig-highlight-name">{leader.followers || '0'}+</span>
-            </div>
-
-            <div
-              className="lp-mob-ig-highlight-item"
-              onClick={() => setMobileActiveTab('Posts')}
-            >
-              <div className="lp-mob-ig-highlight-circle circle-green">
-                <BsGrid3X3Gap size={18} color="#10B981" />
-              </div>
-              <span className="lp-mob-ig-highlight-name">{leader.posts || '0'} Posts</span>
-            </div>
-
-            {leader.experience && (
-              <div
-                className="lp-mob-ig-highlight-item"
-                onClick={() => setMobileActiveTab('Achievements')}
-              >
-                <div className="lp-mob-ig-highlight-circle circle-purple">
-                  <FaStar size={20} color="#7C3AED" />
-                </div>
-                <span className="lp-mob-ig-highlight-name">
-                  {leader.experience.replace(/in.*/i, '').trim()}
-                </span>
-              </div>
-            )}
-
-            {(leader.specialization || leader.skills || '')
-              .split(',')
-              .map((s) => s.trim())
-              .filter(Boolean)
-              .slice(0, 3)
-              .map((skill, idx) => (
-                <div
-                  key={idx}
-                  className="lp-mob-ig-highlight-item"
-                  onClick={() => toast(`Skill: ${skill}`, { icon: '🎯' })}
-                >
-                  <div className="lp-mob-ig-highlight-circle circle-gray">
-                    <span style={{ fontSize: '18px' }}>{idx === 0 ? '🎯' : idx === 1 ? '📈' : '⚡'}</span>
-                  </div>
-                  <span className="lp-mob-ig-highlight-name">{skill}</span>
-                </div>
-              ))}
-            </div>
-          )}
         </div>
 
+        {/* 3. Sections or Private Lock */}
         {!canViewContent ? (
-          <div className="lp-private-account-card lp-mob-private-card">
+          <div className="lp-li-card lp-li-private-card">
             <div className="lp-private-lock-circle">
-              <FiLock size={36} color="#7C3AED" />
+              <FiLock size={36} color="#0F172A" />
             </div>
-            <h3 className="lp-private-title">This Account is Private</h3>
+            <h3 className="lp-private-title">This profile is private</h3>
             <p className="lp-private-desc">
-              Follow this account to see their photos, videos, and posts.
+              Follow to see their photos and videos.
             </p>
           </div>
         ) : (
-          <>
-            {/* Instagram Profile Tabs Navigation Bar */}
-            <div className="lp-mob-ig-tabs-bar">
-          <button
-            type="button"
-            className={`lp-mob-ig-tab-btn ${mobileActiveTab === 'Posts' ? 'active' : ''}`}
-            onClick={() => setMobileActiveTab('Posts')}
-          >
-            <BsGrid3X3Gap size={17} />
-            <span>Posts</span>
-          </button>
-
-          <button
-            type="button"
-            className={`lp-mob-ig-tab-btn ${mobileActiveTab === 'About' ? 'active' : ''}`}
-            onClick={() => setMobileActiveTab('About')}
-          >
-            <HiUserGroup size={18} />
-            <span>About</span>
-          </button>
-
-          <button
-            type="button"
-            className={`lp-mob-ig-tab-btn ${mobileActiveTab === 'Network' ? 'active' : ''}`}
-            onClick={() => setMobileActiveTab('Network')}
-          >
-            <FaUsers size={16} />
-            <span>Network</span>
-          </button>
-
-          <button
-            type="button"
-            className={`lp-mob-ig-tab-btn ${mobileActiveTab === 'Achievements' ? 'active' : ''}`}
-            onClick={() => setMobileActiveTab('Achievements')}
-          >
-            <FaMedal size={16} />
-            <span>Awards</span>
-          </button>
-        </div>
-
-        {/* Tab Content Section */}
-        <div className="lp-mob-ig-tab-content">
-          {/* TAB 1: POSTS (3-Column Square Grid - Pure Instagram) */}
-          {mobileActiveTab === 'Posts' && (
-            <div>
-              {loadingPosts ? (
-                <div style={{ padding: '36px 16px', textAlign: 'center', color: '#64748B', fontSize: '14px' }}>
-                  Loading posts...
+          <div className="lp-li-sections">
+            {/* CARD 1: ABOUT */}
+            <div className="lp-li-card">
+              <h3 className="lp-li-card-heading">About</h3>
+              <p className="lp-li-card-paragraph">
+                {leader.bio || cleanQuote || 'Network marketing leader and entrepreneur dedicated to team growth and collaboration.'}
+              </p>
+              {leader.website && (
+                <div className="lp-li-website-item">
+                  <MdLanguage size={15} color="#7C3AED" />
+                  <a
+                    href={leader.website.startsWith('http') ? leader.website : `https://${leader.website}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="lp-li-website-anchor"
+                  >
+                    {leader.website}
+                  </a>
                 </div>
+              )}
+            </div>
+
+            {/* CARD 2: ACTIVITY / POSTS */}
+            <div className="lp-li-card">
+              <div className="lp-li-card-head-row">
+                <h3 className="lp-li-card-heading" style={{ margin: 0 }}>Activity</h3>
+                <span className="lp-li-activity-sub">{userPosts.length} posts</span>
+              </div>
+
+              {loadingPosts ? (
+                <div className="lp-li-empty-text">Loading posts...</div>
               ) : userPosts && userPosts.length > 0 ? (
-                <div className="lp-mob-ig-posts-grid">
-                  {userPosts.map((post) => (
-                    <div
-                      key={post.id}
-                      className="lp-mob-ig-post-square"
-                      onClick={() =>
-                        toast(
-                          `Post by ${leader.name}: ${post.likes_count || 0} likes, ${post.comments_count || 0} comments`,
-                          { icon: '📸' }
-                        )
-                      }
-                    >
-                      {post.image_url ? (
-                        <img
-                          src={post.image_url}
-                          alt={post.content ? post.content.slice(0, 30) : 'Post'}
-                          className="lp-mob-ig-post-thumb"
-                        />
-                      ) : (
-                        <div className="lp-mob-ig-post-text-thumb">
-                          <p style={{ margin: 0 }}>
-                            {post.content ? (post.content.length > 80 ? post.content.slice(0, 80) + '...' : post.content) : 'Post'}
-                          </p>
+                <div className="lp-li-posts-list">
+                  {userPosts.slice(0, 3).map((post) => (
+                    <div key={post.id} className="lp-li-post-item">
+                      <p className="lp-li-post-content">{post.content || 'Shared an update'}</p>
+                      {post.image_url && (
+                        <div className="lp-li-post-media">
+                          <img src={post.image_url} alt="Post" className="lp-li-post-img" />
                         </div>
                       )}
-                      <div className="lp-mob-ig-post-overlay">
-                        {post.author_role && (
-                          <span className="lp-mob-ig-post-pill">
-                            {post.author_role.replace(' Leader', '')}
-                          </span>
-                        )}
-                        <div className="lp-mob-ig-post-stats-overlay">
-                          <span>
-                            <FaThumbsUp size={10} /> {post.likes_count || 0}
-                          </span>
-                          <span>
-                            <FaRegCommentDots size={10} /> {post.comments_count || 0}
-                          </span>
-                        </div>
+                      <div className="lp-li-post-metrics">
+                        <span>❤️ {post.likes_count || 0} likes</span>
+                        <span>💬 {post.comments_count || 0} comments</span>
                       </div>
                     </div>
                   ))}
                 </div>
               ) : (
-                <div className="lp-mob-empty-posts">
-                  <div className="lp-empty-camera-circle">
-                    <FaCamera size={26} color="#7C3AED" />
-                  </div>
-                  <h4 className="lp-empty-posts-title">No Posts Yet</h4>
-                  <p className="lp-empty-posts-sub">
-                    When {leader.name} shares photos or updates, you’ll see them here.
-                  </p>
-                </div>
+                <div className="lp-li-empty-text">No posts published yet.</div>
               )}
             </div>
-          )}
 
-          {/* TAB 2: ABOUT */}
-          {mobileActiveTab === 'About' && (
-            <div className="lp-mob-ig-about-view">
-              <div className="lp-mob-ig-card">
-                <h3 className="lp-mob-ig-card-title">
-                  <HiUserGroup className="text-purple" /> About {leader.name}
-                </h3>
-                <p className="lp-mob-ig-bio-text">
-                  {leader.bio ||
-                    'Motivated and passionate networker with a vision to create financial freedom and help others grow. Proud to be part of Fortaa.'}
-                </p>
-
-                <div className="lp-mob-ig-details-list">
-                  {leader.location && (
-                    <div className="lp-mob-ig-detail-item">
-                      <FaMapMarkerAlt className="text-red" size={14} />
-                      <span>{leader.location}</span>
-                    </div>
-                  )}
-                  {leader.language && (
-                    <div className="lp-mob-ig-detail-item">
-                      <FaRegCommentDots className="text-purple" size={14} />
-                      <span>{leader.language}</span>
-                    </div>
-                  )}
-                  {leader.website && (
-                    <div className="lp-mob-ig-detail-item">
-                      <FaGlobe className="text-blue" size={14} />
-                      <a
-                        href={`https://${leader.website.replace(/^https?:\/\//, '')}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="lp-mob-ig-link"
-                      >
-                        {leader.website}
-                      </a>
-                    </div>
-                  )}
+            {/* CARD 3: EXPERIENCE */}
+            <div className="lp-li-card">
+              <h3 className="lp-li-card-heading">Experience</h3>
+              <div className="lp-li-exp-item">
+                <div className="lp-li-exp-icon">
+                  <FaMedal size={20} color="#7C3AED" />
                 </div>
-
-                {cleanQuote && (
-                  <div className="lp-mob-ig-quote-card">
-                    <FaQuoteLeft className="lp-mob-ig-quote-ico" size={14} />
-                    <p className="lp-mob-ig-quote-val">“{cleanQuote}”</p>
-                    <span className="lp-mob-ig-quote-author">-{leader.name}</span>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* TAB 3: NETWORK */}
-          {mobileActiveTab === 'Network' && (
-            <div className="lp-mob-ig-network-view">
-              <div className="lp-mob-ig-card">
-                <h3 className="lp-mob-ig-card-title">
-                  <FaUsers className="text-purple" /> Network Overview
-                </h3>
-                <p className="lp-mob-ig-bio-text">
-                  Direct network connections and followers affiliated with {leader.name}.
-                </p>
-
-                <div className="lp-mob-ig-network-grid">
-                  <div className="lp-mob-ig-network-box">
-                    <div className="lp-mob-ig-net-val">{leader.followers || '0'}</div>
-                    <div className="lp-mob-ig-net-lbl">Followers</div>
-                  </div>
-                  <div className="lp-mob-ig-network-box">
-                    <div className="lp-mob-ig-net-val">{leader.following || '0'}</div>
-                    <div className="lp-mob-ig-net-lbl">Following</div>
-                  </div>
-                </div>
-
-                <button
-                  type="button"
-                  className="lp-mob-ig-btn-full"
-                  onClick={handleFollowToggle}
-                >
-                  {followStatus === 'accepted' ? 'Following ✓' : followStatus === 'pending' ? 'Request Pending ⏳' : 'Connect with Leader'}
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* TAB 4: ACHIEVEMENTS */}
-          {mobileActiveTab === 'Achievements' && (
-            <div className="lp-mob-ig-achievements-view">
-              <div className="lp-mob-ig-achievements-grid">
-                <div className="lp-mob-ig-achieve-card">
-                  <div className="lp-mob-ig-ach-icon-box box-orange">
-                    <FaUsers size={20} color="#EA580C" />
-                  </div>
-                  <div className="lp-mob-ig-ach-val">{leader.followers || '0'}</div>
-                  <div className="lp-mob-ig-ach-lbl">Total Followers</div>
-                </div>
-
-                <div className="lp-mob-ig-achieve-card">
-                  <div className="lp-mob-ig-ach-icon-box box-cyan">
-                    <FaGem size={20} color="#06B6D4" />
-                  </div>
-                  <div className="lp-mob-ig-ach-val">
-                    {leader.levelTitle || leader.level || 'Leader'}
-                  </div>
-                  <div className="lp-mob-ig-ach-lbl">Current Rank</div>
-                </div>
-
-                <div className="lp-mob-ig-achieve-card">
-                  <div className="lp-mob-ig-ach-icon-box box-green">
-                    <FaStar size={20} color="#10B981" />
-                  </div>
-                  <div className="lp-mob-ig-ach-val">{leader.posts || '0'}</div>
-                  <div className="lp-mob-ig-ach-lbl">Published Posts</div>
-                </div>
-
-                <div className="lp-mob-ig-achieve-card">
-                  <div className="lp-mob-ig-ach-icon-box box-purple">
-                    <FaCrown size={20} color="#7C3AED" />
-                  </div>
-                  <div className="lp-mob-ig-ach-val">{leader.experience ? leader.experience.replace(/in.*/i, '').trim() : 'Active'}</div>
-                  <div className="lp-mob-ig-ach-lbl">Experience</div>
+                <div className="lp-li-exp-body">
+                  <h4 className="lp-li-exp-role">{leader.levelTitle || leader.role || 'Business Leader'}</h4>
+                  <p className="lp-li-exp-company">{leader.company || 'Fortaa'}</p>
+                  <span className="lp-li-exp-date">
+                    <FaCalendarAlt size={11} /> {leader.joinedDate || 'Active Leader'}
+                  </span>
+                  <p className="lp-li-exp-desc">
+                    {leader.experience || `Actively growing business networks, mentoring leaders, and driving growth.`}
+                  </p>
                 </div>
               </div>
             </div>
-          )}
-        </div>
-        </>
+
+            {/* CARD 4: SKILLS */}
+            <div className="lp-li-card">
+              <h3 className="lp-li-card-heading">Skills</h3>
+              {(() => {
+                const skills = (leader.specialization || leader.skills || '')
+                  .split(',')
+                  .map((s) => s.trim())
+                  .filter(Boolean);
+
+                if (skills.length === 0) {
+                  return <div className="lp-li-empty-text">No skills added yet.</div>;
+                }
+
+                return (
+                  <div className="lp-li-skills-chips">
+                    {skills.map((skill, sIdx) => (
+                      <span key={sIdx} className="lp-li-skill-chip">
+                        <span className="lp-li-skill-dot">✓</span> {skill}
+                      </span>
+                    ))}
+                  </div>
+                );
+              })()}
+            </div>
+          </div>
         )}
       </div>
+
+
+
+
 
       {/* Mobile Bottom Navigation */}
       <UserMobileBottomNav active="Network" />
     </div>
+    </>
   );
 }

@@ -67,12 +67,13 @@ async function getConversations(req, res) {
       } catch {}
       return {
         ...r,
+        category: 'Direct',
         last_message_text: previewText,
         is_new_contact: false,
       };
     });
 
-    // 2. Fetch other registered users/leaders so user can start chatting with anyone
+    // 2. Fetch other registered users/leaders as suggestions (for search / new chat only)
     const otherUsersQuery = `
       SELECT id as user_id, name, designation, company_brand, avatar_url
       FROM users
@@ -95,38 +96,77 @@ async function getConversations(req, res) {
       category: 'Direct',
     }));
 
-    // 3. Fetch groups joined by this user so they appear under Group category tab
+    // 3. Fetch groups joined by this user with real last message & unread counts
     let userGroupsList = [];
     try {
       const userGroupsRes = await db.query(
-        `SELECT g.id, g.name, g.category, g.description, g.icon_url, g.members, gm.joined_at
+        `SELECT 
+           g.id, 
+           g.name, 
+           g.category, 
+           g.description, 
+           g.icon_url, 
+           g.members, 
+           gm.joined_at,
+           lm.text as last_msg_text,
+           lm.created_at as last_msg_time,
+           COALESCE(unread.count, 0)::int as unread_count
          FROM groups g
          JOIN group_members gm ON gm.group_id = g.id
+         LEFT JOIN LATERAL (
+           SELECT m.text, m.created_at
+           FROM messages m
+           WHERE m.group_id = g.id
+             AND NOT ($1 = ANY(COALESCE(m.deleted_for, '{}')))
+           ORDER BY m.created_at DESC
+           LIMIT 1
+         ) lm ON TRUE
+         LEFT JOIN (
+           SELECT group_id, COUNT(*)::int as count
+           FROM messages
+           WHERE group_id IS NOT NULL
+             AND sender_id != $1
+             AND NOT ($1 = ANY(COALESCE(read_by, '{}')))
+             AND NOT ($1 = ANY(COALESCE(deleted_for, '{}')))
+           GROUP BY group_id
+         ) unread ON unread.group_id = g.id
          WHERE gm.user_id = $1
-         ORDER BY gm.joined_at DESC;`,
+         ORDER BY COALESCE(lm.created_at, gm.joined_at) DESC;`,
         [userId]
       );
-      userGroupsList = userGroupsRes.rows.map((g) => ({
-        user_id: `group_${g.id}`,
-        group_id: g.id,
-        name: g.name,
-        role: g.category || 'Group',
-        category: 'Group',
-        is_group: true,
-        company_brand: 'Fortaa Community',
-        avatar_url: g.icon_url || null,
-        last_message_text: g.description || 'Welcome to the group!',
-        last_message_time: g.joined_at,
-        unread_count: 0,
-        is_new_contact: false,
-      }));
+      userGroupsList = userGroupsRes.rows.map((g) => {
+        let preview = g.last_msg_text || g.description || 'Welcome to the group!';
+        try {
+          if (preview && preview.startsWith('{"') && preview.includes('"attachment"')) {
+            const parsed = JSON.parse(preview);
+            preview = parsed.text || (parsed.attachment ? `📎 ${parsed.attachment.name || 'File'}` : '');
+          }
+        } catch {}
+
+        return {
+          user_id: `group_${g.id}`,
+          group_id: g.id,
+          name: g.name,
+          role: g.category || 'Group',
+          category: 'Group',
+          is_group: true,
+          company_brand: 'Fortaa Community',
+          avatar_url: g.icon_url || null,
+          last_message_text: preview,
+          last_message_time: g.last_msg_time || g.joined_at,
+          unread_count: Number(g.unread_count) || 0,
+          is_new_contact: false,
+        };
+      });
     } catch (gErr) {
       console.warn('userGroups fetch error:', gErr.message);
     }
 
+    // Instagram style: conversations ONLY contains actual active conversations & joined groups!
     return res.status(200).json({
       success: true,
-      conversations: [...formattedConversations, ...userGroupsList, ...suggestions],
+      conversations: [...formattedConversations, ...userGroupsList],
+      suggestions,
     });
   } catch (error) {
     console.error('[getConversations Error]:', error);
@@ -366,6 +406,26 @@ async function sendMessageHttp(req, res) {
       });
     }
 
+    // Check if either user has blocked the other
+    try {
+      const blockCheck = await db.query(
+        `SELECT blocker_id FROM user_blocks 
+         WHERE (blocker_id = $1 AND blocked_id = $2) 
+            OR (blocker_id = $2 AND blocked_id = $1)
+         LIMIT 1;`,
+        [Number(senderId), Number(receiverId)]
+      );
+      if (blockCheck.rows.length > 0) {
+        const isSelfBlocker = Number(blockCheck.rows[0].blocker_id) === Number(senderId);
+        return res.status(403).json({
+          success: false,
+          message: isSelfBlocker
+            ? 'You have blocked this contact. Unblock to send messages.'
+            : 'You cannot send messages to this contact.',
+        });
+      }
+    } catch {}
+
     const insertRes = await db.query(
       `INSERT INTO messages (sender_id, receiver_id, text, is_read)
        VALUES ($1, $2, $3, FALSE)
@@ -455,11 +515,197 @@ async function deleteMessage(req, res) {
   }
 }
 
+/**
+ * Ensure user_blocks and chat_reports tables exist
+ */
+async function ensureBlockAndReportTables() {
+  try {
+    if (!db.isDBConnected()) return;
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS user_blocks (
+        id SERIAL PRIMARY KEY,
+        blocker_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        blocked_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(blocker_id, blocked_id)
+      );
+
+      CREATE TABLE IF NOT EXISTS chat_reports (
+        id SERIAL PRIMARY KEY,
+        reporter_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        reported_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        group_id INTEGER REFERENCES groups(id) ON DELETE CASCADE,
+        reason TEXT,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+  } catch (e) {
+    console.warn('[ensureBlockAndReportTables warn]:', e.message);
+  }
+}
+
+/**
+ * Clear chat messages for current user (hides messages for userId)
+ */
+async function clearChat(req, res) {
+  try {
+    const userId = parseInt(req.params.userId || req.body.userId, 10);
+    const target = String(req.params.targetId || req.body.targetId || '');
+
+    if (!userId || !target) {
+      return res.status(400).json({ success: false, message: 'userId and targetId required' });
+    }
+
+    if (!db.isDBConnected()) {
+      return res.status(200).json({ success: true, message: 'Chat cleared' });
+    }
+
+    if (target.startsWith('group_')) {
+      const groupId = parseInt(target.replace('group_', ''), 10);
+      await db.query(
+        `UPDATE messages
+         SET deleted_for = array_append(COALESCE(deleted_for, '{}'), $1)
+         WHERE group_id = $2 AND NOT ($1 = ANY(COALESCE(deleted_for, '{}')));`,
+        [userId, groupId]
+      );
+    } else {
+      const otherUserId = parseInt(target, 10);
+      await db.query(
+        `UPDATE messages
+         SET deleted_for = array_append(COALESCE(deleted_for, '{}'), $1)
+         WHERE ((sender_id = $1 AND receiver_id = $2) OR (sender_id = $2 AND receiver_id = $1))
+           AND NOT ($1 = ANY(COALESCE(deleted_for, '{}')));`,
+        [userId, otherUserId]
+      );
+    }
+
+    return res.status(200).json({ success: true, message: 'Chat cleared successfully' });
+  } catch (error) {
+    console.error('[clearChat Error]:', error);
+    return res.status(500).json({ success: false, message: 'Failed to clear chat' });
+  }
+}
+
+/**
+ * Block / Unblock user
+ */
+async function toggleBlockUser(req, res) {
+  try {
+    const blockerId = parseInt(req.body.blockerId || req.userId, 10);
+    const blockedId = parseInt(req.body.blockedId, 10);
+    if (!blockerId || !blockedId) {
+      return res.status(400).json({ success: false, message: 'blockerId and blockedId required' });
+    }
+
+    await ensureBlockAndReportTables();
+
+    const check = await db.query(
+      `SELECT id FROM user_blocks WHERE blocker_id = $1 AND blocked_id = $2;`,
+      [blockerId, blockedId]
+    );
+
+    let isBlocked = false;
+    if (check.rows.length > 0) {
+      // Unblock
+      await db.query(
+        `DELETE FROM user_blocks WHERE blocker_id = $1 AND blocked_id = $2;`,
+        [blockerId, blockedId]
+      );
+      isBlocked = false;
+    } else {
+      // Block
+      await db.query(
+        `INSERT INTO user_blocks (blocker_id, blocked_id) VALUES ($1, $2) ON CONFLICT DO NOTHING;`,
+        [blockerId, blockedId]
+      );
+      isBlocked = true;
+    }
+
+    return res.status(200).json({
+      success: true,
+      isBlocked,
+      message: isBlocked ? 'User blocked successfully' : 'User unblocked successfully',
+    });
+  } catch (error) {
+    console.error('[toggleBlockUser Error]:', error);
+    return res.status(500).json({ success: false, message: 'Failed to toggle block status' });
+  }
+}
+
+/**
+ * Get block status between two users
+ */
+async function getBlockStatus(req, res) {
+  try {
+    const userId = parseInt(req.params.userId, 10);
+    const otherUserId = parseInt(req.params.otherUserId, 10);
+
+    if (!userId || !otherUserId) {
+      return res.status(200).json({ success: true, isBlocked: false, isBlockedByThem: false });
+    }
+
+    await ensureBlockAndReportTables();
+
+    const iBlocked = await db.query(
+      `SELECT id FROM user_blocks WHERE blocker_id = $1 AND blocked_id = $2;`,
+      [userId, otherUserId]
+    );
+    const theyBlocked = await db.query(
+      `SELECT id FROM user_blocks WHERE blocker_id = $1 AND blocked_id = $2;`,
+      [otherUserId, userId]
+    );
+
+    return res.status(200).json({
+      success: true,
+      isBlocked: iBlocked.rows.length > 0,
+      isBlockedByThem: theyBlocked.rows.length > 0,
+    });
+  } catch (error) {
+    console.error('[getBlockStatus Error]:', error);
+    return res.status(500).json({ success: false, isBlocked: false });
+  }
+}
+
+/**
+ * Report chat / user
+ */
+async function reportChat(req, res) {
+  try {
+    const reporterId = parseInt(req.body.reporterId, 10);
+    const reportedId = req.body.reportedId ? parseInt(req.body.reportedId, 10) : null;
+    const groupId = req.body.groupId ? parseInt(req.body.groupId, 10) : null;
+    const reason = req.body.reason || 'Inappropriate content';
+
+    if (!reporterId) {
+      return res.status(400).json({ success: false, message: 'reporterId required' });
+    }
+
+    await ensureBlockAndReportTables();
+
+    await db.query(
+      `INSERT INTO chat_reports (reporter_id, reported_id, group_id, reason) VALUES ($1, $2, $3, $4);`,
+      [reporterId, reportedId, groupId, reason]
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: 'Report submitted successfully. Thank you for keeping our community safe.',
+    });
+  } catch (error) {
+    console.error('[reportChat Error]:', error);
+    return res.status(500).json({ success: false, message: 'Failed to submit report' });
+  }
+}
+
 module.exports = {
   getConversations,
   getChatHistory,
   sendMessageHttp,
   getUnreadMessagesCount,
   deleteMessage,
+  clearChat,
+  toggleBlockUser,
+  getBlockStatus,
+  reportChat,
 };
 

@@ -23,6 +23,10 @@ import {
   fetchChatHistory,
   sendChatMessageHttp,
   deleteChatMessageHttp,
+  clearChatApi,
+  toggleBlockUserApi,
+  fetchBlockStatusApi,
+  reportChatApi,
 } from '../../services/message.service';
 
 // React Icons
@@ -49,6 +53,10 @@ import {
   FiCopy,
   FiCornerUpRight,
   FiTrash2,
+  FiSlash,
+  FiAlertTriangle,
+  FiBellOff,
+  FiBell,
 } from 'react-icons/fi';
 import {
   BsSliders,
@@ -108,6 +116,21 @@ export default function MessagesPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [onlineUserIds, setOnlineUserIds] = useState([]);
   const [isTyping, setIsTyping] = useState(false);
+  const [suggestions, setSuggestions] = useState([]);
+  const [isBlocked, setIsBlocked] = useState(false);
+  const [isBlockedByThem, setIsBlockedByThem] = useState(false);
+  const [isClearChatModalOpen, setIsClearChatModalOpen] = useState(false);
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  const [reportReason, setReportReason] = useState('Spam or scam');
+  const [submittingReport, setSubmittingReport] = useState(false);
+  const [mutedUserIds, setMutedUserIds] = useState(() => {
+    try {
+      const uid = currentUser?.id || '';
+      return JSON.parse(localStorage.getItem(`fortaa_muted_chats_${uid}`) || '[]');
+    } catch {
+      return [];
+    }
+  });
 
   // Keep a live ref to selectedContact to prevent any async / socket message race conditions
   const selectedContactRef = useRef(null);
@@ -515,12 +538,48 @@ export default function MessagesPage() {
             }));
             setConversations(realList);
 
+            if (Array.isArray(dbData.suggestions)) {
+              setSuggestions(
+                dbData.suggestions.map((d) => ({
+                  user_id: d.user_id,
+                  name: d.name,
+                  role: d.designation || 'Member',
+                  category: 'Direct',
+                  last_message_text: 'Start conversation',
+                  time: '',
+                  unread_count: 0,
+                  avatar_url: d.avatar_url,
+                  company_brand: d.company_brand,
+                  is_new_contact: true,
+                  isRealDb: true,
+                }))
+              );
+            }
+
             if (preselectUserId) {
               const found = realList.find((c) => String(c.user_id) === String(preselectUserId));
               if (found) {
                 setSelectedContact(found);
-              } else if (realList.length > 0) {
-                setSelectedContact(realList[0]);
+              } else {
+                const sug = (dbData.suggestions || []).find((s) => String(s.user_id) === String(preselectUserId));
+                if (sug) {
+                  const newContact = {
+                    user_id: sug.user_id,
+                    name: sug.name,
+                    role: sug.designation || 'Member',
+                    category: 'Direct',
+                    last_message_text: 'Start conversation',
+                    time: '',
+                    unread_count: 0,
+                    avatar_url: sug.avatar_url,
+                    company_brand: sug.company_brand,
+                    is_new_contact: true,
+                    isRealDb: true,
+                  };
+                  setSelectedContact(newContact);
+                } else if (realList.length > 0) {
+                  setSelectedContact(realList[0]);
+                }
               }
             } else {
               setSelectedContact((prev) => {
@@ -579,6 +638,20 @@ export default function MessagesPage() {
       emitMarkRead({ senderId: targetContactId, receiverId: myId });
     }
     window.dispatchEvent(new CustomEvent('messages_count_refresh'));
+
+    // Check block status between users
+    if (!isGroupContact && targetContactId) {
+      fetchBlockStatusApi(myId, targetContactId).then((res) => {
+        if (!isMounted) return;
+        if (res?.success) {
+          setIsBlocked(Boolean(res.isBlocked));
+          setIsBlockedByThem(Boolean(res.isBlockedByThem));
+        }
+      });
+    } else {
+      setIsBlocked(false);
+      setIsBlockedByThem(false);
+    }
 
     let isMounted = true;
     async function loadHistory() {
@@ -1041,30 +1114,139 @@ export default function MessagesPage() {
   };
 
   // 6. Dynamic Real Counts for Tabs
-  const totalConversationsCount = conversations.length;
-  const unreadConversationsCount = conversations.reduce(
-    (acc, c) => acc + (Number(c.unread_count) || 0),
-    0
-  );
-  const directCount = conversations.filter((c) => c.category === 'Direct').length;
-  const groupCount = conversations.filter((c) => c.category === 'Group').length;
-  const systemCount = conversations.filter((c) => c.category === 'System').length;
+  // User: "thired jo count dikha rhe he all me kn mt dikhaoo group me agr koi message aaya or vo seen nhi kiya tab 1 count ho gya aese hi 3 gropu he 2 me mene message aaye vo dekhe nhi tab vaha 2 count dikhe isko proper manage kro"
+  const totalUnreadConversations = conversations.filter(
+    (c) => Number(c.unread_count) > 0
+  ).length;
 
-  const filteredContacts = conversations.filter((c) => {
-    const matchesSearch =
-      (c.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (c.role || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (c.last_message_text || '').toLowerCase().includes(searchQuery.toLowerCase());
+  // Direct tab ONLY counts direct conversations that have unread messages
+  const directUnreadCount = conversations.filter(
+    (c) => c.category === 'Direct' && Number(c.unread_count) > 0
+  ).length;
 
-    if (!matchesSearch) return false;
+  // Group tab counts GROUPS that have unread messages
+  const groupUnreadCount = conversations.filter(
+    (c) => c.category === 'Group' && Number(c.unread_count) > 0
+  ).length;
 
-    if (activeTab === 'All') return true;
-    if (activeTab === 'Unread') return Number(c.unread_count) > 0;
-    if (activeTab === 'Direct') return c.category === 'Direct';
-    if (activeTab === 'Group') return c.category === 'Group';
-    if (activeTab === 'System') return c.category === 'System';
-    return true;
-  });
+  const handleToggleMute = (targetUserId) => {
+    const myId = effectiveUserId || currentUserId;
+    const key = `fortaa_muted_chats_${myId}`;
+    setMutedUserIds((prev) => {
+      const isMuted = prev.includes(String(targetUserId));
+      const next = isMuted
+        ? prev.filter((id) => id !== String(targetUserId))
+        : [...prev, String(targetUserId)];
+      try {
+        localStorage.setItem(key, JSON.stringify(next));
+      } catch {}
+      toast(isMuted ? 'Chat unmuted' : 'Notifications muted');
+      return next;
+    });
+  };
+
+  const handleConfirmClearChat = async () => {
+    if (!selectedContact) return;
+    const myId = effectiveUserId || currentUserId;
+    const targetId = selectedContact.user_id;
+    try {
+      const res = await clearChatApi(myId, targetId);
+      if (res?.success) {
+        setMessages([]);
+        setConversations((prev) =>
+          prev.map((c) =>
+            String(c.user_id) === String(targetId)
+              ? { ...c, last_message_text: '', time: '', unread_count: 0 }
+              : c
+          )
+        );
+        toast.success('Chat cleared successfully');
+      } else {
+        toast.error(res?.message || 'Failed to clear chat');
+      }
+    } catch {
+      toast.error('Failed to clear chat');
+    } finally {
+      setIsClearChatModalOpen(false);
+    }
+  };
+
+  const handleToggleBlock = async () => {
+    if (!selectedContact) return;
+    const myId = effectiveUserId || currentUserId;
+    const targetId = selectedContact.user_id;
+    try {
+      const res = await toggleBlockUserApi(myId, targetId);
+      if (res?.success) {
+        setIsBlocked(res.isBlocked);
+        if (res.isBlocked) {
+          toast.success(`${selectedContact.name || 'User'} has been blocked`);
+        } else {
+          toast.success(`${selectedContact.name || 'User'} has been unblocked`);
+        }
+      } else {
+        toast.error(res?.message || 'Failed to update block status');
+      }
+    } catch {
+      toast.error('Failed to update block status');
+    }
+  };
+
+  const handleConfirmReport = async () => {
+    if (!selectedContact) return;
+    const myId = effectiveUserId || currentUserId;
+    const isGroup = String(selectedContact.user_id).startsWith('group_');
+    setSubmittingReport(true);
+    try {
+      const res = await reportChatApi({
+        reporterId: myId,
+        reportedId: isGroup ? null : selectedContact.user_id,
+        groupId: isGroup ? parseInt(String(selectedContact.user_id).replace('group_', ''), 10) : null,
+        reason: reportReason,
+      });
+      if (res?.success) {
+        toast.success('Report submitted. Thank you for your feedback.');
+        setIsReportModalOpen(false);
+      } else {
+        toast.error(res?.message || 'Failed to submit report');
+      }
+    } catch {
+      toast.error('Failed to submit report');
+    } finally {
+      setSubmittingReport(false);
+    }
+  };
+
+  const filteredContacts = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (q) {
+      // When searching, search active conversations AND registered suggestions to start new chat
+      const existingIds = new Set(conversations.map((c) => String(c.user_id)));
+      const filteredSuggestions = suggestions.filter((s) => !existingIds.has(String(s.user_id)));
+      const combined = [...conversations, ...filteredSuggestions];
+      return combined.filter((c) => {
+        const matchesSearch =
+          (c.name || '').toLowerCase().includes(q) ||
+          (c.role || '').toLowerCase().includes(q) ||
+          (c.last_message_text || '').toLowerCase().includes(q);
+        if (!matchesSearch) return false;
+        if (activeTab === 'All') return true;
+        if (activeTab === 'Unread') return Number(c.unread_count) > 0;
+        if (activeTab === 'Direct') return c.category === 'Direct';
+        if (activeTab === 'Group') return c.category === 'Group';
+        return true;
+      });
+    }
+
+    // Default Instagram style: ONLY active conversations & joined groups!
+    return conversations.filter((c) => {
+      if (activeTab === 'All') return true;
+      if (activeTab === 'Unread') return Number(c.unread_count) > 0;
+      if (activeTab === 'Direct') return c.category === 'Direct';
+      if (activeTab === 'Group') return c.category === 'Group';
+      return true;
+    });
+  }, [conversations, suggestions, searchQuery, activeTab]);
 
   return (
     <div className="msg-page-container">
@@ -1141,9 +1323,7 @@ export default function MessagesPage() {
                 onClick={() => setActiveTab('All')}
               >
                 <span>All</span>
-                {totalConversationsCount > 0 && (
-                  <span className="msg-tab-badge">{totalConversationsCount}</span>
-                )}
+                {/* No count badge on All tab per user request */}
               </button>
 
               <button
@@ -1152,8 +1332,8 @@ export default function MessagesPage() {
                 onClick={() => setActiveTab('Unread')}
               >
                 <span>Unread</span>
-                {unreadConversationsCount > 0 && (
-                  <span className="msg-tab-badge">{unreadConversationsCount}</span>
+                {totalUnreadConversations > 0 && (
+                  <span className="msg-tab-badge">{totalUnreadConversations}</span>
                 )}
               </button>
 
@@ -1163,8 +1343,8 @@ export default function MessagesPage() {
                 onClick={() => setActiveTab('Direct')}
               >
                 <span>Direct</span>
-                {directCount > 0 && (
-                  <span className="msg-tab-badge msg-tab-badge-neutral">{directCount}</span>
+                {directUnreadCount > 0 && (
+                  <span className="msg-tab-badge msg-tab-badge-neutral">{directUnreadCount}</span>
                 )}
               </button>
 
@@ -1174,21 +1354,21 @@ export default function MessagesPage() {
                 onClick={() => setActiveTab('Group')}
               >
                 <span>Group</span>
-                {groupCount > 0 && (
-                  <span className="msg-tab-badge msg-tab-badge-neutral">{groupCount}</span>
+                {groupUnreadCount > 0 && (
+                  <span className="msg-tab-badge msg-tab-badge-neutral">{groupUnreadCount}</span>
                 )}
               </button>
 
+              {/* System tab commented out as requested ("system wale ko comment krdo abhi") */}
+              {/*
               <button
                 type="button"
                 className={`msg-tab-btn ${activeTab === 'System' ? 'active' : ''}`}
                 onClick={() => setActiveTab('System')}
               >
                 <span>System</span>
-                {systemCount > 0 && (
-                  <span className="msg-tab-badge msg-tab-badge-neutral">{systemCount}</span>
-                )}
               </button>
+              */}
             </div>
 
             {/* Conversations List Container */}
@@ -1324,26 +1504,39 @@ export default function MessagesPage() {
 
                   <div
                     className="msg-header-user-info"
-                    style={{
-                      cursor:
-                        String(selectedContact?.user_id).startsWith('group_') ||
-                        selectedContact?.category === 'Group'
-                          ? 'pointer'
-                          : 'default',
-                    }}
+                    style={{ cursor: 'pointer' }}
                     onClick={() => {
                       if (
                         String(selectedContact?.user_id).startsWith('group_') ||
                         selectedContact?.category === 'Group'
                       ) {
                         setIsGroupMembersModalOpen(true);
+                      } else {
+                        const targetId = selectedContact.user_id;
+                        const myId = effectiveUserId || currentUserId;
+                        if (targetId && Number(targetId) === Number(myId)) {
+                          navigate('/profile');
+                        } else if (targetId) {
+                          navigate(`/leader/${targetId}`, {
+                            state: {
+                              leader: {
+                                id: targetId,
+                                name: selectedContact.name,
+                                avatar: selectedContact.avatar_url,
+                                levelTitle: selectedContact.role,
+                              },
+                            },
+                          });
+                        } else {
+                          navigate('/leaders');
+                        }
                       }
                     }}
                     title={
                       String(selectedContact?.user_id).startsWith('group_') ||
                       selectedContact?.category === 'Group'
                         ? 'Click to view group members'
-                        : undefined
+                        : `View ${selectedContact.name || 'User'}'s Profile`
                     }
                   >
                     <div className="msg-header-avatar-wrap">
@@ -1446,11 +1639,37 @@ export default function MessagesPage() {
                                 className="msg-dropdown-item"
                                 onClick={() => {
                                   setGroupMenuOpen(false);
-                                  toast.success(`Group: ${selectedContact.name}`);
+                                  handleToggleMute(selectedContact.user_id);
                                 }}
                               >
-                                <FiShield />
-                                <span>Group Info</span>
+                                {mutedUserIds.includes(String(selectedContact?.user_id)) ? <FiBell /> : <FiBellOff />}
+                                <span>
+                                  {mutedUserIds.includes(String(selectedContact?.user_id))
+                                    ? 'Unmute Group'
+                                    : 'Mute Notifications'}
+                                </span>
+                              </button>
+                              <button
+                                type="button"
+                                className="msg-dropdown-item danger"
+                                onClick={() => {
+                                  setGroupMenuOpen(false);
+                                  setIsClearChatModalOpen(true);
+                                }}
+                              >
+                                <FiTrash2 />
+                                <span>Clear Chat</span>
+                              </button>
+                              <button
+                                type="button"
+                                className="msg-dropdown-item"
+                                onClick={() => {
+                                  setGroupMenuOpen(false);
+                                  setIsReportModalOpen(true);
+                                }}
+                              >
+                                <FiAlertTriangle />
+                                <span>Report Group</span>
                               </button>
                             </>
                           ) : (
@@ -1460,7 +1679,22 @@ export default function MessagesPage() {
                                 className="msg-dropdown-item"
                                 onClick={() => {
                                   setGroupMenuOpen(false);
-                                  navigate(`/profile/${selectedContact.user_id}`);
+                                  const targetId = selectedContact.user_id;
+                                  const myId = effectiveUserId || currentUserId;
+                                  if (targetId && Number(targetId) === Number(myId)) {
+                                    navigate('/profile');
+                                  } else if (targetId) {
+                                    navigate(`/leader/${targetId}`, {
+                                      state: {
+                                        leader: {
+                                          id: targetId,
+                                          name: selectedContact.name,
+                                          avatar: selectedContact.avatar_url,
+                                          levelTitle: selectedContact.role,
+                                        },
+                                      },
+                                    });
+                                  }
                                 }}
                               >
                                 <FiUsers />
@@ -1471,11 +1705,48 @@ export default function MessagesPage() {
                                 className="msg-dropdown-item"
                                 onClick={() => {
                                   setGroupMenuOpen(false);
-                                  toast('Notifications muted');
+                                  handleToggleMute(selectedContact.user_id);
                                 }}
                               >
-                                <FiAward />
-                                <span>Mute Chat</span>
+                                {mutedUserIds.includes(String(selectedContact?.user_id)) ? <FiBell /> : <FiBellOff />}
+                                <span>
+                                  {mutedUserIds.includes(String(selectedContact?.user_id))
+                                    ? 'Unmute Chat'
+                                    : 'Mute Chat'}
+                                </span>
+                              </button>
+                              <button
+                                type="button"
+                                className="msg-dropdown-item danger"
+                                onClick={() => {
+                                  setGroupMenuOpen(false);
+                                  setIsClearChatModalOpen(true);
+                                }}
+                              >
+                                <FiTrash2 />
+                                <span>Clear Chat</span>
+                              </button>
+                              <button
+                                type="button"
+                                className="msg-dropdown-item"
+                                onClick={() => {
+                                  setGroupMenuOpen(false);
+                                  setIsReportModalOpen(true);
+                                }}
+                              >
+                                <FiAlertTriangle />
+                                <span>Report</span>
+                              </button>
+                              <button
+                                type="button"
+                                className="msg-dropdown-item danger"
+                                onClick={() => {
+                                  setGroupMenuOpen(false);
+                                  handleToggleBlock();
+                                }}
+                              >
+                                <FiSlash />
+                                <span>{isBlocked ? 'Unblock' : 'Block'}</span>
                               </button>
                             </>
                           )}
@@ -1890,7 +2161,19 @@ export default function MessagesPage() {
             )}
 
             {/* ── Typing Section with Interactive Emoji Picker & Expandable Drawer ── */}
-            <form className="msg-typing-section" onSubmit={handleSendMessage}>
+            {isBlocked ? (
+              <div className="msg-blocked-banner">
+                <span>You have blocked this contact.</span>
+                <button type="button" className="msg-unblock-btn" onClick={handleToggleBlock}>
+                  Unblock
+                </button>
+              </div>
+            ) : isBlockedByThem ? (
+              <div className="msg-blocked-banner">
+                <span>You cannot send messages to this contact.</span>
+              </div>
+            ) : (
+              <form className="msg-typing-section" onSubmit={handleSendMessage}>
               {/* Plus (+) Button for Mobile Attachment Tray */}
               <button
                 type="button"
@@ -2024,6 +2307,7 @@ export default function MessagesPage() {
                 <IoSend className="msg-send-icon-svg" />
               </button>
             </form>
+            )}
 
             {/* ── Expandable Mobile Attachment Drawer (Frame 382, 383, 384, 385) ── */}
             {mobileAttachmentOpen && (
@@ -2291,6 +2575,95 @@ export default function MessagesPage() {
                   type="button"
                   className="wa-delete-btn wa-delete-cancel-btn"
                   onClick={() => setDeleteModalMsg(null)}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 🧹 Clear Chat Confirmation Modal */}
+        {isClearChatModalOpen && (
+          <div className="wa-modal-overlay" onClick={() => setIsClearChatModalOpen(false)}>
+            <div className="msg-clear-modal-card" onClick={(e) => e.stopPropagation()}>
+              <h4 className="wa-delete-modal-title">Clear this chat?</h4>
+              <p style={{ margin: '0 0 16px', fontSize: '13.5px', color: '#64748b', textAlign: 'center', lineHeight: '1.5' }}>
+                This will delete all messages in this conversation for you. Messages cannot be recovered.
+              </p>
+              <div className="wa-delete-modal-actions">
+                <button
+                  type="button"
+                  className="wa-delete-btn wa-delete-everyone-btn"
+                  onClick={handleConfirmClearChat}
+                >
+                  Clear Chat
+                </button>
+                <button
+                  type="button"
+                  className="wa-delete-btn wa-delete-cancel-btn"
+                  onClick={() => setIsClearChatModalOpen(false)}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 🚩 Report User / Group Modal */}
+        {isReportModalOpen && (
+          <div className="wa-modal-overlay" onClick={() => setIsReportModalOpen(false)}>
+            <div className="msg-report-modal-card" onClick={(e) => e.stopPropagation()}>
+              <div className="wa-modal-header" style={{ borderBottom: '1px solid #f1f5f9', paddingBottom: '10px' }}>
+                <h4 style={{ margin: 0, fontSize: '16px', fontWeight: 700, color: '#1e293b' }}>
+                  Report {selectedContact?.name || 'Conversation'}
+                </h4>
+                <button
+                  type="button"
+                  className="wa-modal-close"
+                  onClick={() => setIsReportModalOpen(false)}
+                >
+                  ✕
+                </button>
+              </div>
+              <p style={{ margin: '0', fontSize: '13px', color: '#64748b' }}>
+                Please select a reason for reporting. Our safety team will review this conversation.
+              </p>
+              <div className="msg-report-reasons-list">
+                {[
+                  'Spam or scam',
+                  'Harassment or bullying',
+                  'Inappropriate or offensive content',
+                  'Impersonation or fake account',
+                  'Hate speech or violence',
+                  'Other reason',
+                ].map((reason) => (
+                  <label key={reason} className="msg-report-reason-item">
+                    <input
+                      type="radio"
+                      name="reportReason"
+                      value={reason}
+                      checked={reportReason === reason}
+                      onChange={(e) => setReportReason(e.target.value)}
+                    />
+                    <span>{reason}</span>
+                  </label>
+                ))}
+              </div>
+              <div className="wa-delete-modal-actions" style={{ marginTop: '8px' }}>
+                <button
+                  type="button"
+                  className="wa-delete-btn wa-delete-everyone-btn"
+                  disabled={submittingReport}
+                  onClick={handleConfirmReport}
+                >
+                  {submittingReport ? 'Submitting...' : 'Submit Report'}
+                </button>
+                <button
+                  type="button"
+                  className="wa-delete-btn wa-delete-cancel-btn"
+                  onClick={() => setIsReportModalOpen(false)}
                 >
                   Cancel
                 </button>

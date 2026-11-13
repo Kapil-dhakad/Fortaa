@@ -19,6 +19,8 @@ import { FiShare2 } from 'react-icons/fi';
 import { HiOutlineDotsHorizontal, HiX } from 'react-icons/hi';
 import userAvatarRahul from '../../assets/dashboard/user_avatar_rahul.png';
 import logoTextImg from '../../assets/figma/logo_text_img.png';
+import { renderFormattedContent } from '../../pages/user/UserDashboard';
+import PostLikersModal from './PostLikersModal';
 import './InstagramPostModal.css';
 
 export default function InstagramPostModal({
@@ -42,6 +44,8 @@ export default function InstagramPostModal({
   const [isSaved, setIsSaved] = useState(false);
   const [showHeartAnim, setShowHeartAnim] = useState(false);
   const [showEmojiTray, setShowEmojiTray] = useState(false);
+  const [showLikers, setShowLikers] = useState(false);
+  const [replyingTo, setReplyingTo] = useState(null); // { id, author_name }
 
   const inputRef = useRef(null);
   const commentsScrollRef = useRef(null);
@@ -149,6 +153,7 @@ export default function InstagramPostModal({
     if (!clean || submittingComment) return;
 
     setSubmittingComment(true);
+    setReplyingTo(null);
     const tempComment = {
       id: `temp-${Date.now()}`,
       post_id: post.id,
@@ -213,7 +218,16 @@ export default function InstagramPostModal({
     );
     try {
       if (typeof commentId === 'number') {
-        await likePostCommentApi(commentId);
+        const res = await likePostCommentApi(commentId, currentUserId);
+        if (res?.success && res?.likes_count !== undefined) {
+          setComments((prev) =>
+            prev.map((c) =>
+              c.id === commentId
+                ? { ...c, likes_count: res.likes_count, user_liked: res.user_liked }
+                : c
+            )
+          );
+        }
       }
     } catch {}
   };
@@ -386,7 +400,9 @@ export default function InstagramPostModal({
                   >
                     {post.author_name || 'Leader'}
                   </span>{' '}
-                  {post.content}
+                  <span style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                    {renderFormattedContent(post.content)}
+                  </span>
                 </p>
                 {post.tags && <p className="ipm-caption-tags">{post.tags}</p>}
                 <div className="ipm-comment-footer">
@@ -426,7 +442,17 @@ export default function InstagramPostModal({
                         <span className="ipm-comment-author-bold">
                           {comment.author_name}
                         </span>{' '}
-                        {comment.content}
+                        {(() => {
+                          const match = comment.content?.match(/^(@[a-zA-Z0-9_.]+)\s*(.*)/);
+                          if (match) {
+                            return (
+                              <>
+                                <span className="ipm-comment-mention">{match[1]}</span> {match[2]}
+                              </>
+                            );
+                          }
+                          return comment.content;
+                        })()}
                       </p>
                       <div className="ipm-comment-footer">
                         <span className="ipm-comment-time">{formatTimeAgo(comment.created_at)}</span>
@@ -439,7 +465,12 @@ export default function InstagramPostModal({
                           type="button"
                           className="ipm-comment-reply-btn"
                           onClick={() => {
-                            setCommentText(`@${comment.author_name} `);
+                            setReplyingTo({ id: comment.id, author_name: comment.author_name });
+                            const mention = `@${comment.author_name} `;
+                            setCommentText((prev) => {
+                              if (prev.startsWith(mention)) return prev;
+                              return `${mention}${prev.replace(/^@[a-zA-Z0-9_.]+\s*/, '')}`;
+                            });
                             inputRef.current?.focus();
                           }}
                         >
@@ -518,11 +549,24 @@ export default function InstagramPostModal({
               </button>
             </div>
 
-            {/* Likes Count Summary */}
-            <div className="ipm-likes-summary">
-              <span className="ipm-likes-bold">
-                {likesCount.toLocaleString()} {likesCount === 1 ? 'like' : 'likes'}
-              </span>
+            {/* Likes Count Summary (Instagram Style) */}
+            <div
+              className={`ipm-likes-summary ${likesCount > 0 ? 'ipm-likes-clickable' : ''}`}
+              onClick={() => {
+                if (likesCount > 0) setShowLikers(true);
+              }}
+              role={likesCount > 0 ? 'button' : undefined}
+              tabIndex={likesCount > 0 ? 0 : undefined}
+              style={{ cursor: likesCount > 0 ? 'pointer' : 'default' }}
+            >
+              {likesCount > 0 ? (
+                <span className="ipm-likes-bold">
+                  Liked by <strong>{isLiked ? 'you' : (post.latest_liker_name || 'Fortaa member')}</strong>
+                  {likesCount > 1 ? ` and ${(likesCount - 1).toLocaleString()} others` : ''}
+                </span>
+              ) : (
+                <span className="ipm-likes-bold">Be the first to like this</span>
+              )}
             </div>
 
             {/* Post Timestamp */}
@@ -555,6 +599,26 @@ export default function InstagramPostModal({
               </div>
             )}
 
+            {/* Instagram Replying-To Bar */}
+            {replyingTo && (
+              <div className="ipm-replying-bar">
+                <span className="ipm-replying-text">
+                  Replying to <strong>@{replyingTo.author_name}</strong>
+                </span>
+                <button
+                  type="button"
+                  className="ipm-cancel-reply-btn"
+                  onClick={() => {
+                    setReplyingTo(null);
+                    setCommentText((prev) => prev.replace(/^@[a-zA-Z0-9_.]+\s*/, ''));
+                  }}
+                  title="Cancel reply"
+                >
+                  ✕
+                </button>
+              </div>
+            )}
+
             {/* Add Comment Input Row */}
             <form className="ipm-input-form" onSubmit={handleCommentSubmit}>
               <button
@@ -570,7 +634,7 @@ export default function InstagramPostModal({
                 ref={inputRef}
                 type="text"
                 className="ipm-comment-input"
-                placeholder="Add a comment..."
+                placeholder={replyingTo ? `Reply to @${replyingTo.author_name}...` : "Add a comment..."}
                 value={commentText}
                 onChange={(e) => setCommentText(e.target.value)}
                 disabled={submittingComment}
@@ -587,6 +651,32 @@ export default function InstagramPostModal({
           </div>
         </div>
       </div>
+
+      {/* Instagram Likers Modal */}
+      {showLikers && (
+        <PostLikersModal
+          isOpen={showLikers}
+          onClose={() => setShowLikers(false)}
+          postId={post.id}
+          currentUserId={currentUser?.id}
+          followingIds={followingIds}
+          onToggleFollow={onToggleFollow}
+          onUserClick={(userId, liker) => {
+            setShowLikers(false);
+            if (onAuthorClick) {
+              onAuthorClick({
+                ...(liker || {}),
+                id: userId,
+                author_id: userId,
+                user_id: userId,
+                author_name: liker?.name || '',
+                author_avatar: liker?.avatar_url || '',
+                author_role: liker?.role || '',
+              });
+            }
+          }}
+        />
+      )}
     </div>
   );
 }

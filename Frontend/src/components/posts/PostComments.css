@@ -132,15 +132,70 @@
   word-break: break-word;
 }
 
+.pc-mention {
+  color: #7C3AED;
+  font-weight: 700;
+}
+
 /* Meta actions row: Like, reply, time */
 .pc-meta-row {
   display: flex;
   align-items: center;
-  gap: 6px;
-  margin-top: 3px;
-  padding-left: 6px;
-  font-size: 11px;
+  gap: 12px;
+  margin-top: 5px;
+  padding-left: 4px;
+  font-size: 11.5px;
   color: #94A3B8;
+}
+
+.pc-time {
+  font-size: 11px;
+  color: #8C8CA1;
+  font-weight: 400;
+}
+
+.pc-likes-count {
+  font-size: 11px;
+  font-weight: 600;
+  color: #475569;
+}
+
+.pc-reply-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: #64748B;
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 0;
+  transition: color 0.15s ease;
+}
+
+.pc-reply-btn:hover {
+  color: #0F172A;
+}
+
+.pc-heart-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: #94A3B8;
+  padding: 6px;
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: transform 0.15s ease, color 0.15s ease;
+}
+
+.pc-heart-btn:hover {
+  transform: scale(1.15);
+  color: #EF4444;
+}
+
+.pc-heart-btn.liked {
+  color: #EF4444;
 }
 
 .pc-like-btn {
@@ -172,11 +227,6 @@
   font-size: 9px;
 }
 
-.pc-time {
-  font-size: 10.5px;
-  color: #94A3B8;
-}
-
 .pc-delete-btn {
   background: transparent;
   border: none;
@@ -191,6 +241,44 @@
 
 .pc-delete-btn:hover {
   color: #EF4444;
+}
+
+/* Instagram Replying-To Bar */
+.pc-replying-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #EDE9FE;
+  border: 1px solid #DDD6FE;
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 12px;
+  color: #6D28D9;
+  animation: pcFadeIn 0.15s ease-out;
+}
+
+.pc-replying-text strong {
+  font-weight: 700;
+  color: #5B21B6;
+}
+
+.pc-cancel-reply-btn {
+  background: transparent;
+  border: none;
+  color: #7C3AED;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 4px;
+  border-radius: 4px;
+}
+
+.pc-cancel-reply-btn:hover {
+  color: #EF4444;
+  background: rgba(239, 68, 68, 0.1);
 }
 
 /* ==========================================================================

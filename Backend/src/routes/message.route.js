@@ -9,6 +9,10 @@ const {
   sendMessageHttp,
   getUnreadMessagesCount,
   deleteMessage,
+  clearChat,
+  toggleBlockUser,
+  getBlockStatus,
+  reportChat,
 } = require('../controller/message.controller');
 
 // Local storage for chat media (photos, videos, documents)
@@ -50,5 +54,9 @@ router.get('/conversations/:userId', getConversations);
 router.get('/history/:userId/:otherUserId', getChatHistory);
 router.post('/send', sendMessageHttp);
 router.post('/delete/:messageId', deleteMessage);
+router.post('/clear/:userId/:targetId', clearChat);
+router.post('/block', toggleBlockUser);
+router.get('/block-status/:userId/:otherUserId', getBlockStatus);
+router.post('/report', reportChat);
 
 module.exports = router;

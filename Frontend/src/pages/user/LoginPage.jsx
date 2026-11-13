@@ -3,22 +3,24 @@ import { Link, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import AuthLayout from '../../components/AuthLayout';
 import GoogleLoginButton from '../../components/auth/GoogleLoginButton';
+import { getRedirectUrl } from '../../utils/auth';
 import './Auth.css';
 
 export default function LoginPage() {
   const navigate = useNavigate();
+  const redirectUrl = getRedirectUrl('/dashboard');
 
-  // If already logged in, redirect to Dashboard
+  // If already logged in, redirect to intended target or Dashboard
   useEffect(() => {
     try {
       const user = JSON.parse(localStorage.getItem('fortaa_user') || 'null');
       if (user && (user.id || user.email)) {
-        navigate('/dashboard', { replace: true });
+        navigate(redirectUrl, { replace: true });
       }
     } catch {
       // not logged in
     }
-  }, [navigate]);
+  }, [navigate, redirectUrl]);
 
   const [emailOrPhone, setEmailOrPhone] = useState('');
   const [password, setPassword] = useState('');
@@ -60,7 +62,7 @@ export default function LoginPage() {
       localStorage.setItem('fortaa_user', JSON.stringify(data.user));
 
       toast.success(`Welcome back, ${data.user?.name || 'User'}!`);
-      navigate('/dashboard');
+      navigate(redirectUrl, { replace: true });
     } catch (err) {
       console.warn('API error, using local fallback:', err.message);
       const fallbackUser = {
@@ -69,8 +71,8 @@ export default function LoginPage() {
         memberId: 'NS' + Math.floor(100000 + Math.random() * 900000),
       };
       localStorage.setItem('fortaa_user', JSON.stringify(fallbackUser));
-      toast.success(`Logged in successfully! Redirecting to dashboard...`);
-      navigate('/dashboard');
+      toast.success(`Logged in successfully! Redirecting...`);
+      navigate(redirectUrl, { replace: true });
     } finally {
       setLoading(false);
     }
@@ -95,6 +97,22 @@ export default function LoginPage() {
           <h2 className="auth-card-title">Welcome Back</h2>
           <p className="auth-card-subtitle">Sign in to your account</p>
         </div>
+
+        {redirectUrl !== '/dashboard' && (
+          <div className="auth-redirect-notice" style={{
+            background: '#F3EEFE',
+            border: '1px solid #D8B4FE',
+            borderRadius: '10px',
+            padding: '10px 14px',
+            marginBottom: '16px',
+            color: '#5A2CE4',
+            fontSize: '13px',
+            fontWeight: '600',
+            textAlign: 'center',
+          }}>
+            🔒 Please sign in to view the shared content on Fortaa
+          </div>
+        )}
 
         {errorMsg && (
           <div className="auth-error-banner">
@@ -252,6 +270,22 @@ export default function LoginPage() {
           <p className="auth-card-subtitle">Sign in to your account</p>
         </div>
 
+        {redirectUrl !== '/dashboard' && (
+          <div className="auth-redirect-notice" style={{
+            background: '#F3EEFE',
+            border: '1px solid #D8B4FE',
+            borderRadius: '10px',
+            padding: '10px 14px',
+            marginBottom: '16px',
+            color: '#5A2CE4',
+            fontSize: '13px',
+            fontWeight: '600',
+            textAlign: 'center',
+          }}>
+            🔒 Please sign in to view the shared content on Fortaa
+          </div>
+        )}
+
         {errorMsg && (
           <div className="auth-error-banner">
             ⚠️ {errorMsg}
@@ -360,7 +394,10 @@ export default function LoginPage() {
           </div>
 
           {/* Sign Up with Email Button */}
-          <Link to="/signup" className="btn-signup-email">
+          <Link
+            to={redirectUrl !== '/dashboard' ? `/signup?redirect=${encodeURIComponent(redirectUrl)}` : '/signup'}
+            className="btn-signup-email"
+          >
             Sign Up with Email
           </Link>
 

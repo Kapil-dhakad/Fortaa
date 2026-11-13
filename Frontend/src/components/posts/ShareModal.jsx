@@ -26,7 +26,7 @@ export default function ShareModal({
 
   if (!isOpen || !post) return null;
 
-  const postUrl = `${window.location.origin}/all-posts#post-${post.id}`;
+  const postUrl = `${window.location.origin}/all-posts?post=${post.id}`;
   const shareText = `Check out this post by ${post.author_name} on FORTAA: "${post.content ? post.content.substring(0, 100) : ''}..."`;
 
   // 1. Copy Link

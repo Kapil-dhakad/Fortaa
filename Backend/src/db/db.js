@@ -207,6 +207,21 @@ CREATE TABLE IF NOT EXISTS post_likes (
 CREATE INDEX IF NOT EXISTS idx_post_likes_post ON post_likes(post_id);
 CREATE INDEX IF NOT EXISTS idx_post_likes_user ON post_likes(user_id);
 
+-- Post Comment Likes Table (Tracks which user liked which comment: 1 like per user)
+CREATE TABLE IF NOT EXISTS post_comment_likes (
+  id SERIAL PRIMARY KEY,
+  comment_id INTEGER NOT NULL REFERENCES post_comments(id) ON DELETE CASCADE,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(comment_id, user_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_post_comment_likes_comment ON post_comment_likes(comment_id);
+CREATE INDEX IF NOT EXISTS idx_post_comment_likes_user ON post_comment_likes(user_id);
+
+-- Recalculate any corrupted comment likes to strictly match unique user likes
+UPDATE post_comments c SET likes_count = (SELECT COUNT(*) FROM post_comment_likes pcl WHERE pcl.comment_id = c.id);
+
 -- Messages Table (Real-time Socket.io Chat)
 CREATE TABLE IF NOT EXISTS messages (
   id SERIAL PRIMARY KEY,

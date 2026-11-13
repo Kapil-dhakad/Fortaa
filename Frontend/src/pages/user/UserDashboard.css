@@ -1430,20 +1430,20 @@
 
 .ud-post-header {
   display: flex;
-  align-items: center;
-  gap: 8px;
+  align-items: flex-start;
+  gap: 10px;
 }
 
 .ud-post-avatar-wrap {
   position: relative;
-  width: 30px;
-  height: 30px;
+  width: 44px;
+  height: 44px;
   flex-shrink: 0;
 }
 
 .ud-post-avatar {
-  width: 30px;
-  height: 30px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   object-fit: cover;
   display: block;
@@ -1451,45 +1451,68 @@
 
 .ud-post-online-dot {
   position: absolute;
-  bottom: 0px;
-  right: 0px;
-  width: 5px;
-  height: 5px;
+  bottom: 1px;
+  right: 1px;
+  width: 8px;
+  height: 8px;
   background: #01E394;
   border-radius: 50%;
-  border: 1px solid #FFFFFF;
+  border: 1.5px solid #FFFFFF;
 }
 
 .ud-post-author-meta {
   flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
 }
 
 .ud-post-author-name-row {
   display: flex;
   align-items: center;
   gap: 6px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
 }
 
 .ud-post-author-name {
   font-family: 'Inter', sans-serif;
-  font-size: 14px;
-  font-weight: 500;
-  color: #232356;
+  font-size: 14.5px;
+  font-weight: 600;
+  color: #1E293B;
+  line-height: 1.25;
 }
 
-.ud-post-badge {
+.ud-post-author-badge-icon {
+  font-size: 13px;
+  display: inline-flex;
+  align-items: center;
+}
+
+.ud-post-author-headline {
   font-family: 'Inter', sans-serif;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 400;
-  color: #232356;
+  color: #64748B;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ud-post-time-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 1px;
 }
 
 .ud-post-time {
   font-family: 'Inter', sans-serif;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 400;
-  color: #232356;
+  color: #94A3B8;
+  line-height: 1.2;
 }
 
 .ud-btn-follow-post {
@@ -1563,23 +1586,64 @@
   cursor: pointer;
 }
 
+.ud-post-text,
+.ud-mob-post-text {
+  font-family: 'Inter', sans-serif !important;
+  font-size: 13.5px !important;
+  line-height: 1.55 !important;
+  font-weight: 400 !important;
+  color: #1E293B !important;
+  margin: 6px 0 8px 0 !important;
+  white-space: pre-wrap !important;
+  word-break: break-word !important;
+}
+
+.ud-post-inline-link {
+  color: #2563EB !important;
+  text-decoration: underline !important;
+  font-weight: 500 !important;
+  word-break: break-all !important;
+  cursor: pointer !important;
+  transition: color 0.15s ease !important;
+}
+
+.ud-post-inline-link:hover {
+  color: #1D4ED8 !important;
+  text-decoration: underline !important;
+}
+
+.ud-post-inline-phone {
+  color: #2563EB !important;
+  text-decoration: underline !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  white-space: nowrap !important;
+  transition: color 0.15s ease !important;
+}
+
+.ud-post-inline-phone:hover {
+  color: #1D4ED8 !important;
+  text-decoration: underline !important;
+}
+
 .ud-post-image-box {
   position: relative;
   width: 100%;
   max-width: 100%;
-  max-height: 520px;
-  border-radius: 10px;
+  max-height: none;
+  border-radius: 12px;
   overflow: hidden;
-  background: #000000;
+  background: #09090B;
   display: flex;
   align-items: center;
   justify-content: center;
+  margin: 8px 0 10px 0;
 }
 
 .ud-post-img {
   width: 100%;
   height: auto;
-  max-height: 560px;
+  max-height: 880px;
   object-fit: contain;
   border-radius: 12px;
   display: block;
@@ -1611,10 +1675,57 @@
   align-items: center;
   justify-content: space-between;
   font-family: 'Inter', sans-serif;
-  font-size: 8px;
-  color: rgba(35, 35, 86, 0.8);
-  padding: 4px 0;
+  font-size: 12px;
+  color: #64748B;
+  padding: 6px 0 4px 0;
   border-bottom: 1px solid #F1F5F9;
+}
+
+/* Instagram-style Likes Bar */
+.ud-insta-likes-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  user-select: none;
+}
+
+.ud-insta-likes-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: #334155;
+}
+
+.ud-insta-likes-heart {
+  font-size: 14px;
+  line-height: 1;
+}
+
+.ud-insta-liker-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1.5px solid #FFFFFF;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+  display: inline-block;
+}
+
+.ud-insta-likes-label {
+  font-size: 12.5px;
+  color: #334155;
+  line-height: 1.3;
+}
+
+.ud-insta-likes-label strong {
+  color: #0F172A;
+  font-weight: 600;
+}
+
+.ud-insta-like-placeholder {
+  min-height: 1px;
 }
 
 .ud-post-reaction-icons {
@@ -1657,10 +1768,39 @@
 
 .ud-post-comment-counts {
   display: flex;
-  gap: 12px;
+  align-items: center;
+  gap: 8px;
   font-family: 'Inter', sans-serif;
-  font-size: 8px;
-  color: rgba(35, 35, 86, 0.8);
+  cursor: pointer;
+}
+
+.ud-metric-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #64748B;
+  transition: color 0.15s ease;
+}
+
+.ud-metric-pill:hover {
+  color: #7C3AED;
+}
+
+.ud-metric-icon {
+  color: #64748B;
+  flex-shrink: 0;
+  transition: color 0.15s ease;
+}
+
+.ud-metric-pill:hover .ud-metric-icon {
+  color: #7C3AED;
+}
+
+.ud-metric-dot {
+  color: #CBD5E1;
+  font-size: 11px;
 }
 
 .ud-post-interact-bar {
@@ -1671,33 +1811,35 @@
 }
 
 .ud-interact-btn {
-  background: transparent;
-  border: none;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
   font-family: 'Inter', sans-serif;
   font-size: 13.5px;
   font-weight: 500;
-  color: #232356;
+  color: #475569;
   cursor: pointer;
-  padding: 6px 12px;
-  border-radius: 6px;
+  padding: 6px 10px;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
-  transition: all 0.15s ease;
+  transition: color 0.15s ease;
 }
 
 .ud-interact-btn:hover {
-  background: #F8FAFC;
-  color: #5A2CE4;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  color: #2563EB !important;
 }
 
 .ud-interact-btn.active,
 .ud-mob-post-action-btn.active {
-  color: #6B11D7 !important;
+  color: #2563EB !important;
   font-weight: 600 !important;
-  background: #F3E8FF !important;
-  border-radius: 6px;
+  background: transparent !important;
 }
 
 .ud-post-comments-preview {
@@ -4110,7 +4252,11 @@
   .ud-mob-engagement-stats {
     display: flex !important;
     align-items: center !important;
-    gap: 4px !important;
+    gap: 6px !important;
+    color: #64748B !important;
+    font-family: 'Inter', sans-serif !important;
+    white-space: nowrap !important;
+    flex-shrink: 0 !important;
   }
 
   /* Actions Row: Like, Comment, Share */
@@ -4506,20 +4652,22 @@
 
 .ud-interact-btn,
 .ud-mob-post-action-btn {
-  background: transparent;
-  border: 1px solid transparent;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
   font-family: 'Inter', sans-serif;
   font-size: 13.5px;
   font-weight: 500;
   color: #4B5563;
   cursor: pointer;
-  padding: 8px 14px;
-  border-radius: 8px;
+  padding: 6px 8px;
+  border-radius: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  gap: 6px;
+  transition: color 0.15s ease;
   user-select: none;
 }
 
@@ -4530,43 +4678,57 @@
   transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-/* LIKE BUTTON */
+/* LIKE BUTTON - Completely flat, no button box on hover or click */
+.ud-btn-like {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
 .ud-btn-like:hover {
-  background: rgba(90, 44, 228, 0.08) !important;
-  color: #5A2CE4 !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  color: #2563EB !important;
 }
 .ud-btn-like:hover .ud-like-icon {
-  transform: scale(1.25) rotate(-8deg);
+  transform: scale(1.22) translateY(-2px);
 }
 .ud-btn-like.liked-active {
-  background: rgba(90, 44, 228, 0.12) !important;
-  color: #5A2CE4 !important;
+  background: transparent !important;
+  color: #2563EB !important;
   font-weight: 600 !important;
-  border-color: rgba(90, 44, 228, 0.2) !important;
+  border: none !important;
+  box-shadow: none !important;
 }
 .ud-btn-like.liked-active .ud-like-icon {
-  animation: udHeartBounce 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  color: #5A2CE4 !important;
+  animation: udLikeBouncePop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards !important;
+  color: #2563EB !important;
 }
 
 /* COMMENT BUTTON */
 .ud-btn-comment:hover {
-  background: rgba(37, 99, 235, 0.08) !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
   color: #2563EB !important;
 }
 .ud-btn-comment:hover .ud-comment-icon {
   transform: translateY(-2px) scale(1.15);
 }
 .ud-btn-comment.active {
-  background: rgba(37, 99, 235, 0.12) !important;
+  background: transparent !important;
   color: #2563EB !important;
   font-weight: 600 !important;
-  border-color: rgba(37, 99, 235, 0.2) !important;
+  border: none !important;
+  box-shadow: none !important;
 }
 
 /* SHARE BUTTON */
 .ud-btn-share:hover {
-  background: rgba(16, 185, 129, 0.08) !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
   color: #059669 !important;
 }
 .ud-btn-share:hover .ud-share-icon {
@@ -4578,11 +4740,22 @@
   transform: scale(0.95);
 }
 
-@keyframes udHeartBounce {
-  0% { transform: scale(1); }
-  35% { transform: scale(1.35) rotate(-10deg); }
-  65% { transform: scale(0.9) rotate(5deg); }
-  100% { transform: scale(1) rotate(0deg); }
+@keyframes udLikeBouncePop {
+  0% {
+    transform: scale(1) translateY(0);
+  }
+  30% {
+    transform: scale(1.45) translateY(-6px);
+  }
+  60% {
+    transform: scale(0.9) translateY(2px);
+  }
+  80% {
+    transform: scale(1.1) translateY(-1px);
+  }
+  100% {
+    transform: scale(1) translateY(0);
+  }
 }
 
 /* In-Feed Suggested Trainers & Leaders (Instagram Style) */
@@ -4842,7 +5015,7 @@
 .ud-post-img {
   width: 100% !important;
   height: auto !important;
-  max-height: 560px !important;
+  max-height: 880px !important;
   object-fit: contain !important;
   border-radius: 12px !important;
   display: block !important;
@@ -4865,7 +5038,7 @@
 .ud-mob-post-banner-img {
   width: 100% !important;
   height: auto !important;
-  max-height: 480px !important;
+  max-height: 880px !important;
   object-fit: contain !important;
   display: block !important;
   border-radius: 12px !important;

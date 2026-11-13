@@ -1,13 +1,51 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import {
+  FiCompass,
+  FiUsers,
+  FiSearch,
+  FiPlus,
+  FiShare2,
+  FiMessageCircle,
+  FiCheck,
+  FiX,
+  FiLink,
+  FiZap,
+  FiAward,
+  FiTrendingUp,
+  FiHeart,
+  FiTarget,
+  FiGrid,
+  FiPlusCircle,
+  FiUserPlus,
+  FiArrowRight,
+} from 'react-icons/fi';
+import { FaWhatsapp } from 'react-icons/fa';
 import UserHeader from '../../components/layout/UserHeader';
 import UserSidebar from '../../components/layout/UserSidebar';
 import UserMobileBottomNav from '../../components/layout/UserMobileBottomNav';
+import AuthGateModal from '../../components/auth/AuthGateModal';
 import { fetchGroups, joinGroup, leaveGroup, createGroup } from '../../services/group.service';
 import './GroupsPage.css';
 
 const CATEGORIES = ['All', 'Leadership', 'Direct Selling', 'Motivation', 'Wellness', 'Marketing'];
+
+const CATEGORY_META = {
+  All: { icon: FiGrid, label: 'All' },
+  Leadership: { icon: FiAward, label: 'Leadership' },
+  'Direct Selling': { icon: FiTrendingUp, label: 'Direct Selling' },
+  Motivation: { icon: FiZap, label: 'Motivation' },
+  Wellness: { icon: FiHeart, label: 'Wellness' },
+  Marketing: { icon: FiTarget, label: 'Marketing' },
+  General: { icon: FiCompass, label: 'General' },
+};
+
+const getCategoryIcon = (cat) => {
+  const meta = CATEGORY_META[cat] || CATEGORY_META['General'];
+  const IconComp = meta.icon;
+  return <IconComp className="grp-cat-icon" />;
+};
 
 const CATEGORY_GRADIENTS = {
   Leadership: 'linear-gradient(135deg, #6B11FF 0%, #B845ED 100%)',
@@ -252,9 +290,17 @@ export default function GroupsPage() {
   }, [groups, activeTab, selectedCategory, searchQuery]);
 
   const myGroupsCount = groups.filter((g) => g.is_member).length;
+  const isUserAuthenticated = Boolean(storedUser && (storedUser.id || storedUser.email));
+  const joinId = searchParams.get('join');
+  const targetInviteGroup =
+    joinId && groups.length > 0 ? groups.find((g) => String(g.id) === String(joinId)) : null;
 
   return (
-    <div className="grp-page-root">
+    <>
+      {!isUserAuthenticated && (
+        <AuthGateModal type="group" targetName={targetInviteGroup?.name || ''} />
+      )}
+      <div className={`grp-page-root ${!isUserAuthenticated ? 'auth-gated-blur' : ''}`}>
       {/* Global Header */}
       <UserHeader
         user={storedUser}
@@ -275,14 +321,15 @@ export default function GroupsPage() {
           <div className="grp-body-wrapper">
             {/* Hero Banner Header */}
             <div className="grp-hero-banner">
+              <div className="grp-hero-glow" />
               <div className="grp-hero-meta">
                 <div className="grp-hero-tag">
-                  <span className="grp-hero-dot" />
+                  <FiZap className="grp-hero-zap" />
                   <span>COMMUNITY HUBS</span>
                 </div>
                 <h1 className="grp-hero-title">Groups & Masterminds</h1>
                 <p className="grp-hero-subtitle">
-                  Join exclusive direct selling communities, exchange winning strategies, and scale your team.
+                  Join exclusive direct selling communities, exchange winning strategies, and scale your team with verified leaders.
                 </p>
               </div>
 
@@ -291,7 +338,7 @@ export default function GroupsPage() {
                 className="grp-create-btn"
                 onClick={() => setShowCreateModal(true)}
               >
-                <span>+</span>
+                <FiPlus className="grp-btn-plus-icon" />
                 <span>Create Group</span>
               </button>
             </div>
@@ -304,6 +351,7 @@ export default function GroupsPage() {
                   className={`grp-tab-btn ${activeTab === 'explore' ? 'active' : ''}`}
                   onClick={() => setActiveTab('explore')}
                 >
+                  <FiCompass className="grp-tab-icon" />
                   <span>Explore Groups</span>
                   <span className="grp-count-pill">{groups.length}</span>
                 </button>
@@ -313,16 +361,14 @@ export default function GroupsPage() {
                   className={`grp-tab-btn ${activeTab === 'my-groups' ? 'active' : ''}`}
                   onClick={() => setActiveTab('my-groups')}
                 >
+                  <FiUsers className="grp-tab-icon" />
                   <span>My Groups</span>
                   <span className="grp-count-pill">{myGroupsCount}</span>
                 </button>
               </div>
 
               <div className="grp-search-box">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#64748B" strokeWidth="2.2">
-                  <circle cx="11" cy="11" r="8" />
-                  <line x1="21" y1="21" x2="16.65" y2="16.65" />
-                </svg>
+                <FiSearch className="grp-search-icon" />
                 <input
                   type="text"
                   placeholder="Search groups by name or topic..."
@@ -332,7 +378,7 @@ export default function GroupsPage() {
                 />
                 {searchQuery && (
                   <button type="button" className="grp-search-clear" onClick={() => setSearchQuery('')}>
-                    ✕
+                    <FiX />
                   </button>
                 )}
               </div>
@@ -340,16 +386,21 @@ export default function GroupsPage() {
 
             {/* Category Filter Pills */}
             <div className="grp-categories-scroll">
-              {CATEGORIES.map((cat) => (
-                <button
-                  key={cat}
-                  type="button"
-                  className={`grp-cat-pill ${selectedCategory === cat ? 'active' : ''}`}
-                  onClick={() => setSelectedCategory(cat)}
-                >
-                  {cat}
-                </button>
-              ))}
+              {CATEGORIES.map((cat) => {
+                const meta = CATEGORY_META[cat] || CATEGORY_META['General'];
+                const IconComp = meta.icon;
+                return (
+                  <button
+                    key={cat}
+                    type="button"
+                    className={`grp-cat-pill ${selectedCategory === cat ? 'active' : ''}`}
+                    onClick={() => setSelectedCategory(cat)}
+                  >
+                    <IconComp className="grp-cat-pill-icon" />
+                    <span>{cat}</span>
+                  </button>
+                );
+              })}
             </div>
 
             {/* Groups Grid */}
@@ -360,7 +411,9 @@ export default function GroupsPage() {
               </div>
             ) : filteredGroups.length === 0 ? (
               <div className="grp-empty-box">
-                <span className="grp-empty-icon">👥</span>
+                <div className="grp-empty-icon-wrap">
+                  <FiUsers className="grp-empty-icon" />
+                </div>
                 <h3 className="grp-empty-title">
                   {activeTab === 'my-groups'
                     ? "You haven't joined any groups yet!"
@@ -381,23 +434,32 @@ export default function GroupsPage() {
                       setSearchQuery('');
                     }}
                   >
-                    Browse Explore Groups →
+                    <span>Browse Explore Groups</span>
+                    <FiArrowRight />
                   </button>
                 )}
               </div>
             ) : (
               <div className="grp-cards-grid">
-                {filteredGroups.map((group) => {
+                {filteredGroups.map((group, idx) => {
                   const gradient =
                     CATEGORY_GRADIENTS[group.category] || CATEGORY_GRADIENTS['General'];
                   const isMember = group.is_member;
                   const isActionLoading = actionLoadingId === group.id;
 
                   return (
-                    <div key={group.id} className="grp-card">
+                    <div
+                      key={group.id}
+                      className="grp-card"
+                      style={{ animationDelay: `${idx * 0.05}s` }}
+                    >
                       {/* Card Gradient Header */}
                       <div className="grp-card-header" style={{ background: gradient }}>
-                        <span className="grp-card-badge">{group.category || 'General'}</span>
+                        <div className="grp-card-header-overlay" />
+                        <span className="grp-card-badge">
+                          {getCategoryIcon(group.category)}
+                          <span>{group.category || 'General'}</span>
+                        </span>
                       </div>
 
                       {/* Card Content */}
@@ -418,18 +480,13 @@ export default function GroupsPage() {
                         </div>
 
                         {/* Title & Desc */}
-                        <h3 className="grp-card-title">{group.name}</h3>
+                        <h3 className="grp-card-title" title={group.name}>{group.name}</h3>
                         <p className="grp-card-desc">{group.description}</p>
 
                         {/* Footer Meta: Members count & Action buttons */}
                         <div className="grp-card-footer">
                           <div className="grp-members-count">
-                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#6B7280" strokeWidth="2">
-                              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                              <circle cx="9" cy="7" r="4" />
-                              <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-                              <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-                            </svg>
+                            <FiUsers className="grp-members-icon" />
                             <span>{group.members || '1 member'}</span>
                           </div>
 
@@ -442,7 +499,8 @@ export default function GroupsPage() {
                                   onClick={() => navigate(`/messages?groupId=${group.id}`)}
                                   title="Open Group Chat"
                                 >
-                                  Chat
+                                  <FiMessageCircle className="grp-btn-sub-icon" />
+                                  <span>Chat</span>
                                 </button>
                                 <button
                                   type="button"
@@ -450,7 +508,8 @@ export default function GroupsPage() {
                                   onClick={() => setInviteModalGroup(group)}
                                   title="Invite friends or share link"
                                 >
-                                  Invite
+                                  <FiShare2 className="grp-btn-sub-icon" />
+                                  <span>Invite</span>
                                 </button>
                                 <button
                                   type="button"
@@ -459,7 +518,8 @@ export default function GroupsPage() {
                                   onClick={() => handleLeave(group)}
                                   title="Click to leave group"
                                 >
-                                  {isActionLoading ? '...' : 'Joined ✓'}
+                                  <FiCheck className="grp-btn-sub-icon" />
+                                  <span>{isActionLoading ? '...' : 'Joined'}</span>
                                 </button>
                               </>
                             ) : (
@@ -470,7 +530,8 @@ export default function GroupsPage() {
                                   onClick={() => setInviteModalGroup(group)}
                                   title="Share group invite link"
                                 >
-                                  Share
+                                  <FiShare2 className="grp-btn-sub-icon" />
+                                  <span>Share</span>
                                 </button>
                                 <button
                                   type="button"
@@ -478,7 +539,8 @@ export default function GroupsPage() {
                                   disabled={isActionLoading}
                                   onClick={() => handleJoin(group)}
                                 >
-                                  {isActionLoading ? 'Joining...' : '+ Join Group'}
+                                  <FiUserPlus className="grp-btn-sub-icon" />
+                                  <span>{isActionLoading ? 'Joining...' : 'Join Group'}</span>
                                 </button>
                               </>
                             )}
@@ -499,13 +561,16 @@ export default function GroupsPage() {
         <div className="grp-modal-backdrop" onClick={() => setShowCreateModal(false)}>
           <div className="grp-modal-box" onClick={(e) => e.stopPropagation()}>
             <div className="grp-modal-header">
-              <h3 className="grp-modal-title">Create New Group</h3>
+              <div className="grp-modal-title-wrap">
+                <FiPlusCircle className="grp-modal-title-icon" />
+                <h3 className="grp-modal-title">Create New Group</h3>
+              </div>
               <button
                 type="button"
                 className="grp-modal-close"
                 onClick={() => setShowCreateModal(false)}
               >
-                ✕
+                <FiX />
               </button>
             </div>
 
@@ -587,7 +652,7 @@ export default function GroupsPage() {
                 className="grp-modal-close"
                 onClick={() => setInviteModalGroup(null)}
               >
-                ✕
+                <FiX />
               </button>
             </div>
 
@@ -604,7 +669,8 @@ export default function GroupsPage() {
                 className="grp-copy-link-btn"
                 onClick={() => handleCopyLink(inviteModalGroup)}
               >
-                Copy Link
+                <FiLink />
+                <span>Copy Link</span>
               </button>
             </div>
 
@@ -619,6 +685,7 @@ export default function GroupsPage() {
                   window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
                 }}
               >
+                <FaWhatsapp className="grp-wa-icon" />
                 <span>Share via WhatsApp</span>
               </button>
               <button
@@ -626,6 +693,7 @@ export default function GroupsPage() {
                 className="grp-share-pill-btn"
                 onClick={() => handleNativeShare(inviteModalGroup)}
               >
+                <FiShare2 />
                 <span>Share Link</span>
               </button>
             </div>
@@ -677,5 +745,6 @@ export default function GroupsPage() {
       {/* Mobile Bottom Navigation */}
       <UserMobileBottomNav active="Groups" />
     </div>
+    </>
   );
 }

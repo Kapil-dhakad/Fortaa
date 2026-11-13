@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import './ProfilePage.css';
+import './UserDashboard.css';
 import UserHeader from '../../components/layout/UserHeader';
 import UserSidebar from '../../components/layout/UserSidebar';
 import UserMobileBottomNav from '../../components/layout/UserMobileBottomNav';
@@ -9,11 +10,12 @@ import PostComments from '../../components/posts/PostComments';
 import ShareModal from '../../components/posts/ShareModal';
 import { FaRegThumbsUp, FaThumbsUp, FaRegComment } from 'react-icons/fa';
 import { RiShareForwardLine } from 'react-icons/ri';
+import { FiEdit3, FiTrash2, FiUsers, FiFolderPlus, FiCompass } from 'react-icons/fi';
 
 // User, Follow & Dashboard Services
 import { fetchUserProfile, updateUserProfile as apiUpdateUserProfile } from '../../services/user.service';
 import { uploadSingleImage } from '../../services/upload.service';
-import { fetchPosts, fetchDashboardOverview, likePostApi, updatePostApi, deletePostApi } from '../../services/dashboard.service';
+import { fetchPosts, fetchDashboardOverview, likePostApi, updatePostApi, deletePostApi, votePollApi } from '../../services/dashboard.service';
 import {
   fetchFollowers,
   fetchFollowing,
@@ -22,6 +24,14 @@ import {
   unfollowUser,
   cancelFollowRequest,
 } from '../../services/follow.service';
+import { fetchUserGroups } from '../../services/group.service';
+import PostLikersModal from '../../components/posts/PostLikersModal';
+import {
+  formatRelativeTime,
+  renderFormattedContent,
+  renderInstagramLikes,
+  PostPoll,
+} from './UserDashboard';
 
 // Brand & icons
 import logoIconImg from '../../assets/figma/logo_icon_img.png';
@@ -146,6 +156,9 @@ export default function ProfilePage() {
   const [followersList, setFollowersList] = useState([]);
   const [followingList, setFollowingList] = useState([]);
   const [networkTeamList, setNetworkTeamList] = useState([]);
+  const [joinedGroups, setJoinedGroups] = useState([]);
+  const [createdGroups, setCreatedGroups] = useState([]);
+  const [likesModalPostId, setLikesModalPostId] = useState(null);
 
   // Post 3-dots Menu & Edit/Delete State
   const [activePostMenuId, setActivePostMenuId] = useState(null);
@@ -277,12 +290,17 @@ export default function ProfilePage() {
       setMyPosts(posts);
 
       // 3. Followers & Following & Network Team lists
-      const [fFollowers, fFollowing] = await Promise.all([
+      const [fFollowers, fFollowing, groupsData] = await Promise.all([
         fetchFollowers(currentUserId),
         fetchFollowing(currentUserId),
+        fetchUserGroups(currentUserId),
       ]);
       setFollowersList(fFollowers);
       setFollowingList(fFollowing);
+      if (groupsData) {
+        setJoinedGroups(groupsData.joinedGroups || []);
+        setCreatedGroups(groupsData.createdGroups || []);
+      }
 
       try {
         const teamRes = await fetch(`/api/users/team/${currentUserId}`);
@@ -301,6 +319,30 @@ export default function ProfilePage() {
 
     loadProfileSocialData();
   }, [currentUserId]);
+
+  const handleViewFollowerProfile = (follower) => {
+    const targetId = follower?.id || follower?.user_id;
+    if (targetId) {
+      navigate(`/leader/${targetId}`, {
+        state: {
+          leader: {
+            id: targetId,
+            name: follower.name,
+            avatar: follower.avatar_url,
+            levelTitle: follower.designation,
+          },
+        },
+      });
+    } else {
+      navigate('/leaders');
+    }
+  };
+
+  const formatAtUsername = (u) => {
+    if (!u) return '@user';
+    const clean = String(u).trim();
+    return clean.startsWith('@') ? clean : `@${clean}`;
+  };
 
   const handleUnfollowFromProfile = async (targetId, targetName) => {
     const confirm = window.confirm(`Are you sure you want to unfollow ${targetName}?`);
@@ -352,9 +394,59 @@ export default function ProfilePage() {
     if (res?.post) {
       setMyPosts((prev) =>
         prev.map((p) =>
-          p.id === postId ? { ...p, likes_count: res.post.likes_count, has_liked: res.liked } : p
+          p.id === postId
+            ? {
+                ...p,
+                likes_count: res.post.likes_count,
+                has_liked: res.liked,
+                latest_liker_name: res.post.latest_liker_name,
+                latest_liker_avatar: res.post.latest_liker_avatar,
+              }
+            : p
         )
       );
+    }
+  };
+
+  const handleVotePoll = async (postId, optionId) => {
+    const voterId = currentUserId;
+    if (!voterId) return;
+
+    setMyPosts((prevPosts) =>
+      prevPosts.map((p) => {
+        if (p.id !== postId) return p;
+        let poll = null;
+        try {
+          poll = typeof p.poll_data === 'string' ? JSON.parse(p.poll_data) : { ...p.poll_data };
+        } catch {
+          return p;
+        }
+        if (!poll || !poll.options) return p;
+        poll.voters = poll.voters || {};
+        const previousVote = poll.voters[voterId];
+        if (previousVote === optionId) return p;
+
+        poll.options = poll.options.map((opt) => {
+          let votes = Number(opt.votes) || 0;
+          if (opt.id === previousVote) votes = Math.max(0, votes - 1);
+          if (opt.id === optionId) votes += 1;
+          return { ...opt, votes };
+        });
+        poll.voters[voterId] = optionId;
+        poll.totalVotes = poll.options.reduce((sum, o) => sum + (Number(o.votes) || 0), 0);
+        return { ...p, poll_data: poll };
+      })
+    );
+
+    try {
+      const res = await votePollApi(postId, optionId, voterId);
+      if (res?.success && res.pollData) {
+        setMyPosts((prevPosts) =>
+          prevPosts.map((p) => (p.id === postId ? { ...p, poll_data: res.pollData } : p))
+        );
+      }
+    } catch (err) {
+      console.warn('Vote poll error in profile:', err);
     }
   };
 
@@ -1169,7 +1261,7 @@ export default function ProfilePage() {
                         <span className="prof-badge-pipe">|</span>
                         <span className="prof-badge-secondary">{userProfile.userRole}</span>
                       </div>
-                      <p className="prof-username-text">User Name: {userProfile.username}</p>
+                      <p className="prof-username-text">User Name: {formatAtUsername(userProfile.username)}</p>
                     </div>
                   </div>
                 </div>
@@ -1337,14 +1429,13 @@ export default function ProfilePage() {
                               />
                               <div className="prof-post-meta">
                                 <span className="prof-post-author-name">{post.author_name || userProfile.name}</span>
-                                <div className="prof-post-subline">
-                                  <span className="prof-post-badge-gold">{post.author_role || userProfile.userRole || 'Gold Leader'}</span>
-                                  <span className="prof-post-dot">•</span>
+                                <div className="prof-post-headline">
+                                  {post.author_role || userProfile.userRole || 'Senior Leader • Fortaa'}
+                                </div>
+                                <div className="prof-post-time-row">
                                   <span className="prof-post-time">
-                                    {post.created_at ? new Date(post.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '4hr ago'}
+                                    {formatRelativeTime(post.created_at)}
                                   </span>
-                                  <span className="prof-post-dot">•</span>
-                                  <span className="prof-post-globe">🌐</span>
                                 </div>
                               </div>
                             </div>
@@ -1370,7 +1461,7 @@ export default function ProfilePage() {
                                     className="prof-post-menu-item"
                                     onClick={() => handleStartEdit(post)}
                                   >
-                                    <span className="prof-post-menu-icon">✏️</span>
+                                    <FiEdit3 className="prof-post-menu-icon" />
                                     <span>Edit Post</span>
                                   </button>
                                   <button
@@ -1378,7 +1469,7 @@ export default function ProfilePage() {
                                     className="prof-post-menu-item prof-post-menu-delete"
                                     onClick={() => handleDeletePost(post.id)}
                                   >
-                                    <span className="prof-post-menu-icon">🗑️</span>
+                                    <FiTrash2 className="prof-post-menu-icon" />
                                     <span>Delete Post</span>
                                   </button>
                                 </div>
@@ -1387,8 +1478,19 @@ export default function ProfilePage() {
                           </div>
 
                           <div className="prof-post-body">
-                            <p className="prof-post-caption">{post.content}</p>
+                            <p className="prof-post-caption">{renderFormattedContent(post.content)}</p>
                             {post.tags && <p className="prof-post-tags">{post.tags}</p>}
+
+                            {/* Interactive Poll Display (Fix for missing poll) */}
+                            {post.poll_data && (
+                              <PostPoll
+                                pollData={post.poll_data}
+                                postId={post.id}
+                                onVote={(optionId) => handleVotePoll(post.id, optionId)}
+                                currentUserId={currentUserId}
+                              />
+                            )}
+
                             {(() => {
                               const isVideo = post.media_type === 'video' || post.video_url || (post.image_url && /\.(mp4|webm|mov|mkv|avi)(\?.*)?$/i.test(post.image_url));
                               const mediaSrc = post.video_url || post.image_url;
@@ -1421,47 +1523,61 @@ export default function ProfilePage() {
                             })()}
                           </div>
 
-                          <div className="prof-post-metrics-row">
-                            <div className="prof-reactions-group">
-                              <span className="prof-reaction-emojis">👍 💙 🧡</span>
-                              <span className="prof-reaction-count">{post.likes_count || 124}</span>
-                            </div>
+                          {/* Instagram-style Reactions Row */}
+                          <div className="prof-post-reactions-row">
+                            {renderInstagramLikes(post, userProfile, (pid) => setLikesModalPostId(pid))}
                             <div
                               className="prof-comments-shares"
                               style={{ cursor: 'pointer' }}
                               onClick={() => setOpenCommentsPostId(openCommentsPostId === post.id ? null : post.id)}
+                              title="View comments"
                             >
-                              <span>{post.comments_count || 0} comments</span> &nbsp;•&nbsp; <span>{post.shares_count || 12} shares</span>
+                              <span className="ud-metric-pill" title={`${post.comments_count || 0} comments`}>
+                                <FaRegComment size={14} className="ud-metric-icon" />
+                                <span>{post.comments_count || 0}</span>
+                              </span>
+                              <span className="ud-metric-dot">•</span>
+                              <span className="ud-metric-pill" title={`${post.shares_count || 0} shares`}>
+                                <RiShareForwardLine size={15} className="ud-metric-icon" />
+                                <span>{post.shares_count || 0}</span>
+                              </span>
                             </div>
                           </div>
 
+                          {/* LinkedIn / Dashboard Interactive Bar */}
                           <div className="prof-post-actions-row">
                             <button
                               type="button"
-                              className={`prof-action-btn ${post.has_liked ? 'liked-active' : ''}`}
+                              className={`ud-interact-btn ud-btn-like ${post.has_liked ? 'liked-active' : ''}`}
                               onClick={() => handleLike(post.id)}
                             >
-                              {post.has_liked ? (
-                                <FaThumbsUp size={15} color="#3A23D5" />
-                              ) : (
-                                <FaRegThumbsUp size={15} />
-                              )}
+                              <span className="ud-interact-icon-wrap">
+                                {post.has_liked ? (
+                                  <FaThumbsUp size={16} className="ud-like-icon" />
+                                ) : (
+                                  <FaRegThumbsUp size={16} className="ud-like-icon" />
+                                )}
+                              </span>
                               <span>{post.has_liked ? 'Liked' : 'Like'}</span>
                             </button>
                             <button
                               type="button"
-                              className={`prof-action-btn ${openCommentsPostId === post.id ? 'active' : ''}`}
+                              className={`ud-interact-btn ud-btn-comment ${openCommentsPostId === post.id ? 'active' : ''}`}
                               onClick={() => setOpenCommentsPostId(openCommentsPostId === post.id ? null : post.id)}
                             >
-                              <FaRegComment size={15} />
+                              <span className="ud-interact-icon-wrap">
+                                <FaRegComment size={16} className="ud-comment-icon" />
+                              </span>
                               <span>Comment</span>
                             </button>
                             <button
                               type="button"
-                              className="prof-action-btn"
+                              className="ud-interact-btn ud-btn-share"
                               onClick={() => setShareModalPost(post)}
                             >
-                              <RiShareForwardLine size={16} />
+                              <span className="ud-interact-icon-wrap">
+                                <RiShareForwardLine size={18} className="ud-share-icon" />
+                              </span>
                               <span>Share</span>
                             </button>
                           </div>
@@ -1587,7 +1703,12 @@ export default function ProfilePage() {
                       <div className="prof-following-list">
                         {followersList.map((follower) => (
                           <div key={follower.id} className="prof-following-card prof-follower-card">
-                            <div className="prof-following-user-row">
+                            <div
+                              className="prof-following-user-row"
+                              style={{ cursor: 'pointer' }}
+                              onClick={() => handleViewFollowerProfile(follower)}
+                              title={`View ${follower.name}'s Profile`}
+                            >
                               <img
                                 src={follower.avatar_url || userAvatarImg}
                                 alt={follower.name}
@@ -1610,7 +1731,7 @@ export default function ProfilePage() {
                               <button
                                 type="button"
                                 className="prof-btn-purple-sm prof-btn-action-single"
-                                onClick={() => toast(`Opening profile of ${follower.name}`)}
+                                onClick={() => handleViewFollowerProfile(follower)}
                               >
                                 View Profile
                               </button>
@@ -1643,7 +1764,12 @@ export default function ProfilePage() {
                           const isPending = user.follow_status === 'pending';
                           return (
                             <div key={user.id} className="prof-following-card">
-                              <div className="prof-following-user-row">
+                              <div
+                                className="prof-following-user-row"
+                                style={{ cursor: 'pointer' }}
+                                onClick={() => handleViewFollowerProfile(user)}
+                                title={`View ${user.name}'s Profile`}
+                              >
                                 <img
                                   src={user.avatar_url || userAvatarImg}
                                   alt={user.name}
@@ -1714,54 +1840,202 @@ export default function ProfilePage() {
                   </div>
                 )}
 
-                {/* ── TAB 5: GROUPS ── */}
+                {/* ── TAB 5: GROUPS (Real Database Created & Joined Groups - Left / Right Split Layout) ── */}
                 {activeTab === 'Groups' && (
-                  <div className="prof-post-card prof-tab-content-card">
-                    <h4 className="prof-tab-content-title">
-                      Joined Groups (3)
-                    </h4>
+                  <div className="prof-groups-split-container">
+                    {/* LEFT COLUMN: Groups Created by this User */}
+                    <div className="prof-post-card prof-groups-split-card">
+                      <div className="prof-groups-split-header">
+                        <div className="prof-groups-title-wrap">
+                          <FiFolderPlus className="prof-groups-title-icon" />
+                          <h4 className="prof-tab-content-title" style={{ margin: 0 }}>
+                            Created Groups ({createdGroups.length})
+                          </h4>
+                        </div>
+                        <button
+                          type="button"
+                          className="prof-btn-purple-sm"
+                          onClick={() => navigate('/groups')}
+                          style={{ padding: '6px 14px', fontSize: '13px' }}
+                        >
+                          + Create Group
+                        </button>
+                      </div>
 
-                    <div className="prof-following-list">
-                      {[
-                        { name: 'Success Mindset & Motivation', members: '12.4K members', topic: 'Personal Growth' },
-                        { name: 'Network Marketing Tips & Strategy', members: '5.7K members', topic: 'Direct Selling' },
-                        { name: 'Health & Wellness Products Hub', members: '8.2K members', topic: 'Product Insights' },
-                      ].map((grp, gIdx) => (
-                        <div key={gIdx} className="prof-following-card prof-follower-card">
-                          <div className="prof-following-user-row">
-                            <div
-                              style={{
-                                width: '44px',
-                                height: '44px',
-                                borderRadius: '10px',
-                                background: '#EDE9FE',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                fontSize: '20px',
-                                flexShrink: 0,
-                              }}
-                            >
-                              👥
-                            </div>
-                            <div className="prof-following-info">
-                              <div className="prof-following-name">{grp.name}</div>
-                              <div className="prof-following-role">
-                                {grp.members} • {grp.topic}
+                      {createdGroups.length > 0 ? (
+                        <div className="prof-following-list">
+                          {createdGroups.map((grp) => (
+                            <div key={grp.id} className="prof-following-card prof-follower-card">
+                              <div
+                                className="prof-following-user-row"
+                                style={{ cursor: 'pointer' }}
+                                onClick={() => navigate(`/messages?groupId=${grp.id}`)}
+                                title={`Open ${grp.name}`}
+                              >
+                                {grp.icon_url ? (
+                                  <img
+                                    src={grp.icon_url}
+                                    alt={grp.name}
+                                    style={{
+                                      width: '44px',
+                                      height: '44px',
+                                      borderRadius: '10px',
+                                      objectFit: 'cover',
+                                      flexShrink: 0,
+                                    }}
+                                  />
+                                ) : (
+                                  <div
+                                    style={{
+                                      width: '44px',
+                                      height: '44px',
+                                      borderRadius: '10px',
+                                      background: '#EDE9FE',
+                                      color: '#7C3AED',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      fontSize: '20px',
+                                      flexShrink: 0,
+                                    }}
+                                  >
+                                    <FiFolderPlus />
+                                  </div>
+                                )}
+                                <div className="prof-following-info">
+                                  <div className="prof-following-name" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <span>{grp.name}</span>
+                                    <span style={{ fontSize: '11px', background: '#FEF3C7', color: '#92400E', padding: '2px 8px', borderRadius: '12px', fontWeight: 600 }}>
+                                      Admin
+                                    </span>
+                                  </div>
+                                  <div className="prof-following-role">
+                                    {grp.actual_members_count || 1} members • {grp.category || 'General'}
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="prof-following-actions">
+                                <button
+                                  type="button"
+                                  className="prof-btn-purple-sm prof-btn-action-single"
+                                  onClick={() => navigate(`/messages?groupId=${grp.id}`)}
+                                >
+                                  Open Group
+                                </button>
                               </div>
                             </div>
-                          </div>
-                          <div className="prof-following-actions">
-                            <button
-                              type="button"
-                              className="prof-btn-purple-sm prof-btn-action-single"
-                              onClick={() => toast.success(`Viewing ${grp.name}`)}
-                            >
-                              Open Group
-                            </button>
-                          </div>
+                          ))}
                         </div>
-                      ))}
+                      ) : (
+                        <div className="prof-groups-empty-box">
+                          <FiFolderPlus className="prof-groups-empty-icon" />
+                          <p className="prof-groups-empty-title">No created groups yet</p>
+                          <p className="prof-groups-empty-sub">Groups you create will appear here.</p>
+                          <button
+                            type="button"
+                            className="prof-btn-purple-sm"
+                            onClick={() => navigate('/groups')}
+                            style={{ padding: '6px 14px', fontSize: '12.5px' }}
+                          >
+                            + Create a Group
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* RIGHT COLUMN: Groups Joined by User */}
+                    <div className="prof-post-card prof-groups-split-card">
+                      <div className="prof-groups-split-header">
+                        <div className="prof-groups-title-wrap">
+                          <FiUsers className="prof-groups-title-icon" />
+                          <h4 className="prof-tab-content-title" style={{ margin: 0 }}>
+                            Joined Groups ({joinedGroups.length})
+                          </h4>
+                        </div>
+                        <button
+                          type="button"
+                          className="prof-btn-outline-sm"
+                          onClick={() => navigate('/groups')}
+                          style={{ padding: '6px 14px', fontSize: '13px' }}
+                        >
+                          Explore Groups →
+                        </button>
+                      </div>
+
+                      {joinedGroups.length > 0 ? (
+                        <div className="prof-following-list">
+                          {joinedGroups.map((grp) => (
+                            <div key={grp.id} className="prof-following-card prof-follower-card">
+                              <div
+                                className="prof-following-user-row"
+                                style={{ cursor: 'pointer' }}
+                                onClick={() => navigate(`/messages?groupId=${grp.id}`)}
+                                title={`Open ${grp.name}`}
+                              >
+                                {grp.icon_url ? (
+                                  <img
+                                    src={grp.icon_url}
+                                    alt={grp.name}
+                                    style={{
+                                      width: '44px',
+                                      height: '44px',
+                                      borderRadius: '10px',
+                                      objectFit: 'cover',
+                                      flexShrink: 0,
+                                    }}
+                                  />
+                                ) : (
+                                  <div
+                                    style={{
+                                      width: '44px',
+                                      height: '44px',
+                                      borderRadius: '10px',
+                                      background: '#EDE9FE',
+                                      color: '#7C3AED',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      fontSize: '20px',
+                                      flexShrink: 0,
+                                    }}
+                                  >
+                                    <FiUsers />
+                                  </div>
+                                )}
+                                <div className="prof-following-info">
+                                  <div className="prof-following-name">{grp.name}</div>
+                                  <div className="prof-following-role">
+                                    {grp.actual_members_count || 1} members • {grp.category || 'General'}
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="prof-following-actions">
+                                <button
+                                  type="button"
+                                  className="prof-btn-purple-sm prof-btn-action-single"
+                                  onClick={() => navigate(`/messages?groupId=${grp.id}`)}
+                                >
+                                  Open Group
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="prof-groups-empty-box">
+                          <FiCompass className="prof-groups-empty-icon" />
+                          <p className="prof-groups-empty-title">No joined groups yet</p>
+                          <p className="prof-groups-empty-sub">Explore the community and join groups that interest you.</p>
+                          <button
+                            type="button"
+                            className="prof-btn-purple-sm"
+                            onClick={() => navigate('/groups')}
+                            style={{ padding: '6px 16px', fontSize: '13px' }}
+                          >
+                            Explore Groups
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
@@ -1957,7 +2231,9 @@ export default function ProfilePage() {
         <div className="prof-edit-modal-backdrop" onClick={() => setEditingPost(null)}>
           <div className="prof-edit-modal" onClick={(e) => e.stopPropagation()}>
             <div className="prof-edit-modal-header">
-              <h3 className="prof-edit-modal-title">✏️ Edit Post</h3>
+              <h3 className="prof-edit-modal-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <FiEdit3 style={{ color: '#5A2CE4' }} /> Edit Post
+              </h3>
               <button
                 type="button"
                 className="prof-edit-modal-close"
@@ -2029,6 +2305,16 @@ export default function ProfilePage() {
             );
           }
         }}
+      />
+
+      {/* Post Likers Modal */}
+      <PostLikersModal
+        isOpen={Boolean(likesModalPostId)}
+        onClose={() => setLikesModalPostId(null)}
+        postId={likesModalPostId}
+        currentUserId={currentUserId}
+        followingIds={followingList.map((u) => u.id)}
+        onUserClick={(userId) => navigate(`/leader/${userId}`)}
       />
     </div>
   );

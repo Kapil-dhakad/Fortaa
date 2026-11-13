@@ -48,7 +48,7 @@ export default function PostActionMenu({
   const authorName = post.author_name || 'Leader';
 
   const handleCopyLink = () => {
-    const url = `${window.location.origin}/dashboard?post=${post.id}`;
+    const url = `${window.location.origin}/all-posts?post=${post.id}`;
     if (navigator.clipboard?.writeText) {
       navigator.clipboard
         .writeText(url)

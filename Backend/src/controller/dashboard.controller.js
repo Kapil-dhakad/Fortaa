@@ -188,22 +188,77 @@ async function getDashboardOverview(req, res) {
 async function getPosts(req, res) {
   try {
     const userId = parseInt(req.query.userId || req.userId, 10);
+    const requesterId = parseInt(req.query.currentUserId || req.userId, 10) || userId || 0;
     const filter = req.query.filter; // 'mine', 'following', 'all'
 
     if (db.isDBConnected()) {
-      const activeUserId = userId || 0;
+      const activeUserId = requesterId || userId || 0;
       let queryStr = `
         SELECT p.*,
-               COALESCE((SELECT TRUE FROM post_likes pl WHERE pl.post_id = p.id AND pl.user_id = $1 LIMIT 1), FALSE) AS has_liked
+               COALESCE((SELECT TRUE FROM post_likes pl WHERE pl.post_id = p.id AND pl.user_id = $1 LIMIT 1), FALSE) AS has_liked,
+               (
+                 SELECT u.name
+                 FROM post_likes pl
+                 JOIN users u ON u.id = pl.user_id
+                 WHERE pl.post_id = p.id
+                 ORDER BY (pl.user_id != $1) DESC, pl.id DESC
+                 LIMIT 1
+               ) AS latest_liker_name,
+               (
+                 SELECT u.avatar_url
+                 FROM post_likes pl
+                 JOIN users u ON u.id = pl.user_id
+                 WHERE pl.post_id = p.id
+                 ORDER BY (pl.user_id != $1) DESC, pl.id DESC
+                 LIMIT 1
+               ) AS latest_liker_avatar
         FROM posts p
         ORDER BY p.created_at DESC
       `;
       let params = [activeUserId];
 
       if (filter === 'mine' && userId) {
+        // If viewing someone else's posts, check if their profile is private
+        if (activeUserId && activeUserId !== userId) {
+          const userPrivRes = await db.query(
+            "SELECT COALESCE(profile_visibility, 'public') AS profile_visibility FROM users WHERE id = $1",
+            [userId]
+          );
+          if (userPrivRes.rows.length > 0) {
+            const vis = userPrivRes.rows[0].profile_visibility;
+            if (vis !== 'public') {
+              // Check if requester follows this target with accepted status
+              const followCheck = await db.query(
+                "SELECT 1 FROM follows WHERE follower_id = $1 AND following_id = $2 AND status = 'accepted'",
+                [activeUserId, userId]
+              );
+              if (followCheck.rows.length === 0) {
+                // Not following private account: hide posts
+                return res.status(200).json({ success: true, posts: [] });
+              }
+            }
+          }
+        }
+
         queryStr = `
           SELECT p.*,
-                 COALESCE((SELECT TRUE FROM post_likes pl WHERE pl.post_id = p.id AND pl.user_id = $1 LIMIT 1), FALSE) AS has_liked
+                 COALESCE((SELECT TRUE FROM post_likes pl WHERE pl.post_id = p.id AND pl.user_id = $1 LIMIT 1), FALSE) AS has_liked,
+                 (
+                   SELECT u.name
+                   FROM post_likes pl
+                   JOIN users u ON u.id = pl.user_id
+                   WHERE pl.post_id = p.id
+                   ORDER BY (pl.user_id != $1) DESC, pl.id DESC
+                   LIMIT 1
+                 ) AS latest_liker_name,
+                 (
+                   SELECT u.avatar_url
+                   FROM post_likes pl
+                   JOIN users u ON u.id = pl.user_id
+                   WHERE pl.post_id = p.id
+                   ORDER BY (pl.user_id != $1) DESC, pl.id DESC
+                   LIMIT 1
+                 ) AS latest_liker_avatar
           FROM posts p
           WHERE p.user_id = $1
           ORDER BY p.created_at DESC
@@ -212,19 +267,56 @@ async function getPosts(req, res) {
       } else if (filter === 'following' && userId) {
         queryStr = `
           SELECT p.*,
-                 COALESCE((SELECT TRUE FROM post_likes pl WHERE pl.post_id = p.id AND pl.user_id = $1 LIMIT 1), FALSE) AS has_liked
+                 COALESCE((SELECT TRUE FROM post_likes pl WHERE pl.post_id = p.id AND pl.user_id = $1 LIMIT 1), FALSE) AS has_liked,
+                 (
+                   SELECT u.name
+                   FROM post_likes pl
+                   JOIN users u ON u.id = pl.user_id
+                   WHERE pl.post_id = p.id
+                   ORDER BY (pl.user_id != $1) DESC, pl.id DESC
+                   LIMIT 1
+                 ) AS latest_liker_name,
+                 (
+                   SELECT u.avatar_url
+                   FROM post_likes pl
+                   JOIN users u ON u.id = pl.user_id
+                   WHERE pl.post_id = p.id
+                   ORDER BY (pl.user_id != $1) DESC, pl.id DESC
+                   LIMIT 1
+                 ) AS latest_liker_avatar
           FROM posts p
           WHERE p.user_id = $1 
-             OR p.user_id IN (SELECT following_id FROM follows WHERE follower_id = $1)
+             OR p.user_id IN (SELECT following_id FROM follows WHERE follower_id = $1 AND status = 'accepted')
           ORDER BY p.created_at DESC
         `;
         params = [userId];
       } else {
-        // Main community feed: show all community posts so users can discover & follow leaders
+        // Main community feed: show public community posts, user's own posts, or posts from followed private accounts
         queryStr = `
           SELECT p.*,
-                 COALESCE((SELECT TRUE FROM post_likes pl WHERE pl.post_id = p.id AND pl.user_id = $1 LIMIT 1), FALSE) AS has_liked
+                 COALESCE((SELECT TRUE FROM post_likes pl WHERE pl.post_id = p.id AND pl.user_id = $1 LIMIT 1), FALSE) AS has_liked,
+                 (
+                   SELECT u.name
+                   FROM post_likes pl
+                   JOIN users u ON u.id = pl.user_id
+                   WHERE pl.post_id = p.id
+                   ORDER BY (pl.user_id != $1) DESC, pl.id DESC
+                   LIMIT 1
+                 ) AS latest_liker_name,
+                 (
+                   SELECT u.avatar_url
+                   FROM post_likes pl
+                   JOIN users u ON u.id = pl.user_id
+                   WHERE pl.post_id = p.id
+                   ORDER BY (pl.user_id != $1) DESC, pl.id DESC
+                   LIMIT 1
+                 ) AS latest_liker_avatar
           FROM posts p
+          WHERE (
+            p.user_id IN (SELECT id FROM users WHERE COALESCE(profile_visibility, 'public') = 'public')
+            OR p.user_id = $1
+            OR p.user_id IN (SELECT following_id FROM follows WHERE follower_id = $1 AND status = 'accepted')
+          )
           ORDER BY p.created_at DESC
         `;
         params = [activeUserId];
@@ -404,8 +496,12 @@ async function likePost(req, res) {
         // Already liked -> UNLIKE
         await db.query('DELETE FROM post_likes WHERE post_id = $1 AND user_id = $2', [id, userId]);
         const postRes = await db.query(
-          'UPDATE posts SET likes_count = GREATEST(0, likes_count - 1) WHERE id = $1 RETURNING *',
-          [id]
+          `UPDATE posts SET likes_count = GREATEST(0, likes_count - 1) WHERE id = $1 
+           RETURNING *,
+             FALSE AS has_liked,
+             (SELECT u.name FROM post_likes pl JOIN users u ON u.id = pl.user_id WHERE pl.post_id = $1 ORDER BY (pl.user_id != $2) DESC, pl.id DESC LIMIT 1) AS latest_liker_name,
+             (SELECT u.avatar_url FROM post_likes pl JOIN users u ON u.id = pl.user_id WHERE pl.post_id = $1 ORDER BY (pl.user_id != $2) DESC, pl.id DESC LIMIT 1) AS latest_liker_avatar`,
+          [id, userId]
         );
         if (postRes.rows.length === 0) {
           return res.status(404).json({ success: false, message: 'Post not found' });
@@ -419,8 +515,12 @@ async function likePost(req, res) {
           [id, userId]
         );
         const postRes = await db.query(
-          'UPDATE posts SET likes_count = likes_count + 1 WHERE id = $1 RETURNING *',
-          [id]
+          `UPDATE posts SET likes_count = likes_count + 1 WHERE id = $1 
+           RETURNING *,
+             TRUE AS has_liked,
+             (SELECT u.name FROM post_likes pl JOIN users u ON u.id = pl.user_id WHERE pl.post_id = $1 ORDER BY (pl.user_id != $2) DESC, pl.id DESC LIMIT 1) AS latest_liker_name,
+             (SELECT u.avatar_url FROM post_likes pl JOIN users u ON u.id = pl.user_id WHERE pl.post_id = $1 ORDER BY (pl.user_id != $2) DESC, pl.id DESC LIMIT 1) AS latest_liker_avatar`,
+          [id, userId]
         );
         if (postRes.rows.length === 0) {
           return res.status(404).json({ success: false, message: 'Post not found' });
@@ -463,6 +563,49 @@ async function likePost(req, res) {
   } catch (error) {
     console.error('likePost error:', error);
     return res.status(500).json({ success: false, message: 'Failed to update like status' });
+  }
+}
+
+// 4.5 Get Post Likers (List of users who liked this post)
+async function getPostLikers(req, res) {
+  try {
+    const { id } = req.params;
+    const currentUserId = parseInt(req.query.userId || req.userId, 10) || 0;
+
+    if (db.isDBConnected()) {
+      const result = await db.query(
+        `SELECT u.id, u.name, u.email, u.avatar_url, u.role, u.city, u.state,
+                pl.created_at AS liked_at,
+                COALESCE((SELECT TRUE FROM follows f WHERE f.follower_id = $2 AND f.following_id = u.id LIMIT 1), FALSE) AS is_following
+         FROM post_likes pl
+         JOIN users u ON u.id = pl.user_id
+         WHERE pl.post_id = $1
+         ORDER BY pl.id DESC`,
+        [id, currentUserId]
+      );
+
+      return res.status(200).json({
+        success: true,
+        likers: result.rows,
+      });
+    }
+
+    const post = fallbackData.posts.find((p) => String(p.id) === String(id));
+    const likers = (post?.liked_by || []).map((uid) => ({
+      id: uid,
+      name: uid === currentUserId ? 'You' : 'Fortaa Member',
+      role: 'Leader',
+      avatar_url: null,
+      is_following: false,
+    }));
+
+    return res.status(200).json({
+      success: true,
+      likers,
+    });
+  } catch (error) {
+    console.error('getPostLikers error:', error);
+    return res.status(500).json({ success: false, message: 'Failed to retrieve likers' });
   }
 }
 
@@ -680,21 +823,35 @@ async function deletePost(req, res) {
 async function getPostComments(req, res) {
   try {
     const { id } = req.params;
+    const userId = parseInt(req.query.userId || req.body?.userId || req.userId, 10) || null;
     if (!id) {
       return res.status(400).json({ success: false, message: 'Post ID is required' });
     }
 
     if (db.isDBConnected()) {
+      await db.query(`
+        CREATE TABLE IF NOT EXISTS post_comment_likes (
+          id SERIAL PRIMARY KEY,
+          comment_id INTEGER NOT NULL REFERENCES post_comments(id) ON DELETE CASCADE,
+          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+          UNIQUE(comment_id, user_id)
+        );
+      `);
+
       const result = await db.query(
         `SELECT c.*,
                 COALESCE(u.name, c.author_name) AS author_name,
                 COALESCE(u.avatar_url, c.author_avatar) AS author_avatar,
-                COALESCE(u.designation, c.author_role, 'Member') AS author_role
+                COALESCE(u.designation, c.author_role, 'Member') AS author_role,
+                CASE WHEN $2::integer IS NOT NULL THEN
+                  EXISTS(SELECT 1 FROM post_comment_likes pcl WHERE pcl.comment_id = c.id AND pcl.user_id = $2)
+                ELSE FALSE END AS user_liked
          FROM post_comments c
          LEFT JOIN users u ON u.id = c.user_id
          WHERE c.post_id = $1
          ORDER BY c.created_at ASC`,
-        [id]
+        [id, userId]
       );
       return res.status(200).json({ success: true, comments: result.rows });
     }
@@ -786,25 +943,79 @@ async function addPostComment(req, res) {
   }
 }
 
-// 15. Like a Comment
+// 15. Like / Unlike a Comment (Strict 1-like-per-user toggle)
 async function likePostComment(req, res) {
   try {
     const { id } = req.params;
+    const userId = parseInt(req.body.userId || req.userId || req.query.userId, 10) || 13;
+
     if (db.isDBConnected()) {
-      const result = await db.query(
-        `UPDATE post_comments SET likes_count = likes_count + 1 WHERE id = $1 RETURNING *`,
-        [id]
+      await db.query(`
+        CREATE TABLE IF NOT EXISTS post_comment_likes (
+          id SERIAL PRIMARY KEY,
+          comment_id INTEGER NOT NULL REFERENCES post_comments(id) ON DELETE CASCADE,
+          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+          UNIQUE(comment_id, user_id)
+        );
+      `);
+
+      const existing = await db.query(
+        'SELECT id FROM post_comment_likes WHERE comment_id = $1 AND user_id = $2',
+        [id, userId]
       );
-      if (result.rows.length === 0) {
-        return res.status(404).json({ success: false, message: 'Comment not found' });
+
+      let user_liked = false;
+      let updatedComment = null;
+
+      if (existing.rows.length > 0) {
+        // Already liked -> UNLIKE (removes like)
+        await db.query('DELETE FROM post_comment_likes WHERE comment_id = $1 AND user_id = $2', [id, userId]);
+        const commentRes = await db.query(
+          `UPDATE post_comments 
+           SET likes_count = GREATEST(0, (SELECT COUNT(*) FROM post_comment_likes WHERE comment_id = $1))
+           WHERE id = $1 RETURNING *`,
+          [id]
+        );
+        if (commentRes.rows.length === 0) {
+          return res.status(404).json({ success: false, message: 'Comment not found' });
+        }
+        updatedComment = commentRes.rows[0];
+        user_liked = false;
+      } else {
+        // Not liked yet -> LIKE (strictly 1 like)
+        await db.query(
+          'INSERT INTO post_comment_likes (comment_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+          [id, userId]
+        );
+        const commentRes = await db.query(
+          `UPDATE post_comments 
+           SET likes_count = (SELECT COUNT(*) FROM post_comment_likes WHERE comment_id = $1)
+           WHERE id = $1 RETURNING *`,
+          [id]
+        );
+        if (commentRes.rows.length === 0) {
+          return res.status(404).json({ success: false, message: 'Comment not found' });
+        }
+        updatedComment = commentRes.rows[0];
+        user_liked = true;
       }
-      return res.status(200).json({ success: true, comment: result.rows[0] });
+
+      return res.status(200).json({
+        success: true,
+        user_liked,
+        likes_count: updatedComment.likes_count,
+        comment: {
+          ...updatedComment,
+          user_liked,
+        },
+      });
     }
 
-    return res.status(200).json({ success: true, message: 'Comment liked' });
+    return res.status(200).json({ success: true, message: 'Comment like toggled' });
   } catch (err) {
     console.error('likePostComment error:', err);
-    return res.status(500).json({ success: false, message: 'Failed to like comment' });
+    return res.status(500).json({ success: false, message: 'Failed to toggle comment like' });
   }
 }
 
@@ -904,6 +1115,7 @@ module.exports = {
   createPost,
   votePoll,
   likePost,
+  getPostLikers,
   updatePost,
   deletePost,
   getPostComments,

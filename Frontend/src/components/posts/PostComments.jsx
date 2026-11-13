@@ -25,6 +25,7 @@ export default function PostComments({
   const [loading, setLoading] = useState(true);
   const [newText, setNewText] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [replyingTo, setReplyingTo] = useState(null); // { id, author_name }
   const inputRef = useRef(null);
 
   // Fetch comments on mount
@@ -83,6 +84,24 @@ export default function PostComments({
     return `${Math.floor(diff / 86400)}d`;
   };
 
+  // Handle clicking Reply on a comment (Instagram style)
+  const handleReplyClick = (comment) => {
+    setReplyingTo({ id: comment.id, author_name: comment.author_name });
+    const mention = `@${comment.author_name} `;
+    setNewText((prev) => {
+      if (prev.startsWith(mention)) return prev;
+      return `${mention}${prev.replace(/^@[a-zA-Z0-9_.]+\s*/, '')}`;
+    });
+    if (inputRef.current) {
+      inputRef.current.focus();
+    }
+  };
+
+  const handleCancelReply = () => {
+    setReplyingTo(null);
+    setNewText((prev) => prev.replace(/^@[a-zA-Z0-9_.]+\s*/, ''));
+  };
+
   // Submit comment
   const handleSubmit = async (e) => {
     if (e) e.preventDefault();
@@ -90,6 +109,7 @@ export default function PostComments({
 
     const trimmed = newText.trim();
     setSubmitting(true);
+    setReplyingTo(null);
 
     const userName = currentUser?.name || 'Kapil Dhakad';
     const userRole = currentUser?.designation || currentUser?.role || 'Member';
@@ -159,7 +179,16 @@ export default function PostComments({
 
     try {
       if (typeof commentId === 'number') {
-        await likePostCommentApi(commentId);
+        const res = await likePostCommentApi(commentId, currentUser?.id);
+        if (res?.success && res?.likes_count !== undefined) {
+          setComments((prev) =>
+            prev.map((c) =>
+              c.id === commentId
+                ? { ...c, likes_count: res.likes_count, user_liked: res.user_liked }
+                : c
+            )
+          );
+        }
       }
     } catch {
       // Optimistic UI
@@ -220,48 +249,87 @@ export default function PostComments({
                         <span className="pc-badge">{comment.author_role}</span>
                       )}
                     </div>
-                    <p className="pc-text">{comment.content}</p>
+                    <p className="pc-text">
+                      {(() => {
+                        const match = comment.content?.match(/^(@[a-zA-Z0-9_.]+)\s*(.*)/);
+                        if (match) {
+                          return (
+                            <>
+                              <span className="pc-mention">{match[1]}</span> {match[2]}
+                            </>
+                          );
+                        }
+                        return comment.content;
+                      })()}
+                    </p>
                   </div>
 
+                  {/* Instagram-style comment footer: time • likes • Reply */}
                   <div className="pc-meta-row">
-                    <button
-                      type="button"
-                      className={`pc-like-btn ${comment.user_liked ? 'liked' : ''}`}
-                      onClick={() => handleLikeComment(comment.id)}
-                    >
-                      {comment.user_liked ? (
-                        <FaHeart size={11} color="#EF4444" />
-                      ) : (
-                        <FaRegHeart size={11} />
-                      )}
-                      <span>
-                        {comment.likes_count > 0 ? comment.likes_count : 'Like'}
-                      </span>
-                    </button>
-
-                    <span className="pc-dot">•</span>
                     <span className="pc-time">{formatTimeAgo(comment.created_at)}</span>
 
+                    {comment.likes_count > 0 && (
+                      <span className="pc-likes-count">
+                        {comment.likes_count} {comment.likes_count === 1 ? 'like' : 'likes'}
+                      </span>
+                    )}
+
+                    <button
+                      type="button"
+                      className="pc-reply-btn"
+                      onClick={() => handleReplyClick(comment)}
+                    >
+                      Reply
+                    </button>
+
                     {isAuthor && (
-                      <>
-                        <span className="pc-dot">•</span>
-                        <button
-                          type="button"
-                          className="pc-delete-btn"
-                          onClick={() => handleDeleteComment(comment.id)}
-                          title="Delete comment"
-                        >
-                          <FaTrashAlt size={10} />
-                        </button>
-                      </>
+                      <button
+                        type="button"
+                        className="pc-delete-btn"
+                        onClick={() => handleDeleteComment(comment.id)}
+                        title="Delete comment"
+                      >
+                        <FaTrashAlt size={10} />
+                      </button>
                     )}
                   </div>
                 </div>
+
+                {/* Instagram Heart Button on the right */}
+                <button
+                  type="button"
+                  className={`pc-heart-btn ${comment.user_liked ? 'liked' : ''}`}
+                  onClick={() => handleLikeComment(comment.id)}
+                  title="Like comment"
+                >
+                  {comment.user_liked ? (
+                    <FaHeart size={12} color="#EF4444" />
+                  ) : (
+                    <FaRegHeart size={12} />
+                  )}
+                </button>
               </div>
             );
           })
         )}
       </div>
+
+      {/* Instagram Replying-To Banner */}
+      {replyingTo && (
+        <div className="pc-replying-bar">
+          <span className="pc-replying-text">
+            Replying to <strong>@{replyingTo.author_name}</strong>
+          </span>
+          <button
+            type="button"
+            className="pc-cancel-reply-btn"
+            onClick={handleCancelReply}
+            title="Cancel reply"
+          >
+            ✕
+          </button>
+        </div>
+      )}
 
       {/* Write New Comment Input Box */}
       <form className="pc-input-row" onSubmit={handleSubmit}>
@@ -278,7 +346,7 @@ export default function PostComments({
             ref={inputRef}
             type="text"
             className="pc-input"
-            placeholder="Write a comment..."
+            placeholder={replyingTo ? `Reply to @${replyingTo.author_name}...` : "Write a comment..."}
             value={newText}
             onChange={(e) => setNewText(e.target.value)}
             disabled={submitting}

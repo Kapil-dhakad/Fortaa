@@ -5,10 +5,12 @@ import { uploadSingleImage, uploadDocument } from '../../services/upload.service
 import logoIconImg from '../../assets/figma/logo_icon_img.png';
 import logoTextImg from '../../assets/figma/logo_text_img.png';
 import GoogleLoginButton from '../../components/auth/GoogleLoginButton';
+import { getRedirectUrl } from '../../utils/auth';
 import './SignUpPage.css';
 
 export default function SignUpPage() {
   const navigate = useNavigate();
+  const redirectUrl = getRedirectUrl('/dashboard');
 
   // Step state: 1: 'account-type', 2: 'personal-details', 3: 'business-details', 4: 'verification'
   const [step, setStep] = useState(1);
@@ -654,8 +656,8 @@ export default function SignUpPage() {
       localStorage.setItem('fortaa_user', JSON.stringify(data.user));
 
       toast.success('Registration completed successfully! Welcome to Fortaa.');
-      // Direct navigation to Dashboard
-      navigate('/dashboard');
+      // Direct navigation to intended destination or Dashboard
+      navigate(redirectUrl, { replace: true });
     } catch (err) {
       console.error('Registration API error:', err);
       const errMsg = err.message || 'Registration failed. Please check your details.';
@@ -676,7 +678,7 @@ export default function SignUpPage() {
             <button
               type="button"
               className="auth-mobile-back-btn"
-              onClick={() => (step > 1 ? setStep(step - 1) : navigate('/login'))}
+              onClick={() => (step > 1 ? setStep(step - 1) : navigate(redirectUrl !== '/dashboard' ? `/login?redirect=${encodeURIComponent(redirectUrl)}` : '/login'))}
               aria-label="Back"
             >
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#232356" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -694,7 +696,10 @@ export default function SignUpPage() {
             {step <= 4 && (
               <div className="card-login-prompt">
                 Already have an account?{' '}
-                <Link to="/login" className="card-login-link">
+                <Link
+                  to={redirectUrl !== '/dashboard' ? `/login?redirect=${encodeURIComponent(redirectUrl)}` : '/login'}
+                  className="card-login-link"
+                >
                   Log In
                 </Link>
               </div>
@@ -813,7 +818,10 @@ export default function SignUpPage() {
 
                 <div className="auth-footer-prompt">
                   <span>Always have an account? </span>
-                  <Link to="/login" className="auth-footer-login-link">
+                  <Link
+                    to={redirectUrl !== '/dashboard' ? `/login?redirect=${encodeURIComponent(redirectUrl)}` : '/login'}
+                    className="auth-footer-login-link"
+                  >
                     Log In
                   </Link>
                 </div>

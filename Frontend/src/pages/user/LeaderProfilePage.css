@@ -66,23 +66,45 @@
   margin-bottom: 6px;
 }
 
-/* HERO PROFILE BANNER (Matching Figma 2nd image) */
+/* HERO PROFILE BANNER (Modern Executive Mesh) */
 .lp-hero-banner {
   flex: 1;
   min-width: 0;
   min-height: 179px;
-  background-color: #0E021F;
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
-  border-radius: 10px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.16);
+  background: linear-gradient(135deg, #0d061f 0%, #1a0a38 45%, #2a0e54 80%, #431677 100%);
+  border-radius: 16px;
+  box-shadow: 0 8px 30px rgba(13, 6, 31, 0.35);
   position: relative;
   overflow: hidden;
   box-sizing: border-box;
-  padding: 20px 24px;
+  padding: 22px 28px;
   display: flex;
   align-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.lp-hero-banner::before {
+  content: '';
+  position: absolute;
+  top: -50px;
+  right: -30px;
+  width: 280px;
+  height: 280px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(139, 92, 246, 0.28) 0%, rgba(139, 92, 246, 0) 70%);
+  pointer-events: none;
+}
+
+.lp-hero-banner::after {
+  content: '';
+  position: absolute;
+  bottom: -60px;
+  left: 30%;
+  width: 240px;
+  height: 240px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(236, 72, 153, 0.18) 0%, rgba(236, 72, 153, 0) 70%);
+  pointer-events: none;
 }
 
 .lp-hero-inner {
@@ -636,6 +658,66 @@
   color: #6B11D7;
   display: block;
   text-align: right;
+}
+
+/* Professional Background Card (Real Data) */
+.lp-exp-card {
+  padding: 16px;
+}
+
+.lp-exp-card-body {
+  margin-top: 10px;
+}
+
+.lp-exp-item {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.lp-exp-icon-box {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background: #F3E8FF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.lp-exp-details {
+  flex: 1;
+}
+
+.lp-exp-role {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1E0241;
+  margin: 0 0 2px 0;
+}
+
+.lp-exp-company {
+  font-size: 13px;
+  font-weight: 600;
+  color: #7C3AED;
+  margin: 0 0 4px 0;
+}
+
+.lp-exp-duration {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: #64748B;
+  margin-bottom: 8px;
+}
+
+.lp-exp-desc {
+  font-size: 12px;
+  color: #475569;
+  line-height: 1.45;
+  margin: 0;
 }
 
 /* Featured Opportunities Card */
@@ -1220,6 +1302,476 @@
     padding-bottom: 75px; /* Space for UserMobileBottomNav */
     box-sizing: border-box;
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  }
+
+  /* ====================================================================
+     LINKEDIN-STYLE MOBILE VIEW (Image 4 Design)
+     ==================================================================== */
+  .lp-li-cover {
+    width: 100%;
+    height: 135px;
+    background: linear-gradient(135deg, #0e0725 0%, #200d45 40%, #3f156d 75%, #6322a3 100%);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .lp-li-cover-overlay {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 80% 20%, rgba(168, 85, 247, 0.35) 0%, transparent 60%);
+    pointer-events: none;
+  }
+
+  .lp-li-cover-nav {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    right: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    z-index: 10;
+  }
+
+  .lp-li-nav-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    cursor: pointer;
+    color: #1E293B;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    transition: transform 0.15s ease;
+  }
+
+  .lp-li-nav-btn:active {
+    transform: scale(0.92);
+  }
+
+  .lp-li-nav-right {
+    display: flex;
+    gap: 8px;
+  }
+
+  /* Main LinkedIn Profile Card */
+  .lp-li-main-card {
+    background: #FFFFFF;
+    border-radius: 0 0 16px 16px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    padding: 0 16px 18px 16px;
+    margin-bottom: 12px;
+    border-bottom: 1px solid #E2E8F0;
+  }
+
+  .lp-li-avatar-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-top: -46px;
+    margin-bottom: 12px;
+  }
+
+  .lp-li-avatar-box {
+    width: 92px;
+    height: 92px;
+    border-radius: 50%;
+    border: 4px solid #FFFFFF;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+    overflow: hidden;
+    background: #FFFFFF;
+    position: relative;
+    flex-shrink: 0;
+  }
+
+  .lp-li-avatar-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .lp-li-avatar-badge {
+    position: absolute;
+    bottom: 2px;
+    right: 2px;
+    background: linear-gradient(135deg, #F59E0B, #D97706);
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 2px solid #FFFFFF;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  }
+
+  .lp-li-company-tag {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 12px;
+    background: #F5F3FF;
+    border: 1px solid #EDE9FE;
+    border-radius: 16px;
+    font-size: 11.5px;
+    font-weight: 700;
+    color: #6D28D9;
+    margin-bottom: 6px;
+  }
+
+  .lp-li-info {
+    text-align: left;
+  }
+
+  .lp-li-name-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .lp-li-name {
+    font-size: 20px;
+    font-weight: 800;
+    color: #0F172A;
+    margin: 0;
+    line-height: 1.25;
+  }
+
+  .lp-li-verified-icon {
+    display: flex;
+    align-items: center;
+  }
+
+  .lp-li-badge-pill {
+    font-size: 10.5px;
+    font-weight: 700;
+    padding: 2px 8px;
+    background: #EDE9FE;
+    color: #6D28D9;
+    border-radius: 12px;
+  }
+
+  .lp-li-username {
+    font-size: 12px;
+    color: #64748B;
+    margin-top: 2px;
+    font-weight: 500;
+  }
+
+  .lp-li-headline {
+    font-size: 13.5px;
+    color: #334155;
+    margin: 6px 0 6px 0;
+    line-height: 1.45;
+    font-weight: 500;
+  }
+
+  .lp-li-meta-line {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12.5px;
+    color: #64748B;
+    flex-wrap: wrap;
+  }
+
+  .lp-li-location {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: #64748B;
+  }
+
+  .lp-li-meta-dot {
+    color: #94A3B8;
+  }
+
+  .lp-li-contact-link {
+    color: #7C3AED;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .lp-li-social-proof {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 8px;
+    font-size: 13px;
+  }
+
+  .lp-li-followers-highlight {
+    color: #6D28D9;
+    font-weight: 700;
+  }
+
+  .lp-li-following-sub {
+    color: #64748B;
+    font-weight: 500;
+  }
+
+  /* Actions Row */
+  .lp-li-actions-row {
+    display: flex;
+    gap: 10px;
+    margin-top: 14px;
+    align-items: center;
+  }
+
+  .lp-li-btn-primary {
+    flex: 1;
+    height: 38px;
+    border-radius: 20px;
+    background: #7C3AED;
+    color: #FFFFFF;
+    font-size: 13.5px;
+    font-weight: 700;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(124, 58, 237, 0.25);
+    transition: transform 0.15s ease, background 0.15s ease;
+  }
+
+  .lp-li-btn-primary:active {
+    transform: scale(0.97);
+  }
+
+  .lp-li-btn-secondary {
+    flex: 1;
+    height: 38px;
+    border-radius: 20px;
+    background: #FFFFFF;
+    color: #7C3AED;
+    font-size: 13.5px;
+    font-weight: 700;
+    border: 1.5px solid #7C3AED;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    cursor: pointer;
+    transition: transform 0.15s ease;
+  }
+
+  .lp-li-btn-secondary:active {
+    transform: scale(0.97);
+  }
+
+  .lp-li-btn-secondary.pending {
+    background: #FEF3C7 !important;
+    color: #D97706 !important;
+    border-color: #F59E0B !important;
+  }
+
+  .lp-li-btn-secondary.following {
+    background: #EDE9FE !important;
+    color: #7C3AED !important;
+    border-color: #7C3AED !important;
+  }
+
+  .lp-li-btn-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: #FFFFFF;
+    border: 1.5px solid #CBD5E1;
+    color: #475569;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  /* LinkedIn Sections & Cards */
+  .lp-li-sections {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 0 10px;
+  }
+
+  .lp-li-card {
+    background: #FFFFFF;
+    border-radius: 12px;
+    padding: 16px 14px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    border: 1px solid #F1F5F9;
+  }
+
+  .lp-li-card-heading {
+    font-size: 15px;
+    font-weight: 800;
+    color: #0F172A;
+    margin: 0 0 10px 0;
+  }
+
+  .lp-li-card-head-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+
+  .lp-li-activity-sub {
+    font-size: 12px;
+    color: #7C3AED;
+    font-weight: 600;
+  }
+
+  .lp-li-card-paragraph {
+    font-size: 13px;
+    color: #334155;
+    line-height: 1.55;
+    margin: 0;
+  }
+
+  .lp-li-website-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 10px;
+    font-size: 12.5px;
+  }
+
+  .lp-li-website-anchor {
+    color: #7C3AED;
+    font-weight: 600;
+    text-decoration: none;
+  }
+
+  .lp-li-posts-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .lp-li-post-item {
+    padding: 10px;
+    border-radius: 8px;
+    background: #F8FAFC;
+    border: 1px solid #E2E8F0;
+  }
+
+  .lp-li-post-content {
+    font-size: 12.5px;
+    color: #1E293B;
+    margin: 0 0 6px 0;
+    line-height: 1.45;
+  }
+
+  .lp-li-post-media {
+    width: 100%;
+    max-height: 180px;
+    border-radius: 6px;
+    overflow: hidden;
+    margin-bottom: 6px;
+  }
+
+  .lp-li-post-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .lp-li-post-metrics {
+    display: flex;
+    gap: 12px;
+    font-size: 11.5px;
+    color: #64748B;
+    font-weight: 600;
+  }
+
+  .lp-li-exp-item {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+  }
+
+  .lp-li-exp-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    background: #F3E8FF;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .lp-li-exp-body {
+    flex: 1;
+  }
+
+  .lp-li-exp-role {
+    font-size: 13.5px;
+    font-weight: 700;
+    color: #0F172A;
+    margin: 0 0 2px 0;
+  }
+
+  .lp-li-exp-company {
+    font-size: 12.5px;
+    color: #7C3AED;
+    font-weight: 600;
+    margin: 0 0 4px 0;
+  }
+
+  .lp-li-exp-date {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    color: #64748B;
+    margin-bottom: 6px;
+  }
+
+  .lp-li-exp-desc {
+    font-size: 12px;
+    color: #475569;
+    line-height: 1.45;
+    margin: 0;
+  }
+
+  .lp-li-skills-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+  }
+
+  .lp-li-skill-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 12px;
+    background: #F5F3FF;
+    border: 1px solid #DDD6FE;
+    border-radius: 16px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #6D28D9;
+  }
+
+  .lp-li-skill-dot {
+    color: #10B981;
+    font-weight: 800;
+    font-size: 11px;
+  }
+
+  .lp-li-empty-text {
+    font-size: 12.5px;
+    color: #94A3B8;
+    text-align: center;
+    padding: 12px 0;
   }
 
   /* 1. Cover Banner */
@@ -1950,43 +2502,55 @@
   background: #FFFFFF;
   border-radius: 16px;
   border: 1px solid #E2E8F0;
-  box-shadow: 0 4px 20px -2px rgba(124, 58, 237, 0.05);
-  padding: 60px 24px;
+  box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.04);
+  padding: 56px 24px;
   text-align: center;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  margin: 20px 0 40px 0;
+  margin: 24px 0 40px 0;
   width: 100%;
 }
 
 .lp-private-lock-circle {
-  width: 80px;
-  height: 80px;
+  width: 72px;
+  height: 72px;
   border-radius: 50%;
-  background: #F5F3FF;
-  border: 2px dashed #C4B5FD;
+  background: #F8FAFC;
+  border: 2px solid #CBD5E1;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 20px;
+  margin-bottom: 16px;
+  color: #0F172A;
+  transition: transform 0.2s ease;
 }
 
 .lp-private-title {
-  font-size: 22px;
-  font-weight: 800;
+  font-size: 16px;
+  font-weight: 700;
   color: #0F172A;
-  margin: 0 0 8px 0;
-  letter-spacing: -0.3px;
+  margin: 0 0 6px 0;
+  letter-spacing: -0.2px;
 }
 
 .lp-private-desc {
-  font-size: 15px;
+  font-size: 13.5px;
   color: #64748B;
-  max-width: 420px;
+  max-width: 380px;
   margin: 0 auto;
-  line-height: 1.5;
+  line-height: 1.45;
+}
+
+.lp-li-private-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 40px 20px !important;
+  margin: 14px 14px 80px 14px;
 }
 
 .lp-private-account-card.lp-mob-private-card {

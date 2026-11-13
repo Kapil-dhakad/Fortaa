@@ -27,7 +27,10 @@ export async function fetchUserGroups(userId) {
     const res = await fetch(`${API_BASE}/user/${encodeURIComponent(userId)}`);
     if (!res.ok) throw new Error(`HTTP error ${res.status}`);
     const data = await res.json();
-    return data.groups || [];
+    const list = data.groups || [];
+    list.joinedGroups = data.joinedGroups || [];
+    list.createdGroups = data.createdGroups || [];
+    return list;
   } catch (error) {
     console.error('[group.service] fetchUserGroups failed:', error);
     return [];

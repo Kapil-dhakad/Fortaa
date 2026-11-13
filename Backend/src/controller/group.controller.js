@@ -240,7 +240,7 @@ async function createGroup(req, res) {
 }
 
 /**
- * Get groups joined by a user
+ * Get groups joined & created by a user
  */
 async function getUserGroups(req, res) {
   try {
@@ -250,27 +250,48 @@ async function getUserGroups(req, res) {
     }
 
     if (!db.isDBConnected()) {
-      return res.status(200).json({ success: true, groups: [] });
+      return res.status(200).json({ success: true, groups: [], joinedGroups: [], createdGroups: [] });
     }
 
-    const query = `
+    // 1. Created Groups (created_by = userId)
+    const createdQuery = `
       SELECT 
         g.*,
         COALESCE(g.category, 'General') as category,
         COALESCE(g.description, 'Team collaboration group') as description,
-        gm.role,
+        COALESCE(g.members, '1 member') as members,
+        'admin' as member_role,
+        TRUE as is_member,
+        COALESCE((SELECT COUNT(*)::int FROM group_members WHERE group_id = g.id), 1) as actual_members_count
+      FROM groups g
+      WHERE g.created_by = $1
+      ORDER BY g.id DESC;
+    `;
+    const createdResult = await db.query(createdQuery, [userId]);
+
+    // 2. Joined Groups (in group_members but NOT created_by)
+    const joinedQuery = `
+      SELECT 
+        g.*,
+        COALESCE(g.category, 'General') as category,
+        COALESCE(g.description, 'Team collaboration group') as description,
+        COALESCE(g.members, '1 member') as members,
+        COALESCE(gm.role, 'member') as member_role,
         gm.joined_at,
-        TRUE as is_member
+        TRUE as is_member,
+        COALESCE((SELECT COUNT(*)::int FROM group_members WHERE group_id = g.id), 1) as actual_members_count
       FROM groups g
       JOIN group_members gm ON gm.group_id = g.id
-      WHERE gm.user_id = $1
+      WHERE gm.user_id = $1 AND (g.created_by IS NULL OR g.created_by != $1)
       ORDER BY gm.joined_at DESC;
     `;
+    const joinedResult = await db.query(joinedQuery, [userId]);
 
-    const result = await db.query(query, [userId]);
     return res.status(200).json({
       success: true,
-      groups: result.rows,
+      createdGroups: createdResult.rows,
+      joinedGroups: joinedResult.rows,
+      groups: [...createdResult.rows, ...joinedResult.rows],
     });
   } catch (error) {
     console.error('[getUserGroups Error]:', error);

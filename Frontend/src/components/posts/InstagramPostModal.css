@@ -548,7 +548,49 @@
   transform: scale(1.25);
 }
 
+.ipm-comment-mention {
+  color: #7C3AED;
+  font-weight: 600;
+}
+
 /* Input Form */
+.ipm-replying-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #EDE9FE;
+  border: 1px solid #DDD6FE;
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 12px;
+  color: #6D28D9;
+  margin-top: 8px;
+}
+
+.ipm-replying-text strong {
+  font-weight: 700;
+  color: #5B21B6;
+}
+
+.ipm-cancel-reply-btn {
+  background: transparent;
+  border: none;
+  color: #7C3AED;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 4px;
+  border-radius: 4px;
+}
+
+.ipm-cancel-reply-btn:hover {
+  color: #EF4444;
+  background: rgba(239, 68, 68, 0.1);
+}
+
 .ipm-input-form {
   display: flex;
   align-items: center;

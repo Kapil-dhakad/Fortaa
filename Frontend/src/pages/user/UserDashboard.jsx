@@ -12,9 +12,11 @@ import ShareModal from '../../components/posts/ShareModal';
 import PostActionMenu from '../../components/posts/PostActionMenu';
 import AboutAccountModal from '../../components/posts/AboutAccountModal';
 import InstagramPostModal from '../../components/posts/InstagramPostModal';
+import PostLikersModal from '../../components/posts/PostLikersModal';
 import InviteTeamModal from '../../components/modals/InviteTeamModal';
 import JoinGroupModal from '../../components/modals/JoinGroupModal';
 import NotificationDropdown from '../../components/notifications/NotificationDropdown';
+import AuthGateModal from '../../components/auth/AuthGateModal';
 
 // Upload & Dashboard APIs
 import { uploadSingleImage, uploadSingleVideo } from '../../services/upload.service';
@@ -104,6 +106,162 @@ const MOBILE_SIDEBAR_NAV_ITEMS = [
   { label: 'Settings', icon: navSettingsIcon, path: '/settings' },
 ];
 
+// 1. Format Relative Time (LinkedIn style: Just now, 15m, 12h, 1 day, 4 days)
+export function formatRelativeTime(dateString) {
+  if (!dateString) return 'Just now';
+  const postDate = new Date(dateString);
+  if (isNaN(postDate.getTime())) return dateString;
+
+  const now = new Date();
+  const diffInMs = now.getTime() - postDate.getTime();
+  if (diffInMs < 0) return 'Just now';
+
+  const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
+  if (diffInMinutes < 1) return 'Just now';
+  if (diffInMinutes < 60) return `${diffInMinutes}m`;
+
+  const diffInHours = Math.floor(diffInMinutes / 60);
+  if (diffInHours < 24) return `${diffInHours}h`;
+
+  const diffInDays = Math.floor(diffInHours / 24);
+  if (diffInDays === 1) return '1 day';
+  if (diffInDays < 7) return `${diffInDays} days`;
+
+  const diffInWeeks = Math.floor(diffInDays / 7);
+  if (diffInWeeks === 1) return '1 week';
+  if (diffInWeeks < 4) return `${diffInWeeks} weeks`;
+
+  const diffInMonths = Math.floor(diffInDays / 30);
+  if (diffInMonths === 1) return '1 month';
+  if (diffInMonths < 12) return `${diffInMonths} months`;
+
+  return `${Math.floor(diffInDays / 365)}y`;
+}
+
+// 2. Render Formatted Content (Clickable URLs & Phone numbers in vibrant blue)
+export function renderFormattedContent(text) {
+  if (!text) return null;
+
+  // Matches URLs (http, https, www) or 10-digit Indian phone numbers (with optional +91 or 0 prefix)
+  const pattern = /(https?:\/\/[^\s]+|www\.[^\s]+|(?:(?:\+91[-\s]?)|(?:\b0))?[6-9]\d{9}\b)/gi;
+
+  const parts = [];
+  let lastIndex = 0;
+  let match;
+
+  while ((match = pattern.exec(text)) !== null) {
+    if (match.index > lastIndex) {
+      parts.push(text.slice(lastIndex, match.index));
+    }
+
+    const matchedText = match[0];
+    const isUrl = /^https?:\/\/|^www\./i.test(matchedText);
+
+    if (isUrl) {
+      const href = matchedText.startsWith('http') ? matchedText : `https://${matchedText}`;
+      parts.push(
+        <a
+          key={`url-${match.index}`}
+          href={href}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="ud-post-inline-link"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {matchedText}
+        </a>
+      );
+    } else {
+      const cleanPhone = matchedText.replace(/[^\d+]/g, '');
+      parts.push(
+        <a
+          key={`phone-${match.index}`}
+          href={`tel:${cleanPhone}`}
+          className="ud-post-inline-phone"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {matchedText}
+        </a>
+      );
+    }
+
+    lastIndex = pattern.lastIndex;
+  }
+
+  if (lastIndex < text.length) {
+    parts.push(text.slice(lastIndex));
+  }
+
+  return parts;
+}
+
+// 3. Instagram-style Likes Row: "Liked by vishaldhakad_08 and others"
+export function renderInstagramLikes(post, profile, onOpenLikes) {
+  const likesCount = Number(post.likes_count) || 0;
+  if (likesCount <= 0) return <div className="ud-insta-like-placeholder" />;
+
+  const hasLiked = Boolean(post.has_liked);
+  const myName = profile?.name || 'you';
+  const otherName = post.latest_liker_name || (post.author_name !== myName ? post.author_name : 'a leader');
+  const avatar = post.latest_liker_avatar || userAvatarImg;
+
+  let content = null;
+  if (likesCount === 1) {
+    if (hasLiked) {
+      content = <>Liked by <strong>you</strong></>;
+    } else {
+      content = <>Liked by <strong>{otherName}</strong></>;
+    }
+  } else if (likesCount === 2) {
+    if (hasLiked) {
+      content = <>Liked by <strong>you</strong> and <strong>1 other</strong></>;
+    } else {
+      content = <>Liked by <strong>{otherName}</strong> and <strong>1 other</strong></>;
+    }
+  } else {
+    const othersCount = likesCount - 1;
+    if (hasLiked) {
+      content = (
+        <>
+          Liked by <strong>{otherName || 'you'}</strong> and <strong>{othersCount} others</strong>
+        </>
+      );
+    } else {
+      content = (
+        <>
+          Liked by <strong>{otherName}</strong> and <strong>{othersCount} others</strong>
+        </>
+      );
+    }
+  }
+
+  return (
+    <div
+      className="ud-insta-likes-bar"
+      style={{ cursor: 'pointer' }}
+      onClick={(e) => {
+        e.stopPropagation();
+        if (onOpenLikes) onOpenLikes(post.id);
+      }}
+      title="View who liked this post"
+    >
+      <div className="ud-insta-likes-left">
+        <span className="ud-insta-likes-heart">❤️</span>
+        {avatar && (
+          <img
+            src={avatar}
+            alt=""
+            className="ud-insta-liker-thumb"
+            onError={(e) => {
+              e.currentTarget.style.display = 'none';
+            }}
+          />
+        )}
+        <span className="ud-insta-likes-label">{content}</span>
+      </div>
+    </div>
+  );
+}
 
 function InFeedSuggestedPeople({
   type = 'trainers',
@@ -426,7 +584,7 @@ function FeedVideo({ src, onDoubleTap, onSingleTap, isHeartActive, isMobile = fa
 }
 
 // ── Interactive Poll Component for Feed Posts ──
-function PostPoll({ pollData, postId, onVote, currentUserId }) {
+export function PostPoll({ pollData, postId, onVote, currentUserId }) {
   let poll = null;
   try {
     poll = typeof pollData === 'string' ? JSON.parse(pollData) : pollData;
@@ -496,6 +654,17 @@ export default function UserDashboard() {
 
   // Logged in user from localStorage
   const storedUser = JSON.parse(localStorage.getItem('fortaa_user') || '{}');
+  const isUserAuthenticated = Boolean(storedUser && (storedUser.id || storedUser.email));
+
+  useEffect(() => {
+    if (!isUserAuthenticated) {
+      const params = new URLSearchParams(window.location.search);
+      // If someone visited pure dashboard without a shared post parameter, redirect to login
+      if (!params.get('post')) {
+        navigate('/login', { replace: true });
+      }
+    }
+  }, [isUserAuthenticated, navigate]);
 
   const [profile, setProfile] = useState({
     id: storedUser.id || 13,
@@ -532,6 +701,7 @@ export default function UserDashboard() {
   const [activeMenuPost, setActiveMenuPost] = useState(null);
   const [aboutAccountPost, setAboutAccountPost] = useState(null);
   const [instagramModalPost, setInstagramModalPost] = useState(null);
+  const [likesModalPostId, setLikesModalPostId] = useState(null);
   const [followingIds, setFollowingIds] = useState([]);
   const [pendingIds, setPendingIds] = useState([]);
   const [trainersList, setTrainersList] = useState([]);
@@ -985,7 +1155,12 @@ export default function UserDashboard() {
     setPosts((prev) =>
       prev.map((p) =>
         p.id === postId
-          ? { ...p, likes_count: nextCount, has_liked: nextLiked }
+          ? {
+              ...p,
+              likes_count: nextCount,
+              has_liked: nextLiked,
+              latest_liker_name: nextLiked ? (profile.name || 'you') : p.latest_liker_name,
+            }
           : p
       )
     );
@@ -996,7 +1171,13 @@ export default function UserDashboard() {
       setPosts((prev) =>
         prev.map((p) =>
           p.id === postId
-            ? { ...p, likes_count: res.post.likes_count, has_liked: res.liked }
+            ? {
+                ...p,
+                likes_count: res.post.likes_count,
+                has_liked: res.liked,
+                latest_liker_name: res.post.latest_liker_name || p.latest_liker_name,
+                latest_liker_avatar: res.post.latest_liker_avatar || p.latest_liker_avatar,
+              }
             : p
         )
       );
@@ -1006,15 +1187,19 @@ export default function UserDashboard() {
   // Handle Author profile click navigation
   const handleAuthorClick = (post) => {
     if (!post) return;
-    const myId = profile.id || storedUser.id;
-    const isSelf = post.user_id && Number(post.user_id) === Number(myId);
-    if (isSelf) {
-      navigate('/profile');
-    } else if (post.user_id) {
-      navigate(`/leaders/${post.user_id}`, {
+    let targetId = post.user_id || post.author_id || post.userId;
+    if (!targetId && post.author_name) {
+      const match = leadersList.find(
+        (l) => l.name && l.name.toLowerCase().trim() === post.author_name.toLowerCase().trim()
+      );
+      if (match?.id) targetId = match.id;
+    }
+
+    if (targetId) {
+      navigate(`/leader/${targetId}`, {
         state: {
           leader: {
-            id: post.user_id,
+            id: targetId,
             name: post.author_name,
             avatar: post.author_avatar,
             levelTitle: post.author_role,
@@ -1140,7 +1325,11 @@ export default function UserDashboard() {
 
 
   return (
-    <div className="ud-page">
+    <>
+      {!isUserAuthenticated && (
+        <AuthGateModal type="post" />
+      )}
+      <div className={`ud-page ${!isUserAuthenticated ? 'auth-gated-blur' : ''}`}>
       {/* ───────────────── SHARED REUSABLE TOPBAR (Handles Desktop & Mobile Viewports) ───────────────── */}
       <UserHeader
         user={profile}
@@ -1451,9 +1640,13 @@ export default function UserDashboard() {
                             >
                               {post.author_name}
                             </span>
-                            <span className="ud-post-badge">{post.author_role || 'Member'}</span>
+                          </div>
+                          <div className="ud-post-author-headline">
+                            {post.author_role || 'Senior Leader • Fortaa'}
+                          </div>
+                          <div className="ud-post-time-row">
                             <span className="ud-post-time">
-                              • {post.time || (post.created_at ? new Date(post.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Just now')} • 🌐
+                              {formatRelativeTime(post.created_at)}
                             </span>
                           </div>
                         </div>
@@ -1497,7 +1690,7 @@ export default function UserDashboard() {
                         onClick={() => setInstagramModalPost(post)}
                         title="Click to view post"
                       >
-                        <p className="ud-post-text">{post.content}</p>
+                        <p className="ud-post-text">{renderFormattedContent(post.content)}</p>
                         {post.tags && <p className="ud-post-tags">{post.tags}</p>}
 
                         {/* Interactive Poll if attached */}
@@ -1550,26 +1743,24 @@ export default function UserDashboard() {
                         ) : null}
                       </div>
 
-                      {/* Post Reactions & Action Bar */}
+                      {/* Post Reactions & Instagram-style Likes Row */}
                       <div className="ud-post-reactions-row">
-                        <div className="ud-post-reaction-icons">
-                          <span className="ud-react-pill-blue">👍</span>
-                          <span className="ud-react-pill-red">❤️</span>
-                          <span className="ud-react-count">{post.likes_count || 0}</span>
-                        </div>
+                        {renderInstagramLikes(post, profile, (pid) => setLikesModalPostId(pid))}
                         <div
                           className="ud-post-comment-counts"
                           style={{ cursor: 'pointer' }}
                           onClick={() => setOpenCommentsPostId(openCommentsPostId === post.id ? null : post.id)}
                           title="View comments"
                         >
-                          <span>{post.comments_count || 0} comments</span>
-                          {Boolean(post.shares_count) && (
-                            <>
-                              <span> • </span>
-                              <span>{post.shares_count} shares</span>
-                            </>
-                          )}
+                          <span className="ud-metric-pill" title={`${post.comments_count || 0} comments`}>
+                            <FaRegComment size={14} className="ud-metric-icon" />
+                            <span>{post.comments_count || 0}</span>
+                          </span>
+                          <span className="ud-metric-dot">•</span>
+                          <span className="ud-metric-pill" title={`${post.shares_count || 0} shares`}>
+                            <RiShareForwardLine size={15} className="ud-metric-icon" />
+                            <span>{post.shares_count || 0}</span>
+                          </span>
                         </div>
                       </div>
 
@@ -2129,17 +2320,22 @@ export default function UserDashboard() {
                         <span className="ud-mob-online-dot" />
                       </div>
                       <div className="ud-mob-author-meta">
-                        <h4
-                          className="ud-mob-author-name"
-                          style={{ cursor: 'pointer' }}
-                          onClick={() => handleAuthorClick(post)}
-                          title="View Profile"
-                        >
-                          {post.author_name || 'Fortaa Member'}
-                        </h4>
-                        <span className="ud-mob-author-sub">
-                          {post.author_role || 'Leader'} • {post.created_at ? new Date(post.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Just now'} • 🌐
-                        </span>
+                        <div className="ud-mob-author-name-row">
+                          <h4
+                            className="ud-mob-author-name"
+                            style={{ cursor: 'pointer' }}
+                            onClick={() => handleAuthorClick(post)}
+                            title="View Profile"
+                          >
+                            {post.author_name || 'Fortaa Member'}
+                          </h4>
+                        </div>
+                        <div className="ud-mob-author-headline">
+                          {post.author_role || 'Senior Leader • Fortaa'}
+                        </div>
+                        <div className="ud-mob-author-time-row">
+                          <span>{formatRelativeTime(post.created_at)}</span>
+                        </div>
                       </div>
                     </div>
 
@@ -2185,7 +2381,7 @@ export default function UserDashboard() {
                     onClick={() => setInstagramModalPost(post)}
                     title="Click to view post"
                   >
-                    <p className="ud-mob-post-text">{post.content}</p>
+                    <p className="ud-mob-post-text">{renderFormattedContent(post.content)}</p>
 
                     {post.tags && (
                       <div className="ud-mob-post-tags">
@@ -2240,21 +2436,24 @@ export default function UserDashboard() {
                     ) : null}
                   </div>
 
-                  {/* Reactions Bar */}
+                  {/* Reactions Bar with Instagram-style Likes */}
                   <div className="ud-mob-post-engagement">
-                    <div className="ud-mob-engagement-reactions">
-                      <span className="ud-mob-reaction-badge blue">👍</span>
-                      <span className="ud-mob-reaction-badge orange">🧡</span>
-                      <span className="ud-mob-engagement-count">{post.likes_count || 0}</span>
-                    </div>
+                    {renderInstagramLikes(post, profile, (pid) => setLikesModalPostId(pid))}
                     <div
                       className="ud-mob-engagement-stats"
                       style={{ cursor: 'pointer' }}
                       onClick={() => setOpenCommentsPostId(openCommentsPostId === post.id ? null : post.id)}
+                      title="View comments"
                     >
-                      <span>{post.comments_count || 0} comments</span>
-                      <span>•</span>
-                      <span>{post.shares_count || 0} shares</span>
+                      <span className="ud-metric-pill" title={`${post.comments_count || 0} comments`}>
+                        <FaRegComment size={13} className="ud-metric-icon" />
+                        <span>{post.comments_count || 0}</span>
+                      </span>
+                      <span className="ud-metric-dot">•</span>
+                      <span className="ud-metric-pill" title={`${post.shares_count || 0} shares`}>
+                        <RiShareForwardLine size={14} className="ud-metric-icon" />
+                        <span>{post.shares_count || 0}</span>
+                      </span>
                     </div>
                   </div>
 
@@ -2611,6 +2810,17 @@ export default function UserDashboard() {
         onToggleFollow={handleToggleFollow}
       />
 
+      {/* ── Instagram-Style Post Likers Modal ── */}
+      <PostLikersModal
+        isOpen={Boolean(likesModalPostId)}
+        onClose={() => setLikesModalPostId(null)}
+        postId={likesModalPostId}
+        currentUserId={profile.id}
+        followingIds={followingIds}
+        onToggleFollow={handleToggleFollow}
+        onUserClick={(userId) => navigate(`/leader/${userId}`)}
+      />
+
       {/* ── Invite Team Modal ── */}
       <InviteTeamModal
         isOpen={isInviteTeamModalOpen}
@@ -2631,5 +2841,6 @@ export default function UserDashboard() {
         }}
       />
     </div>
+    </>
   );
 }

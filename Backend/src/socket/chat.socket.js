@@ -131,6 +131,25 @@ function setupChatSocket(io) {
 
         // Direct 1-on-1 Message branch
         if (db.isDBConnected()) {
+          // Check if either user has blocked the other
+          try {
+            const blockCheck = await db.query(
+              `SELECT blocker_id FROM user_blocks 
+               WHERE (blocker_id = $1 AND blocked_id = $2) 
+                  OR (blocker_id = $2 AND blocked_id = $1)
+               LIMIT 1;`,
+              [Number(senderId), Number(receiverId)]
+            );
+            if (blockCheck.rows.length > 0) {
+              const isSelfBlocker = Number(blockCheck.rows[0].blocker_id) === Number(senderId);
+              return socket.emit('error', {
+                message: isSelfBlocker
+                  ? 'You have blocked this contact. Unblock to send messages.'
+                  : 'You cannot send messages to this contact.',
+              });
+            }
+          } catch {}
+
           const insertRes = await db.query(
             `INSERT INTO messages (sender_id, receiver_id, text, is_read)
              VALUES ($1, $2, $3, FALSE)

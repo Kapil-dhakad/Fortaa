@@ -8,7 +8,10 @@ export async function fetchConversations(userId) {
   try {
     const res = await fetch(`${API_BASE}/conversations/${userId}`);
     const data = await res.json();
-    return data.success ? data.conversations : [];
+    if (!data.success) return [];
+    const list = data.conversations || [];
+    list.suggestions = data.suggestions || [];
+    return list;
   } catch (err) {
     console.error('fetchConversations error:', err);
     return [];
@@ -78,6 +81,69 @@ export async function deleteChatMessageHttp(messageId, userId, deleteForEveryone
   } catch (err) {
     console.error('deleteChatMessageHttp error:', err);
     return false;
+  }
+}
+
+/**
+ * Clear chat history for user
+ */
+export async function clearChatApi(userId, targetId) {
+  try {
+    const res = await fetch(`${API_BASE}/clear/${userId}/${targetId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    return await res.json();
+  } catch (err) {
+    console.error('clearChatApi error:', err);
+    return { success: false, message: 'Failed to clear chat' };
+  }
+}
+
+/**
+ * Toggle block status
+ */
+export async function toggleBlockUserApi(blockerId, blockedId) {
+  try {
+    const res = await fetch(`${API_BASE}/block`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ blockerId, blockedId }),
+    });
+    return await res.json();
+  } catch (err) {
+    console.error('toggleBlockUserApi error:', err);
+    return { success: false, message: 'Failed to toggle block' };
+  }
+}
+
+/**
+ * Fetch block status
+ */
+export async function fetchBlockStatusApi(userId, otherUserId) {
+  try {
+    const res = await fetch(`${API_BASE}/block-status/${userId}/${otherUserId}`);
+    return await res.json();
+  } catch (err) {
+    console.error('fetchBlockStatusApi error:', err);
+    return { success: false, isBlocked: false };
+  }
+}
+
+/**
+ * Report chat / user
+ */
+export async function reportChatApi({ reporterId, reportedId, groupId, reason }) {
+  try {
+    const res = await fetch(`${API_BASE}/report`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reporterId, reportedId, groupId, reason }),
+    });
+    return await res.json();
+  } catch (err) {
+    console.error('reportChatApi error:', err);
+    return { success: false, message: 'Failed to report chat' };
   }
 }
 
