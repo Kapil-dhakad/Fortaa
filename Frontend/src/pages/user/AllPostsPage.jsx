@@ -215,12 +215,7 @@ export default function AllPostsPage() {
                   </button>
                 </div>
 
-                <div
-                  className="ap-post-body"
-                  style={{ cursor: 'pointer' }}
-                  onClick={() => setInstagramModalPost(post)}
-                  title="Click to view post"
-                >
+                <div className="ap-post-body">
                   <p className="ap-post-text">{renderFormattedContent(post.content)}</p>
                   {post.tags && <p className="ap-post-tags">{post.tags}</p>}
                   {post.image_url && (

@@ -736,7 +736,7 @@ export default function UserDashboard() {
     const now = Date.now();
     const lastTime = lastTapTimes.current[post.id] || 0;
     if (now - lastTime < 320) {
-      // Double tap!
+      // Double tap detected! Like the post (Instagram style)
       if (tapTimerRef.current[post.id]) {
         clearTimeout(tapTimerRef.current[post.id]);
         delete tapTimerRef.current[post.id];
@@ -744,11 +744,12 @@ export default function UserDashboard() {
       triggerDoubleTapLike(post.id);
       lastTapTimes.current[post.id] = 0;
     } else {
+      // First tap: record timestamp for double tap; DO NOT open modal on scroll/single tap
       lastTapTimes.current[post.id] = now;
-      tapTimerRef.current[post.id] = setTimeout(() => {
-        setInstagramModalPost(post);
+      if (tapTimerRef.current[post.id]) {
+        clearTimeout(tapTimerRef.current[post.id]);
         delete tapTimerRef.current[post.id];
-      }, 280);
+      }
     }
   };
   const [isJoinGroupModalOpen, setIsJoinGroupModalOpen] = useState(false);
@@ -1684,12 +1685,7 @@ export default function UserDashboard() {
                         </button>
                       </div>
 
-                      <div
-                        className="ud-post-body"
-                        style={{ cursor: 'pointer' }}
-                        onClick={() => setInstagramModalPost(post)}
-                        title="Click to view post"
-                      >
+                      <div className="ud-post-body">
                         <p className="ud-post-text">{renderFormattedContent(post.content)}</p>
                         {post.tags && <p className="ud-post-tags">{post.tags}</p>}
 
@@ -2376,11 +2372,7 @@ export default function UserDashboard() {
                     </div>
                   </div>
 
-                  <div
-                    style={{ cursor: 'pointer' }}
-                    onClick={() => setInstagramModalPost(post)}
-                    title="Click to view post"
-                  >
+                  <div className="ud-mob-post-body">
                     <p className="ud-mob-post-text">{renderFormattedContent(post.content)}</p>
 
                     {post.tags && (
