@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import NotificationDropdown from '../notifications/NotificationDropdown';
 import { fetchUnreadCount } from '../../services/notification.service';
 import { fetchUnreadMessageCount } from '../../services/message.service';
 import { joinChat, getSocket } from '../../services/socket.service';
@@ -79,8 +78,6 @@ export default function UserHeader({
     return () => window.removeEventListener('fortaa_user_synced', handleUserSynced);
   }, []);
 
-  const [desktopNotifOpen, setDesktopNotifOpen] = useState(false);
-  const [mobileNotifOpen, setMobileNotifOpen] = useState(false);
   const [realNotifCount, setRealNotifCount] = useState(0);
   const [realMessageCount, setRealMessageCount] = useState(0);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
@@ -418,23 +415,15 @@ export default function UserHeader({
 
         {/* Topbar Actions & Profile Pill */}
         <div className="ud-topbar-right">
-          <div style={{ position: 'relative' }}>
-            <button
-              type="button"
-              className="ud-icon-circle-btn ud-notif-btn"
-              title="Notifications"
-              onClick={() => setDesktopNotifOpen((prev) => !prev)}
-            >
-              <img src={bellIconImg} alt="Notifications" className="ud-header-action-icon" />
-              {realNotifCount > 0 && <span className="ud-badge-count">{realNotifCount}</span>}
-            </button>
-            <NotificationDropdown
-              isOpen={desktopNotifOpen}
-              onClose={() => setDesktopNotifOpen(false)}
-              currentUserId={currentUserId}
-              onNotificationCountChange={setRealNotifCount}
-            />
-          </div>
+          <button
+            type="button"
+            className="ud-icon-circle-btn ud-notif-btn"
+            title="Notifications"
+            onClick={() => navigate('/notifications')}
+          >
+            <img src={bellIconImg} alt="Notifications" className="ud-header-action-icon" />
+            {realNotifCount > 0 && <span className="ud-badge-count">{realNotifCount}</span>}
+          </button>
 
           <button
             type="button"
@@ -564,26 +553,18 @@ export default function UserHeader({
           </Link>
 
           <div className="ud-mob-header-actions">
-            <div style={{ position: 'relative' }}>
-              <button
-                type="button"
-                className="ud-mob-icon-btn badge-btn"
-                title="Notifications"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setMobileNotifOpen((prev) => !prev);
-                }}
-              >
-                <img src={bellIconImg} alt="Notifications" className="ud-mob-action-img" />
-                {realNotifCount > 0 && <span className="ud-mob-red-badge">{realNotifCount}</span>}
-              </button>
-              <NotificationDropdown
-                isOpen={mobileNotifOpen}
-                onClose={() => setMobileNotifOpen(false)}
-                currentUserId={currentUserId}
-                onNotificationCountChange={setRealNotifCount}
-              />
-            </div>
+            <button
+              type="button"
+              className="ud-mob-icon-btn badge-btn"
+              title="Notifications"
+              onClick={(e) => {
+                e.stopPropagation();
+                navigate('/notifications');
+              }}
+            >
+              <img src={bellIconImg} alt="Notifications" className="ud-mob-action-img" />
+              {realNotifCount > 0 && <span className="ud-mob-red-badge">{realNotifCount}</span>}
+            </button>
 
             <button
               type="button"

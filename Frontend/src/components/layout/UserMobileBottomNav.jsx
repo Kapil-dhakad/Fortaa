@@ -19,6 +19,7 @@ import navGroupsIcon from '../../assets/sidebar/nav_groups.png';
 import navResourcesIcon from '../../assets/sidebar/nav_resources.png';
 import navSettingsIcon from '../../assets/sidebar/nav_settings.png';
 import userAvatarImg from '../../assets/dashboard/user_avatar_rahul.png';
+import bellIconImg from '../../assets/dashboard/bell-icon.png';
 
 const MOBILE_MENU_ITEMS = [
   { label: 'Home', icon: navHomeIcon, path: '/dashboard' },
@@ -28,6 +29,7 @@ const MOBILE_MENU_ITEMS = [
   // { label: 'Companies', icon: navCompaniesIcon, path: '/companies' },
   // { label: 'Products', icon: navProductsIcon, path: '/products' },
   { label: 'Leaders', icon: navLeadersIcon, path: '/leaders' },
+  { label: 'Notifications', icon: bellIconImg, path: '/notifications' },
   { label: 'Promotions', icon: navPromotionsIcon, path: '/promotions' },
   // { label: 'Events', icon: navEventsIcon, path: '/events' },
   // { label: 'News & Updates', icon: navNewsIcon, path: '/news' },

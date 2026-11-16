@@ -2,9 +2,12 @@
 
 const BASE_URL = '/api/users';
 
-export async function fetchUserProfile(userId) {
+export async function fetchUserProfile(userId, viewerId = null) {
   try {
-    const res = await fetch(`${BASE_URL}/profile/${userId}`);
+    const url = viewerId
+      ? `${BASE_URL}/profile/${userId}?viewerId=${viewerId}`
+      : `${BASE_URL}/profile/${userId}`;
+    const res = await fetch(url);
     if (!res.ok) throw new Error('Failed to fetch user profile');
     const data = await res.json();
     return data.profile;

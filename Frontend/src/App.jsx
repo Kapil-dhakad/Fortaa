@@ -15,9 +15,11 @@ import LeadersPage from './pages/user/LeadersPage';
 import LeaderProfilePage from './pages/user/LeaderProfilePage';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminUserDashboard from './pages/admin/AdminUserDashboard';
+import AdminLoginPage from './pages/admin/AdminLoginPage';
 import PromotionsPage from './pages/user/PromotionsPage';
 import SettingsPage from './pages/user/SettingsPage';
 import GroupsPage from './pages/user/GroupsPage';
+import NotificationsPage from './pages/user/NotificationsPage';
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -42,6 +44,22 @@ function ProtectedRoute({ children }) {
   if (!isAuth) {
     const redirect = encodeURIComponent(location.pathname + location.search + location.hash);
     return <Navigate to={`/login?redirect=${redirect}`} replace />;
+  }
+
+  return children;
+}
+
+function AdminProtectedRoute({ children }) {
+  let admin = null;
+  try {
+    admin = JSON.parse(localStorage.getItem('fortaa_admin') || 'null');
+  } catch {
+    admin = null;
+  }
+  const isAdmin = Boolean(admin && admin.role === 'admin');
+
+  if (!isAdmin) {
+    return <Navigate to="/admin/login" replace />;
   }
 
   return children;
@@ -131,16 +149,18 @@ export default function App() {
         <Route path="/leader-profile" element={<LeaderProfilePage />} />
         <Route path="/network" element={<LeadersPage />} />
         <Route path="/messages" element={<ProtectedRoute><MessagesPage /></ProtectedRoute>} />
+        <Route path="/notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />
         <Route path="/promotions" element={<ProtectedRoute><PromotionsPage /></ProtectedRoute>} />
         <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
         <Route path="/groups" element={<GroupsPage />} />
         <Route path="/dashboard" element={<UserDashboard />} />
         <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
         <Route path="/dashboard/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
-        <Route path="/admin" element={<AdminDashboard />} />
-        <Route path="/admin/dashboard" element={<AdminDashboard />} />
-        <Route path="/admin/users" element={<AdminUserDashboard />} />
-        <Route path="/admin/user-dashboard" element={<AdminUserDashboard />} />
+        <Route path="/admin/login" element={<AdminLoginPage />} />
+        <Route path="/admin" element={<AdminProtectedRoute><AdminDashboard /></AdminProtectedRoute>} />
+        <Route path="/admin/dashboard" element={<AdminProtectedRoute><AdminDashboard /></AdminProtectedRoute>} />
+        <Route path="/admin/users" element={<AdminProtectedRoute><AdminUserDashboard /></AdminProtectedRoute>} />
+        <Route path="/admin/user-dashboard" element={<AdminProtectedRoute><AdminUserDashboard /></AdminProtectedRoute>} />
         <Route path="*" element={<LandingPage />} />
       </Routes>
     </BrowserRouter>

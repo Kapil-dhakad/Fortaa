@@ -243,7 +243,7 @@ export default function LeaderProfilePage() {
       try {
         setLoadingPosts(true);
         const [fetched, counts, postsRes, leadersRes] = await Promise.all([
-          fetchUserProfile(id),
+          fetchUserProfile(id, currentUserId),
           fetchUserSocialCounts(id),
           fetchPosts(id, 'mine', currentUserId),
           fetchLeaders(currentUserId).catch(() => []),

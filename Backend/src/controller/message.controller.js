@@ -1,4 +1,5 @@
 const db = require('../db/db');
+const { handleNewMessageEmailNotification } = require('../services/email.service');
 
 /**
  * Get active conversations / contacts for a user
@@ -432,6 +433,16 @@ async function sendMessageHttp(req, res) {
        RETURNING id, sender_id, receiver_id, text, is_read, created_at`,
       [Number(senderId), Number(receiverId), payloadToSave]
     );
+
+    // Trigger smart email notification if recipient is away (Throttled to 1 email / 30min per sender)
+    handleNewMessageEmailNotification({
+      senderId: Number(senderId),
+      receiverId: Number(receiverId),
+      text: cleanText,
+      isReceiverOnline: false,
+    }).catch((err) => {
+      console.warn('[HTTP Message Email Warning]:', err.message);
+    });
 
     return res.status(201).json({
       success: true,

@@ -1,4 +1,5 @@
 const { Pool, Client } = require('pg');
+const bcrypt = require('bcryptjs');
 require('dotenv').config();
 
 let isConnected = false;
@@ -50,6 +51,7 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS location VARCHAR(150);
 ALTER TABLE users ADD COLUMN IF NOT EXISTS skills TEXT;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS username VARCHAR(100);
 ALTER TABLE users ADD COLUMN IF NOT EXISTS profile_visibility VARCHAR(50) DEFAULT 'public';
+ALTER TABLE users ADD COLUMN IF NOT EXISTS role VARCHAR(50) DEFAULT 'user';
 
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 CREATE INDEX IF NOT EXISTS idx_users_member_id ON users(member_id);
@@ -243,6 +245,81 @@ ALTER TABLE messages ADD COLUMN IF NOT EXISTS deleted_for INTEGER[] DEFAULT '{}'
 CREATE INDEX IF NOT EXISTS idx_messages_sender ON messages(sender_id);
 CREATE INDEX IF NOT EXISTS idx_messages_receiver ON messages(receiver_id);
 CREATE INDEX IF NOT EXISTS idx_messages_created_at ON messages(created_at);
+
+-- Profile Views Table (Tracks who viewed whose profile & throttles notification emails)
+CREATE TABLE IF NOT EXISTS profile_views (
+  id SERIAL PRIMARY KEY,
+  viewer_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  target_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  views_count INTEGER DEFAULT 1,
+  last_viewed_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  last_email_sent_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(viewer_id, target_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_profile_views_target ON profile_views(target_id);
+CREATE INDEX IF NOT EXISTS idx_profile_views_viewer ON profile_views(viewer_id);
+
+-- Message Email Throttles Table (Prevents spamming recipient on every message line)
+CREATE TABLE IF NOT EXISTS message_email_throttles (
+  id SERIAL PRIMARY KEY,
+  sender_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  receiver_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  last_email_sent_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(sender_id, receiver_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_msg_throttle_pair ON message_email_throttles(sender_id, receiver_id);
+
+-- Stories Table (Instagram-style 24hr stories: photo, video, text, interactive poll)
+CREATE TABLE IF NOT EXISTS stories (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  media_type VARCHAR(20) NOT NULL DEFAULT 'photo',
+  media_url TEXT,
+  text_content TEXT,
+  background_style VARCHAR(255) DEFAULT 'linear-gradient(135deg, #6366F1, #9333EA)',
+  poll_data JSONB,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  expires_at TIMESTAMP WITH TIME ZONE DEFAULT (CURRENT_TIMESTAMP + INTERVAL '24 HOURS')
+);
+
+CREATE INDEX IF NOT EXISTS idx_stories_user_id ON stories(user_id);
+CREATE INDEX IF NOT EXISTS idx_stories_expires_at ON stories(expires_at);
+
+-- Story Views Table
+CREATE TABLE IF NOT EXISTS story_views (
+  id SERIAL PRIMARY KEY,
+  story_id INTEGER NOT NULL REFERENCES stories(id) ON DELETE CASCADE,
+  viewer_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  viewed_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(story_id, viewer_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_story_views_story ON story_views(story_id);
+CREATE INDEX IF NOT EXISTS idx_story_views_viewer ON story_views(viewer_id);
+
+-- Story Poll Votes Table
+CREATE TABLE IF NOT EXISTS story_poll_votes (
+  id SERIAL PRIMARY KEY,
+  story_id INTEGER NOT NULL REFERENCES stories(id) ON DELETE CASCADE,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  option_id INTEGER NOT NULL,
+  voted_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(story_id, user_id)
+);
+
+-- Story Likes Table
+CREATE TABLE IF NOT EXISTS story_likes (
+  id SERIAL PRIMARY KEY,
+  story_id INTEGER NOT NULL REFERENCES stories(id) ON DELETE CASCADE,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(story_id, user_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_story_likes_story ON story_likes(story_id);
+CREATE INDEX IF NOT EXISTS idx_story_likes_user ON story_likes(user_id);
 `;
 
 /**
@@ -318,6 +395,26 @@ async function seedDashboardData(client) {
         ('Health & Wellness Specialist', false, ARRAY['High Demand'], '₹ 10k - 50k / month')
       `);
       console.log('✅ [PostgreSQL] Seeded initial opportunities.');
+    }
+
+    // 7. Seed Admin User (Matching .env credentials or default)
+    const adminEmail = (process.env.ADMIN_EMAIL || 'admin@fortaa.com').toLowerCase().trim();
+    const adminPassword = process.env.ADMIN_PASSWORD || 'Admin@Fortaa2026!';
+
+    const adminCheck = await client.query('SELECT id, role, password FROM users WHERE LOWER(email) = $1', [adminEmail]);
+    if (adminCheck.rows.length === 0) {
+      const hashedPassword = await bcrypt.hash(adminPassword, 10);
+      await client.query(`
+        INSERT INTO users (name, email, password, role, designation, account_type, member_id, mobile_verified, email_verified)
+        VALUES ($1, $2, $3, 'admin', 'Super Admin', 'Administrator', 'ADMIN001', true, true)
+      `, ['Fortaa Admin', adminEmail, hashedPassword]);
+      console.log(`✅ [PostgreSQL] Seeded Fortaa Admin user: ${adminEmail}`);
+    } else {
+      // Ensure role is admin
+      if (adminCheck.rows[0].role !== 'admin') {
+        await client.query("UPDATE users SET role = 'admin' WHERE id = $1", [adminCheck.rows[0].id]);
+        console.log(`✅ [PostgreSQL] Updated ${adminEmail} to admin role.`);
+      }
     }
   } catch (seedErr) {
     console.error('⚠️ [PostgreSQL] Seeding error:', seedErr.message);

@@ -1,7 +1,7 @@
 /* =========================================================
    FORTAA ADMINISTRATION PANEL STYLESHEET
-   Matching Figma Administration Panel Design
-   Colors: Primary Navy #020633, Purple #6B109F, Gradient #9F21FE to #4F24FF, BG #F4F5FB
+   Matching Figma Administration Panel Design (Frame 149)
+   Colors: Primary Deep Purple #2E0362, Accent #9E04C3 / #6326AE, Text #232356, BG #F4F5FB
    ========================================================= */
 
 .adm-page {
@@ -12,35 +12,42 @@
   display: flex;
 }
 
-/* ───────────────── LEFT SIDEBAR ───────────────── */
+/* ───────────────── LEFT SIDEBAR (Figma #2E0362) ───────────────── */
 .adm-sidebar {
-  width: 210px;
-  background: #020633;
+  width: 175px;
+  background: #2E0362;
   color: #FFFFFF;
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
   min-height: 100vh;
   box-sizing: border-box;
-  padding: 14px 10px;
+  padding: 12px 8px;
 }
 
 .adm-sidebar-brand {
-  padding: 4px 6px 14px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  margin-bottom: 10px;
+  padding: 4px 2px 10px;
+  margin-bottom: 8px;
 }
 
 .adm-brand-link {
+  text-decoration: none;
+  display: block;
+}
+
+.adm-brand-logo-card {
+  background: #FFFFFF;
+  border-radius: 6px;
+  padding: 6px 10px;
   display: flex;
   align-items: center;
   gap: 8px;
-  text-decoration: none;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
 }
 
 .adm-brand-icon {
-  width: 28px;
-  height: 28px;
+  width: 24px;
+  height: 24px;
   object-fit: contain;
 }
 
@@ -49,16 +56,19 @@
   flex-direction: column;
 }
 
-.adm-brand-logo {
-  width: 75px;
-  height: auto;
-  filter: brightness(0) invert(1);
+.adm-brand-logo-text {
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  color: #2E0362;
+  line-height: 1.1;
 }
 
 .adm-brand-badge {
   font-size: 9px;
-  color: #CBD5E1;
-  letter-spacing: 0.5px;
+  color: #64748B;
+  font-weight: 600;
+  line-height: 1;
 }
 
 /* Sidebar Nav */
@@ -75,11 +85,11 @@
   gap: 8px;
   background: transparent;
   border: none;
-  color: #CBD5E1;
+  color: #FFFFFF;
   font-size: 11.5px;
   font-weight: 500;
   padding: 8px 10px;
-  border-radius: 6px;
+  border-radius: 5px;
   cursor: pointer;
   text-align: left;
   transition: all 0.15s ease;
@@ -87,15 +97,13 @@
 }
 
 .adm-nav-item:hover {
-  background: rgba(255, 255, 255, 0.06);
-  color: #FFFFFF;
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .adm-nav-item.active {
-  background: linear-gradient(270deg, #9F21FE 0%, #4F24FF 100%);
+  background: rgba(99, 38, 174, 0.71);
   color: #FFFFFF;
   font-weight: 600;
-  box-shadow: 0 4px 12px rgba(159, 33, 254, 0.3);
 }
 
 .adm-nav-icon {
@@ -124,11 +132,11 @@
   justify-content: space-between;
   background: transparent;
   border: none;
-  color: #CBD5E1;
+  color: #FFFFFF;
   font-size: 11px;
-  font-weight: 500;
-  padding: 7px 10px;
-  border-radius: 6px;
+  font-weight: 600;
+  padding: 7px 8px;
+  border-radius: 5px;
   cursor: pointer;
   text-align: left;
   width: 100%;
@@ -136,20 +144,19 @@
 }
 
 .adm-nav-group-header:hover {
-  background: rgba(255, 255, 255, 0.06);
-  color: #FFFFFF;
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .adm-nav-gh-left {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 7px;
   min-width: 0;
 }
 
 .adm-chevron {
   font-size: 9px;
-  color: #94A3B8;
+  color: rgba(255, 255, 255, 0.7);
   transition: transform 0.2s ease;
 }
 
@@ -160,14 +167,14 @@
 .adm-nav-sublist {
   display: flex;
   flex-direction: column;
-  padding-left: 26px;
+  padding-left: 20px;
   margin: 2px 0 4px;
   gap: 2px;
 }
 
 .adm-nav-sublink {
   font-size: 10px;
-  color: #94A3B8;
+  color: rgba(255, 255, 255, 0.8);
   text-decoration: none;
   padding: 3px 6px;
   border-radius: 4px;
@@ -177,36 +184,49 @@
 
 .adm-nav-sublink:hover {
   color: #FFFFFF;
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.12);
 }
 
-/* Sidebar Footer Brand */
+/* Sidebar Footer Brand Box (Figma bottom logo card) */
 .adm-sidebar-footer {
   margin-top: 14px;
-  padding-top: 10px;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding-top: 8px;
 }
 
 .adm-footer-brand-box {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 6px;
-  padding: 8px;
+  background: #FFFFFF;
+  border-radius: 5px;
+  padding: 6px 8px;
   text-align: center;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.adm-fb-logo-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+}
+
+.adm-fb-icon {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
 }
 
 .adm-fb-title {
-  display: block;
   font-size: 11px;
   font-weight: 800;
-  letter-spacing: 1px;
-  color: #FFFFFF;
+  letter-spacing: 0.5px;
+  color: #2E0362;
 }
 
 .adm-fb-sub {
   display: block;
   font-size: 8px;
-  color: #94A3B8;
+  color: #232356;
+  font-weight: 500;
+  margin-top: 2px;
 }
 
 /* ───────────────── MAIN WRAPPER ───────────────── */
@@ -217,15 +237,15 @@
   flex-direction: column;
 }
 
-/* Topbar */
+/* Topbar (Figma #2E0362) */
 .adm-topbar {
-  height: 54px;
-  background: #FFFFFF;
-  border-bottom: 1px solid #E2E8F0;
+  height: 52px;
+  background: #2E0362;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 20px;
+  padding: 0 18px;
   position: sticky;
   top: 0;
   z-index: 50;
@@ -233,7 +253,7 @@
 
 .adm-search-wrap {
   flex: 1;
-  max-width: 540px;
+  max-width: 500px;
   position: relative;
   display: flex;
   align-items: center;
@@ -243,26 +263,26 @@
   position: absolute;
   left: 12px;
   font-size: 12px;
-  color: #94A3B8;
+  color: #8C8CA1;
   pointer-events: none;
 }
 
 .adm-search-input {
   width: 100%;
-  height: 36px;
-  background: #F8FAFC;
-  border: 1px solid #E2E8F0;
+  height: 34px;
+  background: #FFFFFF;
+  border: none;
   border-radius: 50px;
   padding: 0 14px 0 34px;
   font-size: 11.5px;
+  color: #232356;
   outline: none;
   transition: all 0.2s ease;
 }
 
-.adm-search-input:focus {
-  background: #FFFFFF;
-  border-color: #7C3AED;
-  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
+.adm-search-input::placeholder {
+  color: #8C8CA1;
+  font-size: 11px;
 }
 
 .adm-topbar-right {
@@ -275,8 +295,8 @@
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  border: 1px solid #E2E8F0;
-  background: #FFFFFF;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.12);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -287,13 +307,11 @@
 }
 
 .adm-circle-btn:hover {
-  background: #F1F5F9;
+  background: rgba(255, 255, 255, 0.22);
 }
 
 .adm-wa-btn {
-  background: transparent;
-  border-color: #E2E8F0;
-  padding: 0;
+  border-color: rgba(255, 255, 255, 0.2);
 }
 
 .adm-header-action-icon {
@@ -309,7 +327,7 @@
   right: -3px;
   background: #EF4444;
   color: #FFFFFF;
-  font-size: 9px;
+  font-size: 8.5px;
   font-weight: 700;
   border-radius: 50%;
   width: 14px;
@@ -317,23 +335,24 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1.5px solid #FFFFFF;
+  border: 1.5px solid #2E0362;
 }
 
 .adm-profile-pill {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 3px 10px 3px 3px;
-  background: #020633;
+  padding: 3px 12px 3px 4px;
+  background: rgba(255, 255, 255, 0.12);
   color: #FFFFFF;
   border-radius: 50px;
   cursor: pointer;
+  border: 1px solid rgba(255, 255, 255, 0.15);
 }
 
 .adm-profile-img {
-  width: 28px;
-  height: 28px;
+  width: 26px;
+  height: 26px;
   border-radius: 50%;
   object-fit: cover;
 }
@@ -347,16 +366,17 @@
   font-size: 11px;
   font-weight: 700;
   line-height: 1.1;
+  color: #FFFFFF;
 }
 
 .adm-profile-role {
   font-size: 8px;
-  color: #94A3B8;
+  color: rgba(255, 255, 255, 0.7);
 }
 
 /* ───────────────── CONTENT BODY ───────────────── */
 .adm-content {
-  padding: 14px 20px 24px;
+  padding: 14px 18px 24px;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -435,9 +455,9 @@
 
 .adm-card-view-all {
   font-size: 9.5px;
-  color: #6B109F;
+  color: #2E0362;
   text-decoration: none;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 /* Row 1: 4 Stat Cards */
@@ -455,6 +475,7 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
 }
 
 .adm-stat-top {
@@ -467,7 +488,7 @@
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: #EDE9FE;
+  background: #F3E8FF;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -532,7 +553,7 @@
 }
 
 .adm-filter-btn.active {
-  background: linear-gradient(270deg, #9F21FE 0%, #4F24FF 100%);
+  background: #2E0362;
   color: #FFFFFF;
 }
 
@@ -795,7 +816,7 @@
 
 /* Card 1: Promo Banner */
 .adm-promo-banner {
-  background: linear-gradient(135deg, #3C1F7A 0%, #6B109F 50%, #4F24FF 100%);
+  background: linear-gradient(135deg, #2E0362 0%, #6326AE 50%, #9E04C3 100%);
   border-radius: 10px;
   padding: 12px;
   color: #FFFFFF;
@@ -835,6 +856,8 @@
   padding: 4px 10px;
   border-radius: 4px;
   cursor: pointer;
+  text-decoration: none;
+  display: inline-block;
   transition: all 0.15s ease;
 }
 
@@ -917,7 +940,7 @@
 }
 
 .adm-platform-stats-header {
-  background: linear-gradient(270deg, #9F21FE 0%, #4F24FF 100%);
+  background: #2E0362;
   padding: 8px 12px;
   color: #FFFFFF;
 }
@@ -949,7 +972,7 @@
   width: 24px;
   height: 24px;
   border-radius: 50%;
-  background: #EDE9FE;
+  background: #F3E8FF;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1002,7 +1025,7 @@
 
 .adm-help-icon {
   font-size: 18px;
-  color: #6B109F;
+  color: #2E0362;
 }
 
 .adm-help-info {
@@ -1024,7 +1047,7 @@
 }
 
 .adm-btn-contact-support {
-  background: linear-gradient(270deg, #9F21FE 0%, #4F24FF 100%);
+  background: #2E0362;
   color: #FFFFFF;
   border: none;
   border-radius: 6px;
@@ -1035,11 +1058,11 @@
   text-align: center;
   width: 100%;
   transition: opacity 0.15s ease;
-  box-shadow: 0 2px 8px rgba(159, 33, 254, 0.2);
+  box-shadow: 0 2px 8px rgba(46, 3, 98, 0.25);
 }
 
 .adm-btn-contact-support:hover {
-  opacity: 0.95;
+  opacity: 0.92;
 }
 
 /* ───────────────── MOBILE SIDEBAR TOGGLE & BACKDROP ───────────────── */
@@ -1058,14 +1081,14 @@
   display: block;
   width: 20px;
   height: 2px;
-  background: #020633;
+  background: #FFFFFF;
   border-radius: 2px;
 }
 
 .adm-mobile-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(2, 6, 51, 0.65);
+  background: rgba(46, 3, 98, 0.65);
   backdrop-filter: blur(2px);
   z-index: 150;
 }
@@ -1093,7 +1116,7 @@
     position: fixed;
     top: 0;
     left: -260px;
-    width: 240px;
+    width: 220px;
     height: 100vh;
     z-index: 200;
     transition: left 0.25s cubic-bezier(0.4, 0, 0.2, 1);

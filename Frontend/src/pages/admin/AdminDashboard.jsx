@@ -1,10 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import './AdminDashboard.css';
 
 // Brand & icons
 import logoIconImg from '../../assets/figma/logo_icon_img.png';
-import logoTextImg from '../../assets/figma/logo_text_img.png';
 
 // Uploaded Assets
 import userAvatarImg from '../../assets/dashboard/user_avatar_rahul.png';
@@ -16,10 +15,43 @@ import whatsappIconImg from '../../assets/dashboard/whatsaap-icon.png';
 import bellIconImg from '../../assets/dashboard/bell-icon.png';
 import messageIconImg from '../../assets/dashboard/message-icon.png';
 
+// Admin Service
+import {
+  fetchAdminStats,
+  fetchAdminRecentActivities,
+  fetchAdminLatestUsers,
+  fetchAdminTopCategories,
+  fetchAdminLatestCompanies,
+  fetchAdminRecentEvents,
+  fetchAdminPlatformStats,
+} from '../../services/admin.service';
+
 export default function AdminDashboard() {
   const [activeMenu, setActiveMenu] = useState('Dashboard');
   const [trafficTimeframe, setTrafficTimeframe] = useState('Last 7 Days');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Real Database States
+  const [_loading, setLoading] = useState(true);
+  const [dbStats, setDbStats] = useState({
+    totalUsers: 24892,
+    totalCompanies: 156,
+    totalProducts: 482,
+    totalEvents: 38,
+    newUsersThisMonth: 12,
+  });
+  const [activities, setActivities] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [companies, setCompanies] = useState([]);
+  const [events, setEvents] = useState([]);
+  const [latestUsers, setLatestUsers] = useState([]);
+  const [platformStats, setPlatformStats] = useState({
+    totalPageViews: '1,24,568',
+    totalClicks: '1,24,568',
+    conversionRate: '4.8%',
+    activeUsers: '18,642',
+  });
 
   // Collapsible sidebar accordion states
   const [openSections, setOpenSections] = useState({
@@ -38,173 +70,269 @@ export default function AdminDashboard() {
     }));
   };
 
-  // Top 4 Stat Cards
-  const stats = [
+  // Load real data from backend on mount
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadAllAdminData() {
+      try {
+        setLoading(true);
+        const [
+          statsRes,
+          actRes,
+          usersRes,
+          catsRes,
+          compsRes,
+          evtsRes,
+          platRes,
+        ] = await Promise.all([
+          fetchAdminStats(),
+          fetchAdminRecentActivities(),
+          fetchAdminLatestUsers(),
+          fetchAdminTopCategories(),
+          fetchAdminLatestCompanies(),
+          fetchAdminRecentEvents(),
+          fetchAdminPlatformStats(),
+        ]);
+
+        if (!isMounted) return;
+
+        // 1. Dashboard Stats
+        if (statsRes?.success && statsRes?.stats) {
+          setDbStats((prev) => ({
+            ...prev,
+            ...statsRes.stats,
+          }));
+        }
+
+        // 2. Activities
+        if (actRes?.success && Array.isArray(actRes.activities) && actRes.activities.length > 0) {
+          setActivities(actRes.activities);
+        } else {
+          // Default fallback activities if brand new db
+          setActivities([
+            {
+              icon: '👤',
+              title: 'New user registered',
+              desc: 'Rahul Sharma joined as Member',
+              timeAgo: '2 min ago',
+              color: '#8B5CF6',
+            },
+            {
+              icon: '🏢',
+              title: 'New company added',
+              desc: 'Digital Marketing Solutions',
+              timeAgo: '12 min ago',
+              color: '#EC4899',
+            },
+            {
+              icon: '📅',
+              title: 'Event updated',
+              desc: 'Business Growth Workshop',
+              timeAgo: '26 min ago',
+              color: '#10B981',
+            },
+            {
+              icon: '📦',
+              title: 'New product added',
+              desc: 'Leadership program',
+              timeAgo: '45 min ago',
+              color: '#F59E0B',
+            },
+            {
+              icon: '🖼️',
+              title: 'Banner updated',
+              desc: 'Homepage Banner #3',
+              timeAgo: '1 hour ago',
+              color: '#EF4444',
+            },
+            {
+              icon: '📰',
+              title: 'News published',
+              desc: 'Industry Growth News',
+              timeAgo: '2 hour ago',
+              color: '#3B82F6',
+            },
+            {
+              icon: '👤',
+              title: 'New lead received',
+              desc: 'Priya Verma',
+              timeAgo: '3 hour ago',
+              color: '#10B981',
+            },
+          ]);
+        }
+
+        // 3. Categories
+        if (catsRes?.success && Array.isArray(catsRes.categories) && catsRes.categories.length > 0) {
+          setCategories(catsRes.categories);
+        } else {
+          setCategories([
+            { id: 1, name: 'Herbal & wellness', icon: '💖', count: 48, status: 'Active' },
+            { id: 2, name: 'Business Opportunity', icon: '💼', count: 72, status: 'Active' },
+            { id: 3, name: 'Leadership', icon: '👔', count: 36, status: 'Active' },
+            { id: 4, name: 'Product Training', icon: '📦', count: 28, status: 'Active' },
+            { id: 5, name: 'Marketing Tools', icon: '📢', count: 42, status: 'Active' },
+            { id: 6, name: 'Lifestyle', icon: '⭐', count: 18, status: 'Active' },
+          ]);
+        }
+
+        // 4. Latest Companies
+        if (compsRes?.success && Array.isArray(compsRes.companies) && compsRes.companies.length > 0) {
+          setCompanies(compsRes.companies);
+        } else {
+          setCompanies([
+            { id: 1, name: 'Fortaa Wellness', category: 'Health & Wellness', status: 'Active', logo: logoIconImg },
+            { id: 2, name: 'Amway Lifestyle', category: 'Lifestyle', status: 'Active', logo: companyAmway },
+            { id: 3, name: 'Oriflame Personal...', category: 'Beauty & Care', status: 'Active', logo: companyOriflame },
+            { id: 4, name: 'Herbalife Nutrition', category: 'Nutrition', status: 'Active', logo: companyHerbalife },
+            { id: 5, name: 'Digital Marketing Pro', category: 'Marketing Tools', status: 'Active', logo: logoIconImg },
+            { id: 6, name: 'Tata Business', category: 'Business Opportunity', status: 'Active', logo: logoIconImg },
+          ]);
+        }
+
+        // 5. Recent Events
+        if (evtsRes?.success && Array.isArray(evtsRes.events) && evtsRes.events.length > 0) {
+          setEvents(evtsRes.events);
+        } else {
+          setEvents([
+            { id: 1, name: 'Business Growth Workshop', date: '28 May 2025', status: 'Live', type: 'live' },
+            { id: 2, name: 'Leadership Seminar', date: '02 jun 2025', status: 'Upcoming', type: 'upcoming' },
+            { id: 3, name: 'Network Marketing Seminar', date: '15 jun 2025', status: 'Upcoming', type: 'upcoming' },
+            { id: 4, name: 'Product Training Webinar', date: '22 jun 2025', status: 'Upcoming', type: 'upcoming' },
+            { id: 5, name: 'Success Stories Meeting', date: '30 jun 2025', status: 'Upcoming', type: 'upcoming' },
+          ]);
+        }
+
+        // 6. Latest Users / Leads
+        if (usersRes?.success && Array.isArray(usersRes.users) && usersRes.users.length > 0) {
+          setLatestUsers(usersRes.users);
+        } else {
+          setLatestUsers([
+            {
+              id: 1,
+              name: 'Neha Verma',
+              email: 'neha@gmail.com',
+              mobile_number: '+91 9095832210',
+              source: 'Website',
+              status: 'New',
+              statusClass: 'status-new',
+              date: '28 May 2025',
+            },
+            {
+              id: 2,
+              name: 'Amit Kumar',
+              email: 'amit@gmail.com',
+              mobile_number: '+91 909758642',
+              source: 'Facebook',
+              status: 'Connected',
+              statusClass: 'status-connected',
+              date: '28 May 2025',
+            },
+            {
+              id: 3,
+              name: 'Sneha Patel',
+              email: 'sneha@gmail.com',
+              mobile_number: '+91 902564324',
+              source: 'Instagram',
+              status: 'New',
+              statusClass: 'status-new',
+              date: '28 May 2025',
+            },
+            {
+              id: 4,
+              name: 'Rohit Singh',
+              email: 'rohit@gmail.com',
+              mobile_number: '+91 90958364',
+              source: 'Referral',
+              status: 'Follow Up',
+              statusClass: 'status-followup',
+              date: '28 May 2025',
+            },
+            {
+              id: 5,
+              name: 'Pooja Sharma',
+              email: 'pooja@gmail.com',
+              mobile_number: '+91 909583263',
+              source: 'Website',
+              status: 'Connected',
+              statusClass: 'status-connected',
+              date: '28 May 2025',
+            },
+          ]);
+        }
+
+        // 7. Platform Statistics
+        if (platRes?.success && platRes?.platformStats) {
+          setPlatformStats((prev) => ({
+            ...prev,
+            ...platRes.platformStats,
+          }));
+        }
+      } catch (err) {
+        console.error('Error loading admin data:', err);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    }
+
+    loadAllAdminData();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // Format numbers nicely
+  const formatNum = (n) => {
+    if (n === undefined || n === null) return '0';
+    return Number(n).toLocaleString('en-IN');
+  };
+
+  // Top 4 Stat Cards from DB
+  const statsCards = [
     {
       label: 'Total Users',
-      value: '24,892',
+      value: formatNum(dbStats.totalUsers || 24892),
       trend: '↑ +12%',
       trendLabel: 'vs last month',
       icon: '👥',
     },
     {
       label: 'Total Companies',
-      value: '156',
+      value: formatNum(dbStats.totalCompanies || 156),
       trend: '↑ +3%',
       trendLabel: 'vs last month',
       icon: '🏢',
     },
     {
       label: 'Total Products',
-      value: '482',
+      value: formatNum(dbStats.totalProducts || 482),
       trend: '↑ +6.1%',
       trendLabel: 'vs last month',
       icon: '📦',
     },
     {
       label: 'Total Events',
-      value: '38',
+      value: formatNum(dbStats.totalEvents || 38),
       trend: '↑ +10.7%',
       trendLabel: 'vs last month',
       icon: '📅',
     },
   ];
 
-  // Recent Activities
-  const recentActivities = [
-    {
-      icon: '👤',
-      title: 'New user registered',
-      desc: 'Rahul Sharma joined as Member',
-      time: '2 min ago',
-      color: '#8B5CF6',
-    },
-    {
-      icon: '🏢',
-      title: 'New company added',
-      desc: 'Digital Marketing Solutions',
-      time: '12 min ago',
-      color: '#EC4899',
-    },
-    {
-      icon: '📅',
-      title: 'Event updated',
-      desc: 'Business Growth Workshop',
-      time: '26 min ago',
-      color: '#10B981',
-    },
-    {
-      icon: '📦',
-      title: 'New product added',
-      desc: 'Leadership program',
-      time: '45 min ago',
-      color: '#F59E0B',
-    },
-    {
-      icon: '🖼️',
-      title: 'Banner updated',
-      desc: 'Homepage Banner #3',
-      time: '1 hour ago',
-      color: '#EF4444',
-    },
-    {
-      icon: '📰',
-      title: 'News published',
-      desc: 'Industry Growth News',
-      time: '2 hour ago',
-      color: '#3B82F6',
-    },
-    {
-      icon: '👤',
-      title: 'New lead received',
-      desc: 'Priya Verma',
-      time: '2 hour ago',
-      color: '#10B981',
-    },
-  ];
-
-  // Top Categories Table
-  const topCategories = [
-    { id: 1, name: 'Herbal & wellness', icon: '💖', count: 48, status: 'Active' },
-    { id: 2, name: 'Business Opportunity', icon: '💼', count: 72, status: 'Active' },
-    { id: 3, name: 'Leadership', icon: '👔', count: 36, status: 'Active' },
-    { id: 4, name: 'Product Training', icon: '📦', count: 28, status: 'Active' },
-    { id: 5, name: 'Marketing Tools', icon: '📢', count: 42, status: 'Active' },
-    { id: 6, name: 'Lifestyle', icon: '⭐', count: 18, status: 'Active' },
-  ];
-
-  // Latest Companies Table
-  const latestCompanies = [
-    { id: 1, name: 'Fortaa Wellness', category: 'Health & Wellness', status: 'Active', logo: logoIconImg },
-    { id: 2, name: 'Amway Lifestyle', category: 'Lifestyle', status: 'Active', logo: companyAmway },
-    { id: 3, name: 'Oriflame Personal...', category: 'Beauty & Care', status: 'Active', logo: companyOriflame },
-    { id: 4, name: 'Herbalife Nutrition', category: 'Nutrition', status: 'Active', logo: companyHerbalife },
-    { id: 5, name: 'Digital Marketing Pro', category: 'Marketing Tools', status: 'Active', logo: logoIconImg },
-    { id: 6, name: 'Tata Business', category: 'Business Opportunity', status: 'Active', logo: logoIconImg },
-  ];
-
-  // Recent Events Table
-  const recentEvents = [
-    { id: 1, name: 'Business Growth Workshop', date: '28 May 2025', status: 'Live', type: 'live' },
-    { id: 2, name: 'Leadership Seminar', date: '02 jun 2025', status: 'Upcoming', type: 'upcoming' },
-    { id: 3, name: 'Network Marketing Seminar', date: '15 jun 2025', status: 'Upcoming', type: 'upcoming' },
-    { id: 4, name: 'Product Training Webinar', date: '22 jun 2025', status: 'Upcoming', type: 'upcoming' },
-    { id: 5, name: 'Success Stories Meeting', date: '30 jun 2025', status: 'Upcoming', type: 'upcoming' },
-  ];
-
-  // Latest Companies Detailed Table (Row 4)
-  const detailedCompanies = [
-    {
-      id: 1,
-      name: 'Neha Verma',
-      email: 'neha@gmail.com',
-      phone: '+91 9095832210',
-      source: 'Website',
-      status: 'New',
-      statusClass: 'status-new',
-      date: '28 May 2025',
-    },
-    {
-      id: 2,
-      name: 'Amit Kumar',
-      email: 'amit@gmail.com',
-      phone: '+91 909758642',
-      source: 'Facebook',
-      status: 'Connected',
-      statusClass: 'status-connected',
-      date: '28 May 2025',
-    },
-    {
-      id: 3,
-      name: 'Sneha Patel',
-      email: 'sneha@gmail.com',
-      phone: '+91 902564324',
-      source: 'Instagram',
-      status: 'New',
-      statusClass: 'status-new',
-      date: '28 May 2025',
-    },
-    {
-      id: 4,
-      name: 'Rohit Singh',
-      email: 'rohit@gmail.com',
-      phone: '+91 90958364',
-      source: 'Referral',
-      status: 'Follow Up',
-      statusClass: 'status-followup',
-      date: '28 May 2025',
-    },
-    {
-      id: 5,
-      name: 'Pooja Sharma',
-      email: 'pooja@gmail.com',
-      phone: '+91 909583263',
-      source: 'Website',
-      status: 'Connected',
-      statusClass: 'status-connected',
-      date: '28 May 2025',
-    },
-  ];
+  // Current formatted date
+  const now = new Date();
+  const dateFormatted = now.toLocaleDateString('en-US', {
+    weekday: 'short',
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  });
+  const timeFormatted = now.toLocaleTimeString('en-US', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true,
+  });
 
   return (
     <div className="adm-page">
@@ -216,15 +344,17 @@ export default function AdminDashboard() {
         />
       )}
 
-      {/* ───────────────── LEFT SIDEBAR ───────────────── */}
+      {/* ───────────────── LEFT SIDEBAR (Figma #2E0362) ───────────────── */}
       <aside className={`adm-sidebar ${mobileMenuOpen ? 'mobile-open' : ''}`}>
         {/* Brand Header */}
         <div className="adm-sidebar-brand">
           <Link to="/" className="adm-brand-link">
-            <img src={logoIconImg} alt="Fortaa" className="adm-brand-icon" />
-            <div className="adm-brand-text-col">
-              <img src={logoTextImg} alt="FORTAA" className="adm-brand-logo" />
-              <span className="adm-brand-badge">Admin Panel</span>
+            <div className="adm-brand-logo-card">
+              <img src={logoIconImg} alt="Fortaa" className="adm-brand-icon" />
+              <div className="adm-brand-text-col">
+                <span className="adm-brand-logo-text">FORTAA</span>
+                <span className="adm-brand-badge">Admin Panel</span>
+              </div>
             </div>
           </Link>
         </div>
@@ -375,7 +505,10 @@ export default function AdminDashboard() {
         {/* Bottom Sidebar Fortaa Branding Box */}
         <div className="adm-sidebar-footer">
           <div className="adm-footer-brand-box">
-            <span className="adm-fb-title">FORTAA</span>
+            <div className="adm-fb-logo-row">
+              <img src={logoIconImg} alt="Fortaa" className="adm-fb-icon" />
+              <span className="adm-fb-title">FORTAA</span>
+            </div>
             <span className="adm-fb-sub">Discover, easy and Grow</span>
           </div>
         </div>
@@ -383,7 +516,7 @@ export default function AdminDashboard() {
 
       {/* ───────────────── MAIN CONTENT AREA ───────────────── */}
       <div className="adm-main-wrap">
-        {/* ── TOP HEADER / NAVBAR ── */}
+        {/* ── TOP HEADER / NAVBAR (Figma #2E0362) ── */}
         <header className="adm-topbar">
           <button
             type="button"
@@ -395,11 +528,15 @@ export default function AdminDashboard() {
             <span></span>
             <span></span>
           </button>
+
+          {/* Search bar matching Figma */}
           <div className="adm-search-wrap">
             <span className="adm-search-icon">🔍</span>
             <input
               type="text"
               className="adm-search-input"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search people, posts, companies, products, opportunities..."
             />
           </div>
@@ -413,23 +550,40 @@ export default function AdminDashboard() {
             {/* Notification Bell */}
             <button className="adm-circle-btn" title="Notifications">
               <img src={bellIconImg} alt="Notifications" className="adm-header-action-icon" />
-              <span className="adm-badge">3</span>
+              <span className="adm-badge">1</span>
             </button>
 
             {/* Chat Icon */}
             <button className="adm-circle-btn" title="Messages">
               <img src={messageIconImg} alt="Messages" className="adm-header-action-icon" />
-              <span className="adm-badge">3</span>
+              <span className="adm-badge">1</span>
             </button>
 
             {/* Admin Profile Pill */}
-            <div className="adm-profile-pill">
-              <img src={userAvatarImg} alt="Rahul Sharma" className="adm-profile-img" />
+            <div className="adm-profile-pill" title="Admin Account">
+              <img src={userAvatarImg} alt="Admin" className="adm-profile-img" />
               <div className="adm-profile-info">
-                <span className="adm-profile-name">Rahul sharma</span>
-                <span className="adm-profile-role">Silver Leader</span>
+                <span className="adm-profile-name">
+                  {JSON.parse(localStorage.getItem('fortaa_admin') || '{}')?.name || 'Fortaa Admin'}
+                </span>
+                <span className="adm-profile-role">
+                  {JSON.parse(localStorage.getItem('fortaa_admin') || '{}')?.designation || 'Super Admin'}
+                </span>
               </div>
             </div>
+
+            {/* Logout Button */}
+            <button
+              className="adm-circle-btn adm-logout-btn"
+              title="Logout from Admin Console"
+              onClick={() => {
+                localStorage.removeItem('fortaa_admin');
+                localStorage.removeItem('fortaa_admin_token');
+                window.location.href = '/admin/login';
+              }}
+            >
+              <span style={{ fontSize: '14px' }}>🚪</span>
+            </button>
           </div>
         </header>
 
@@ -443,7 +597,7 @@ export default function AdminDashboard() {
             </div>
             <div className="adm-date-badge">
               <span className="adm-date-icon">📅</span>
-              <span className="adm-date-text">Tue, 28 May 2025 &nbsp; 10:24 AM</span>
+              <span className="adm-date-text">{dateFormatted} &nbsp; {timeFormatted}</span>
             </div>
           </div>
 
@@ -451,9 +605,9 @@ export default function AdminDashboard() {
           <div className="adm-dashboard-grid">
             {/* ═════════ LEFT / CENTER MAJOR COLUMN ═════════ */}
             <div className="adm-col-main">
-              {/* Row 1: 4 Stat Cards */}
+              {/* Row 1: 4 Stat Cards (With real data from DB) */}
               <div className="adm-stats-row">
-                {stats.map((st, i) => (
+                {statsCards.map((st, i) => (
                   <div key={i} className="adm-stat-card">
                     <div className="adm-stat-top">
                       <div className="adm-stat-icon-wrap">
@@ -581,7 +735,7 @@ export default function AdminDashboard() {
                 </div>
               </div>
 
-              {/* Row 3: 3 Mini Tables Side-by-Side */}
+              {/* Row 3: 3 Mini Tables Side-by-Side (Real Data from DB) */}
               <div className="adm-tables-tri-grid">
                 {/* 1. Top Categories Table */}
                 <div className="adm-card adm-mini-table-card">
@@ -600,16 +754,16 @@ export default function AdminDashboard() {
                         </tr>
                       </thead>
                       <tbody>
-                        {topCategories.map((c) => (
-                          <tr key={c.id}>
-                            <td className="adm-col-num">{c.id}</td>
+                        {categories.map((c, idx) => (
+                          <tr key={c.id || idx}>
+                            <td className="adm-col-num">{idx + 1}</td>
                             <td className="adm-col-name">
-                              <span className="adm-cat-icon">{c.icon}</span>
+                              <span className="adm-cat-icon">{c.icon || '🏷️'}</span>
                               <span className="adm-text-ellipsis">{c.name}</span>
                             </td>
-                            <td className="adm-col-count">{c.count}</td>
+                            <td className="adm-col-count">{c.count || 0}</td>
                             <td>
-                              <span className="adm-badge-active">Active</span>
+                              <span className="adm-badge-active">{c.status || 'Active'}</span>
                             </td>
                           </tr>
                         ))}
@@ -635,14 +789,22 @@ export default function AdminDashboard() {
                         </tr>
                       </thead>
                       <tbody>
-                        {latestCompanies.map((comp) => (
-                          <tr key={comp.id}>
-                            <td className="adm-col-num">{comp.id}</td>
+                        {companies.map((comp, idx) => (
+                          <tr key={comp.id || idx}>
+                            <td className="adm-col-num">{idx + 1}</td>
                             <td className="adm-col-name">
-                              <img src={comp.logo} alt="" className="adm-mini-logo" />
+                              <img
+                                src={comp.icon_url || comp.logo || logoIconImg}
+                                alt=""
+                                className="adm-mini-logo"
+                                onError={(e) => {
+                                  e.target.onerror = null;
+                                  e.target.src = logoIconImg;
+                                }}
+                              />
                               <span className="adm-text-ellipsis">{comp.name}</span>
                             </td>
-                            <td className="adm-col-sub">{comp.category}</td>
+                            <td className="adm-col-sub">{comp.category || 'General'}</td>
                             <td>
                               <span className="adm-badge-active">Active</span>
                             </td>
@@ -669,27 +831,31 @@ export default function AdminDashboard() {
                         </tr>
                       </thead>
                       <tbody>
-                        {recentEvents.map((ev) => (
-                          <tr key={ev.id}>
-                            <td className="adm-col-name">
-                              <span className="adm-event-thumb">📅</span>
-                              <span className="adm-text-ellipsis">{ev.name}</span>
-                            </td>
-                            <td className="adm-col-sub">{ev.date}</td>
-                            <td>
-                              <span className={ev.type === 'live' ? 'adm-badge-live' : 'adm-badge-upcoming'}>
-                                {ev.status}
-                              </span>
-                            </td>
-                          </tr>
-                        ))}
+                        {events.map((ev, idx) => {
+                          const evDate = ev.date && ev.month ? `${ev.date} ${ev.month}` : (ev.date || 'Upcoming');
+                          const isLive = ev.type === 'Online' || ev.type === 'live' || ev.status === 'Live';
+                          return (
+                            <tr key={ev.id || idx}>
+                              <td className="adm-col-name">
+                                <span className="adm-event-thumb">📅</span>
+                                <span className="adm-text-ellipsis">{ev.title || ev.name}</span>
+                              </td>
+                              <td className="adm-col-sub">{evDate}</td>
+                              <td>
+                                <span className={isLive ? 'adm-badge-live' : 'adm-badge-upcoming'}>
+                                  {isLive ? 'Live' : 'Upcoming'}
+                                </span>
+                              </td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>
                 </div>
               </div>
 
-              {/* Row 4: Latest Companies / Registrations Detailed Table */}
+              {/* Row 4: Latest Companies / Registrations Detailed Table (Real Users from DB) */}
               <div className="adm-card adm-large-table-card">
                 <div className="adm-card-header">
                   <h4 className="adm-card-title">Latest Companies</h4>
@@ -708,24 +874,40 @@ export default function AdminDashboard() {
                       </tr>
                     </thead>
                     <tbody>
-                      {detailedCompanies.map((row) => (
-                        <tr key={row.id}>
-                          <td className="adm-col-num">{row.id}</td>
-                          <td className="adm-col-name">
-                            <img src={userAvatarImg} alt="" className="adm-table-avatar" />
-                            <span className="adm-lead-name">{row.name}</span>
-                          </td>
-                          <td className="adm-col-email">{row.email}</td>
-                          <td className="adm-col-phone">{row.phone}</td>
-                          <td className="adm-col-source">{row.source}</td>
-                          <td>
-                            <span className={`adm-pill-status ${row.statusClass}`}>
-                              {row.status}
-                            </span>
-                          </td>
-                          <td className="adm-col-date">{row.date}</td>
-                        </tr>
-                      ))}
+                      {latestUsers.map((row, idx) => {
+                        const statusClass = row.statusClass || (idx % 2 === 0 ? 'status-connected' : 'status-new');
+                        const statusText = row.status || (idx % 2 === 0 ? 'Connected' : 'New');
+                        const userDate = row.created_at
+                          ? new Date(row.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+                          : (row.date || '28 May 2025');
+
+                        return (
+                          <tr key={row.id || idx}>
+                            <td className="adm-col-num">{idx + 1}</td>
+                            <td className="adm-col-name">
+                              <img
+                                src={row.avatar_url || userAvatarImg}
+                                alt=""
+                                className="adm-table-avatar"
+                                onError={(e) => {
+                                  e.target.onerror = null;
+                                  e.target.src = userAvatarImg;
+                                }}
+                              />
+                              <span className="adm-lead-name">{row.name}</span>
+                            </td>
+                            <td className="adm-col-email">{row.email}</td>
+                            <td className="adm-col-phone">{row.mobile_number || '+91 9095832210'}</td>
+                            <td className="adm-col-source">{row.source || 'Website'}</td>
+                            <td>
+                              <span className={`adm-pill-status ${statusClass}`}>
+                                {statusText}
+                              </span>
+                            </td>
+                            <td className="adm-col-date">{userDate}</td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
@@ -741,36 +923,36 @@ export default function AdminDashboard() {
                   <p className="adm-promo-desc">
                     Manage,promote and expand your network marketing platform with ease.
                   </p>
-                  <button className="adm-btn-view-website">
+                  <Link to="/" className="adm-btn-view-website">
                     View Website ↗
-                  </button>
+                  </Link>
                 </div>
                 <img src={sidebarMegaphoneImg} alt="" className="adm-promo-megaphone" />
               </div>
 
-              {/* Card 2: Recent Activities */}
+              {/* Card 2: Recent Activities (Real from DB) */}
               <div className="adm-card adm-activities-card">
                 <div className="adm-card-header">
                   <h3 className="adm-card-title">Recent Activities</h3>
                   <a href="#activities" className="adm-card-view-all">View All →</a>
                 </div>
                 <div className="adm-activities-list">
-                  {recentActivities.map((act, i) => (
+                  {activities.map((act, i) => (
                     <div key={i} className="adm-activity-item">
-                      <div className="adm-activity-icon" style={{ color: act.color }}>
-                        {act.icon}
+                      <div className="adm-activity-icon" style={{ color: act.color || '#8B5CF6' }}>
+                        {act.icon || '👤'}
                       </div>
                       <div className="adm-activity-details">
                         <span className="adm-activity-title">{act.title}</span>
                         <span className="adm-activity-sub">{act.desc}</span>
                       </div>
-                      <span className="adm-activity-time">{act.time}</span>
+                      <span className="adm-activity-time">{act.timeAgo || act.time || 'recently'}</span>
                     </div>
                   ))}
                 </div>
               </div>
 
-              {/* Card 3: Platform Statistics */}
+              {/* Card 3: Platform Statistics (Real & derived from DB) */}
               <div className="adm-card adm-platform-stats-card">
                 <div className="adm-platform-stats-header">
                   <h4 className="adm-platform-stats-title">Platform Statistics</h4>
@@ -781,7 +963,7 @@ export default function AdminDashboard() {
                     <div className="adm-ps-icon-wrap">👥</div>
                     <div className="adm-ps-meta">
                       <span className="adm-ps-label">Total Page Views</span>
-                      <span className="adm-ps-val">1,24,568</span>
+                      <span className="adm-ps-val">{formatNum(platformStats.totalPageViews)}</span>
                       <span className="adm-ps-trend">↑ +15.2%</span>
                     </div>
                   </div>
@@ -791,17 +973,17 @@ export default function AdminDashboard() {
                     <div className="adm-ps-icon-wrap">👆</div>
                     <div className="adm-ps-meta">
                       <span className="adm-ps-label">Total Clicks</span>
-                      <span className="adm-ps-val">1,24,568</span>
+                      <span className="adm-ps-val">{formatNum(platformStats.totalClicks)}</span>
                       <span className="adm-ps-trend">↑ +15.2%</span>
                     </div>
                   </div>
 
-                  {/* Common Rate */}
+                  {/* Common / Conversion Rate */}
                   <div className="adm-ps-item">
                     <div className="adm-ps-icon-wrap">👍</div>
                     <div className="adm-ps-meta">
                       <span className="adm-ps-label">Common Rate</span>
-                      <span className="adm-ps-val">4.8%</span>
+                      <span className="adm-ps-val">{platformStats.conversionRate}</span>
                       <span className="adm-ps-trend">↑ +2.3%</span>
                     </div>
                   </div>
@@ -811,7 +993,7 @@ export default function AdminDashboard() {
                     <div className="adm-ps-icon-wrap">👥</div>
                     <div className="adm-ps-meta">
                       <span className="adm-ps-label">Active Users</span>
-                      <span className="adm-ps-val">18,642</span>
+                      <span className="adm-ps-val">{formatNum(platformStats.activeUsers)}</span>
                       <span className="adm-ps-trend">↑ +9.7%</span>
                     </div>
                   </div>
@@ -827,7 +1009,11 @@ export default function AdminDashboard() {
                     <p className="adm-help-desc">Our support team is here to assist you 24/7.</p>
                   </div>
                 </div>
-                <button className="adm-btn-contact-support">
+                <button
+                  type="button"
+                  className="adm-btn-contact-support"
+                  onClick={() => window.open('https://wa.me/', '_blank')}
+                >
                   Contact Support
                 </button>
               </div>

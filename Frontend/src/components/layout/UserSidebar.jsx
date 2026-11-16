@@ -23,6 +23,7 @@ import navMessagesIcon from '../../assets/sidebar/nav_messages.png';
 import navGroupsIcon from '../../assets/sidebar/nav_groups.png';
 import navResourcesIcon from '../../assets/sidebar/nav_resources.png';
 import navSettingsIcon from '../../assets/sidebar/nav_settings.png';
+import bellIconImg from '../../assets/dashboard/bell-icon.png';
 
 const NAV_ITEMS = [
   { label: 'Home', icon: navHomeIcon, path: '/dashboard' },
@@ -36,6 +37,7 @@ const NAV_ITEMS = [
   // { label: 'Events', icon: navEventsIcon },
   // { label: 'News & Updates', icon: navNewsIcon },
   { label: 'Messages', icon: navMessagesIcon, path: '/messages' },
+  { label: 'Notifications', icon: bellIconImg, path: '/notifications' },
   { label: 'Groups', icon: navGroupsIcon, path: '/groups' },
   // { label: 'Resources', icon: navResourcesIcon },
   { label: 'Settings', icon: navSettingsIcon, path: '/settings' },

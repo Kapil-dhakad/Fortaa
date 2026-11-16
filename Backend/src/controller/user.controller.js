@@ -2,7 +2,7 @@ const userModel = require('../model/user.model');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const db = require('../db/db');
-const { sendWelcomeEmail } = require('../services/email.service');
+const { sendWelcomeEmail, handleProfileViewNotification } = require('../services/email.service');
 const { sendWhatsAppWelcomeMessage } = require('../services/whatsapp.service');
 
 /**
@@ -431,6 +431,15 @@ async function getUserProfile(req, res) {
       if (result.rows.length === 0) {
         return res.status(404).json({ success: false, message: 'User not found' });
       }
+
+      // Record profile view and trigger LinkedIn-style email notification (Throttled to 1 email / 24h per viewer)
+      const viewerId = req.query.viewerId || req.body?.viewerId || req.userId;
+      if (viewerId && Number(viewerId) !== Number(userId)) {
+        handleProfileViewNotification(viewerId, userId).catch((err) => {
+          console.warn('[Profile View Notification Warning]:', err.message);
+        });
+      }
+
       return res.status(200).json({ success: true, profile: result.rows[0] });
     }
 

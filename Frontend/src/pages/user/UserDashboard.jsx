@@ -17,6 +17,7 @@ import InviteTeamModal from '../../components/modals/InviteTeamModal';
 import JoinGroupModal from '../../components/modals/JoinGroupModal';
 import NotificationDropdown from '../../components/notifications/NotificationDropdown';
 import AuthGateModal from '../../components/auth/AuthGateModal';
+import StoriesBar from '../../components/stories/StoriesBar';
 
 // Upload & Dashboard APIs
 import { uploadSingleImage, uploadSingleVideo } from '../../services/upload.service';
@@ -299,11 +300,39 @@ function InFeedSuggestedPeople({
         stats: 'Direct Selling Leader',
         avatar: l.avatar_url || userAvatarImg,
         isTrainer: false,
+        company: l.company_brand || l.business_name || 'Fortaa',
+        username: l.username,
+        bio: l.bio,
+        location: l.location,
       }));
     }
   }, [isTrainers, trainers, leaders]);
 
   const visibleItems = items.filter((p) => !dismissedKeys.includes(p.key));
+
+  const handleOpenProfile = (person) => {
+    if (!person) return;
+    const targetId = person.id || (person.name ? person.name.toLowerCase().replace(/\s+/g, '') : 'default');
+    if (navigate) {
+      navigate(`/leader/${targetId}`, {
+        state: {
+          leader: {
+            id: person.id,
+            name: person.name,
+            username: person.username || (person.name || '').toLowerCase().replace(/\s+/g, ''),
+            avatar: person.avatar,
+            levelTitle: person.role,
+            role: person.role,
+            followers: person.stats,
+            isTrainer: person.isTrainer,
+            company: person.company || 'Fortaa',
+            location: person.location || 'India',
+            bio: person.bio || '',
+          },
+        },
+      });
+    }
+  };
 
   if (!visibleItems.length) return null;
 
@@ -347,7 +376,19 @@ function InFeedSuggestedPeople({
               >
                 ✕
               </button>
-              <div className="ud-infeed-avatar-ring">
+              <div
+                className="ud-infeed-avatar-ring"
+                onClick={() => handleOpenProfile(person)}
+                title={`View ${person.name}'s profile`}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    handleOpenProfile(person);
+                  }
+                }}
+              >
                 <img
                   src={person.avatar}
                   alt={person.name}
@@ -360,8 +401,28 @@ function InFeedSuggestedPeople({
                 {person.isTrainer && <span className="ud-infeed-trainer-badge" title="Certified Trainer">⭐</span>}
               </div>
 
-              <h4 className="ud-infeed-person-name" title={person.name}>{person.name}</h4>
-              <span className="ud-infeed-person-role">{person.role}</span>
+              <h4
+                className="ud-infeed-person-name"
+                onClick={() => handleOpenProfile(person)}
+                title={`View ${person.name}'s profile`}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    handleOpenProfile(person);
+                  }
+                }}
+              >
+                {person.name}
+              </h4>
+              <span
+                className="ud-infeed-person-role"
+                onClick={() => handleOpenProfile(person)}
+                title={`View ${person.name}'s profile`}
+              >
+                {person.role}
+              </span>
               <span className="ud-infeed-person-stats">{person.stats}</span>
 
               <button
@@ -1462,7 +1523,7 @@ export default function UserDashboard() {
 
                 {/* Photo Preview if attached */}
                 {postImagePreview && (
-                  <div style={{ position: 'relative', margin: '8px 0', borderRadius: '8px', overflow: 'hidden' }}>
+                  <div style={{ position: 'relative', margin: '8px 0 8px 50px', borderRadius: '8px', overflow: 'hidden' }}>
                     <img
                       src={postImagePreview}
                       alt="Preview"
@@ -1495,7 +1556,7 @@ export default function UserDashboard() {
 
                 {/* Video Preview if attached */}
                 {postVideoPreview && (
-                  <div style={{ position: 'relative', margin: '8px 0', borderRadius: '8px', overflow: 'hidden', background: '#000' }}>
+                  <div style={{ position: 'relative', margin: '8px 0 8px 50px', borderRadius: '8px', overflow: 'hidden', background: '#000' }}>
                     <video
                       src={postVideoPreview}
                       controls
@@ -2034,50 +2095,8 @@ export default function UserDashboard() {
       <div className="ud-mobile-only">
         {/* Main Content Card: Frame 109 (White container with soft glow) */}
         <div className="ud-mob-frame109">
-          {/* Stories / Highlights Row (Frame 188 - 192) - Positioned on Top */}
-          <div className="ud-mob-stories-row">
-            {/* Story 1: Add Story */}
-            <div className="ud-mob-story-card story-add" onClick={() => setIsCreatePostModalOpen(true)}>
-              <div className="ud-mob-story-avatar-wrap">
-                <div className="ud-mob-story-add-icon">+</div>
-              </div>
-              <span className="ud-mob-story-name">Add Story</span>
-            </div>
-
-            {/* Story 2: Amit Yadav */}
-            <div className="ud-mob-story-card story-amit">
-              <div className="ud-mob-story-avatar-wrap">
-                <img src={userAvatarImg} alt="Amit Yadav" className="ud-mob-story-img" />
-                <span className="ud-mob-story-badge">+</span>
-              </div>
-              <span className="ud-mob-story-name">Amit Yadav</span>
-            </div>
-
-            {/* Story 3: Neha Gupta */}
-            <div className="ud-mob-story-card story-neha">
-              <div className="ud-mob-story-avatar-wrap">
-                <img src={priyaSharmaImg} alt="Neha Gupta" className="ud-mob-story-img" />
-                <span className="ud-mob-story-badge">+</span>
-              </div>
-              <span className="ud-mob-story-name">Neha Gupta</span>
-            </div>
-
-            {/* Story 4: Upcoming Event */}
-            <div className="ud-mob-story-card story-event">
-              <div className="ud-mob-story-avatar-wrap">
-                <div className="ud-mob-story-calendar-icon">📅</div>
-              </div>
-              <span className="ud-mob-story-name">Upcoming Event</span>
-            </div>
-
-            {/* Story 5: Top Leaders */}
-            <div className="ud-mob-story-card story-leaders" onClick={() => navigate("/leaders")} style={{ cursor: "pointer" }}>
-              <div className="ud-mob-story-avatar-wrap">
-                <div className="ud-mob-story-crown-icon">👑</div>
-              </div>
-              <span className="ud-mob-story-name">Top Leaders</span>
-            </div>
-          </div>
+          {/* Stories / Highlights Row (Instagram Style 24h Stories: Photo, Video, Text, Poll) */}
+          <StoriesBar currentUser={profile} variant="mobile" />
 
           {/* Create Post Strip - Positioned Below Stories */}
           <div className="ud-mob-create-post-strip">

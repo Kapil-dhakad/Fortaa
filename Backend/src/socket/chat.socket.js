@@ -1,4 +1,5 @@
 const db = require('../db/db');
+const { handleNewMessageEmailNotification } = require('../services/email.service');
 
 // In-memory tracking of active online users: userId -> Set of socketIds
 const onlineUsers = new Map();
@@ -186,6 +187,16 @@ function setupChatSocket(io) {
 
         // 2. Acknowledge back to sender with confirmed saved message and status
         socket.emit('message_sent', finalMsg);
+
+        // 3. Trigger smart email notification if receiver is offline/away (Throttled to 1 email / 30min per sender)
+        handleNewMessageEmailNotification({
+          senderId: Number(senderId),
+          receiverId: Number(receiverId),
+          text: cleanText,
+          isReceiverOnline,
+        }).catch((err) => {
+          console.warn('[Message Email Warning]:', err.message);
+        });
       } catch (err) {
         console.error('[Socket send_message error]:', err);
         socket.emit('error', { message: 'Failed to send message' });
