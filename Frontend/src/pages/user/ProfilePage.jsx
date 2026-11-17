@@ -515,41 +515,57 @@ export default function ProfilePage() {
 
   const handleSaveProfile = async (e) => {
     if (e) e.preventDefault();
-    setUserProfile({ ...formData });
+
+    let targetId = currentUserId || storedUser.id || storedUser._id;
+    if (!targetId) {
+      try {
+        const me = await fetchCurrentUser();
+        if (me?.id) targetId = me.id;
+      } catch {}
+    }
+
+    if (!targetId) {
+      toast.error('Unable to find user session. Please log in again.');
+      return;
+    }
 
     try {
-      await apiUpdateUserProfile(currentUserId, {
+      const updatePayload = {
         name: formData.name,
         username: formData.username,
         dob: formData.dob,
         gender: formData.gender,
         location: formData.location,
-        mobileNumber: formData.mobile,
         skills: Array.isArray(formData.skills) ? formData.skills.join(', ') : formData.skills,
         experience: formData.experience,
         bio: formData.bio,
+        designation: formData.userRole,
+        company_brand: formData.company,
+        companyBrand: formData.company,
         coverUrl: formData.coverImg,
-      });
+      };
+
+      if (formData.mobile) {
+        updatePayload.mobileNumber = formData.mobile;
+      }
+
+      await apiUpdateUserProfile(targetId, updatePayload);
+
+      setUserProfile({ ...formData });
 
       const stored = JSON.parse(localStorage.getItem('fortaa_user') || '{}');
       localStorage.setItem('fortaa_user', JSON.stringify({
         ...stored,
-        name: formData.name,
-        username: formData.username,
-        dob: formData.dob,
-        gender: formData.gender,
-        location: formData.location,
-        mobileNumber: formData.mobile,
-        skills: Array.isArray(formData.skills) ? formData.skills.join(', ') : formData.skills,
-        experience: formData.experience,
-        bio: formData.bio,
-        coverUrl: formData.coverImg,
+        ...updatePayload,
+        id: targetId,
       }));
-      toast.success('Profile updated in database successfully!');
+
+      toast.success('Profile updated in database successfully! 🎉');
+      setIsEditing(false);
     } catch (err) {
+      console.error('Save profile error:', err);
       toast.error(err.message || 'Failed to save changes');
     }
-    setIsEditing(false);
   };
 
   // Select Avatar from PC / Mobile
@@ -842,6 +858,36 @@ export default function ProfilePage() {
                           placeholder="e.g. 6month.."
                           value={formData.experience}
                           onChange={(e) => setFormData({ ...formData, experience: e.target.value })}
+                        />
+                      </div>
+
+                      <div className="prof-edit-group">
+                        <label className="prof-edit-label">Designation / Leader Rank</label>
+                        <select
+                          className="prof-edit-input"
+                          value={formData.userRole || 'Senior Leader'}
+                          onChange={(e) => setFormData({ ...formData, userRole: e.target.value })}
+                        >
+                          <option value="Diamond Leader">💎 Diamond Leader</option>
+                          <option value="Platinum Leader">⭐ Platinum Leader</option>
+                          <option value="Gold Leader">🏆 Gold Leader</option>
+                          <option value="Silver Leader">🥈 Silver Leader</option>
+                          <option value="Bronze Leader">🥉 Bronze Leader</option>
+                          <option value="Senior Leader">Senior Leader</option>
+                          <option value="Team Leader">Team Leader</option>
+                          <option value="Business Leader">Business Leader</option>
+                          <option value="Independent Distributor">Independent Distributor</option>
+                        </select>
+                      </div>
+
+                      <div className="prof-edit-group">
+                        <label className="prof-edit-label">Company / Brand</label>
+                        <input
+                          type="text"
+                          className="prof-edit-input"
+                          placeholder="e.g. Forever Living, Amway"
+                          value={formData.company || ''}
+                          onChange={(e) => setFormData({ ...formData, company: e.target.value })}
                         />
                       </div>
 
@@ -1379,6 +1425,19 @@ export default function ProfilePage() {
                 </div>
               </div>
 
+              {/* 1.5. Subtle Profile Completion Bar (Option B: only shows in My Profile if fields are missing) */}
+              {(!userProfile.bio || !userProfile.location || !(Array.isArray(userProfile.skills) ? userProfile.skills.filter(Boolean).length : (userProfile.skills || '').trim())) && (
+                <div className="prof-subtle-hint-bar" onClick={handleOpenEdit} role="button" tabIndex={0}>
+                  <div className="prof-hint-left">
+                    <span className="prof-hint-icon">⚡</span>
+                    <span className="prof-hint-text">
+                      <strong>Complete your profile:</strong> Add your location, bio, and skills to stand out on Leaders.
+                    </span>
+                  </div>
+                  <span className="prof-hint-cta">Edit Profile →</span>
+                </div>
+              )}
+
               {/* 2. 4 Stats Cards Row */}
               <div className="prof-stats-grid">
                 <div
@@ -1467,14 +1526,28 @@ export default function ProfilePage() {
               {/* 3. About Me Card */}
               <div className="prof-about-card">
                 <h3 className="prof-section-heading">About Me</h3>
-                <p className="prof-about-desc">
-                  {userProfile.bio}
+                <p
+                  className="prof-about-desc"
+                  style={{
+                    color: userProfile.bio ? '#334155' : '#94A3B8',
+                    fontStyle: userProfile.bio ? 'normal' : 'italic',
+                    cursor: userProfile.bio ? 'default' : 'pointer',
+                  }}
+                  onClick={!userProfile.bio ? handleOpenEdit : undefined}
+                >
+                  {userProfile.bio || '+ Add a short bio or leadership quote...'}
                 </p>
 
                 <div className="prof-meta-contact-row">
-                  <div className="prof-meta-item">
+                  <div
+                    className="prof-meta-item"
+                    style={{ cursor: userProfile.location ? 'default' : 'pointer' }}
+                    onClick={!userProfile.location ? handleOpenEdit : undefined}
+                  >
                     <span>📍</span>
-                    <span>{userProfile.location}</span>
+                    <span style={{ color: userProfile.location ? '#475569' : '#94A3B8' }}>
+                      {userProfile.location || '+ Add Location'}
+                    </span>
                   </div>
                   <div className="prof-meta-item">
                     <span>✉️</span>
@@ -1485,17 +1558,38 @@ export default function ProfilePage() {
                 <div className="prof-tags-block">
                   <span className="prof-tags-label">Skills</span>
                   <div className="prof-pills-row">
-                    {Array.isArray(userProfile.skills) ? (
-                      userProfile.skills.map((skill, idx) => (
-                        <span key={idx} className="prof-pill-tag">
-                          <span className="prof-pill-dot" /> {skill}
-                        </span>
-                      ))
-                    ) : (
-                      <span className="prof-pill-tag">
-                        <span className="prof-pill-dot" /> {userProfile.skills}
-                      </span>
-                    )}
+                    {(() => {
+                      const skillsArray = Array.isArray(userProfile.skills)
+                        ? userProfile.skills.map((s) => (typeof s === 'string' ? s.trim() : s)).filter(Boolean)
+                        : (typeof userProfile.skills === 'string' && userProfile.skills.trim()
+                            ? userProfile.skills.split(',').map((s) => s.trim()).filter(Boolean)
+                            : []);
+
+                      if (skillsArray.length > 0) {
+                        return skillsArray.map((skill, idx) => (
+                          <span key={idx} className="prof-pill-tag">
+                            <span className="prof-pill-dot" /> {skill}
+                          </span>
+                        ));
+                      }
+
+                      return (
+                        <button
+                          type="button"
+                          className="prof-pill-tag"
+                          style={{
+                            cursor: 'pointer',
+                            background: '#F5F3FF',
+                            color: '#6220FE',
+                            border: '1px dashed #C4B5FD',
+                            fontWeight: 600,
+                          }}
+                          onClick={handleOpenEdit}
+                        >
+                          + Add Skills
+                        </button>
+                      );
+                    })()}
                   </div>
                 </div>
 

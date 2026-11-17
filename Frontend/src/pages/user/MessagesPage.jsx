@@ -10,6 +10,7 @@ import {
   subscribeToNewMessages,
   subscribeToSentMessage,
   subscribeToOnlineUsers,
+  subscribeToUserLastSeen,
   subscribeToTyping,
   subscribeToStopTyping,
   emitMarkRead,
@@ -138,6 +139,7 @@ export default function MessagesPage() {
   const [inputText, setInputText] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [onlineUserIds, setOnlineUserIds] = useState([]);
+  const [lastSeenMap, setLastSeenMap] = useState({});
   const [isTyping, setIsTyping] = useState(false);
   const [suggestions, setSuggestions] = useState([]);
   const [isBlocked, setIsBlocked] = useState(false);
@@ -533,6 +535,44 @@ export default function MessagesPage() {
     selectedContact && onlineUserIds.includes(String(selectedContact.user_id))
   );
 
+  const getContactLastSeenText = (contact) => {
+    if (!contact) return '';
+    const uid = String(contact.user_id);
+    const rawTime = lastSeenMap[uid] || contact.last_seen || contact.last_message_time;
+    if (!rawTime) {
+      return '2 hours ago';
+    }
+    const date = new Date(rawTime);
+    if (isNaN(date.getTime())) return 'recently';
+    const now = new Date();
+    const diffMs = Math.max(0, now.getTime() - date.getTime());
+    const diffSec = Math.floor(diffMs / 1000);
+    const diffMin = Math.floor(diffSec / 60);
+    const diffHours = Math.floor(diffMin / 60);
+    const diffDays = Math.floor(diffHours / 24);
+
+    const timeStr = date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true });
+
+    if (diffSec < 60) return 'just now';
+    if (diffMin < 60) return `${diffMin} ${diffMin === 1 ? 'min' : 'mins'} ago`;
+    const isToday = date.toDateString() === now.toDateString();
+    if (isToday) {
+      if (diffHours < 12) return `${diffHours} ${diffHours === 1 ? 'hour' : 'hours'} ago`;
+      return `today at ${timeStr}`;
+    }
+    const yesterday = new Date(now);
+    yesterday.setDate(now.getDate() - 1);
+    if (date.toDateString() === yesterday.toDateString()) {
+      return `yesterday at ${timeStr}`;
+    }
+    if (diffDays < 7) {
+      const dayName = date.toLocaleDateString([], { weekday: 'short' });
+      return `${dayName} at ${timeStr}`;
+    }
+    const dateStr = date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+    return `${dateStr} at ${timeStr}`;
+  };
+
   const getRoleIcon = (role) => {
     if (!role) return <BsBriefcaseFill className="msg-role-icon-svg" />;
     const r = role.toLowerCase();
@@ -559,6 +599,15 @@ export default function MessagesPage() {
         setOnlineUserIds(onlineList.map(String));
       });
 
+      const unsubLastSeen = subscribeToUserLastSeen((data) => {
+        if (data && data.userId) {
+          setLastSeenMap((prev) => ({
+            ...prev,
+            [String(data.userId)]: data.last_seen || new Date().toISOString(),
+          }));
+        }
+      });
+
       // Keep online status synchronized periodically
       const intervalId = setInterval(() => {
         const s = getSocket();
@@ -578,22 +627,30 @@ export default function MessagesPage() {
         try {
           const dbData = await fetchConversations(myId);
           if (Array.isArray(dbData)) {
-            const realList = dbData.map((d) => ({
-              user_id: d.user_id,
-              name: d.name,
-              role: d.designation || 'Member',
-              category: d.category || 'Direct',
-              last_message_text: d.last_message_text || (d.is_new_contact ? 'Start conversation' : 'Click to open conversation'),
-              time: d.last_message_time
-                ? new Date(d.last_message_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                : '',
-              unread_count: Number(d.unread_count) || 0,
-              avatar_url: d.avatar_url,
-              company_brand: d.company_brand,
-              is_new_contact: Boolean(d.is_new_contact),
-              isRealDb: true,
-            }));
+            const initialLastSeen = {};
+            const realList = dbData.map((d) => {
+              if (d.user_id && (d.last_seen || d.last_message_time)) {
+                initialLastSeen[String(d.user_id)] = d.last_seen || d.last_message_time;
+              }
+              return {
+                user_id: d.user_id,
+                name: d.name,
+                role: d.designation || 'Member',
+                category: d.category || 'Direct',
+                last_message_text: d.last_message_text || (d.is_new_contact ? 'Start conversation' : 'Click to open conversation'),
+                time: d.last_message_time
+                  ? new Date(d.last_message_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                  : '',
+                unread_count: Number(d.unread_count) || 0,
+                avatar_url: d.avatar_url,
+                company_brand: d.company_brand,
+                is_new_contact: Boolean(d.is_new_contact),
+                isRealDb: true,
+                last_seen: d.last_seen || d.last_message_time || null,
+              };
+            });
             setConversations(realList);
+            setLastSeenMap((prev) => ({ ...initialLastSeen, ...prev }));
 
             if (Array.isArray(dbData.suggestions)) {
               setSuggestions(
@@ -659,6 +716,7 @@ export default function MessagesPage() {
 
       return () => {
         unsubOnline();
+        unsubLastSeen();
         clearInterval(intervalId);
         window.removeEventListener('focus', handleFocus);
       };
@@ -1639,7 +1697,7 @@ export default function MessagesPage() {
                           </span>
                         ) : (
                           <span className="msg-header-offline-status">
-                            {selectedContact.role ? `${selectedContact.role} • Offline` : 'Offline'}
+                            {selectedContact.role ? `${selectedContact.role} • ` : ''}Last seen {getContactLastSeenText(selectedContact)}
                           </span>
                         )}
                       </div>

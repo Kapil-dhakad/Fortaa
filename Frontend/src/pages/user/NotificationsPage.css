@@ -725,13 +725,14 @@
   }
 
   .np-actions-col {
-    width: 100%;
+    width: calc(100% - 24px);
     margin-left: 20px;
     margin-top: 6px;
     display: flex;
     align-items: center;
     justify-content: flex-start;
     gap: 10px;
+    box-sizing: border-box;
   }
 
   .np-btn-sm {
@@ -740,6 +741,7 @@
   }
 
   .np-more-wrap {
-    margin-left: auto; /* push 3-dots to far right */
+    margin-left: auto;
+    margin-right: 14px; /* Move slightly inward from right edge */
   }
 }

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import logoIconImg from '../../assets/figma/logo_icon_img.png';
@@ -77,6 +77,9 @@ export default function CompleteProfilePage() {
     businessCategory: 'Health & Wellness',
     designation: 'Independent Distributor',
     businessName: '',
+    location: '',
+    bio: '',
+    skills: '',
     experience: '1 - 2 Years',
     referralId: '',
     govtIdUrl: '',
@@ -84,6 +87,17 @@ export default function CompleteProfilePage() {
   });
 
   const [errors, setErrors] = useState({});
+
+  const completionPercentage = useMemo(() => {
+    let score = 25; // Base score for Google-verified account
+    if (formData.name?.trim()) score += 15;
+    if (formData.mobileNumber?.trim() && formData.mobileNumber.replace(/\D/g, '').length === 10) score += 25;
+    if (formData.companyBrand?.trim()) score += 10;
+    if (formData.location?.trim()) score += 10;
+    if (formData.bio?.trim()) score += 10;
+    if (formData.skills?.trim()) score += 5;
+    return Math.min(100, score);
+  }, [formData]);
 
   useEffect(() => {
     // Load logged in user from localStorage
@@ -113,6 +127,9 @@ export default function CompleteProfilePage() {
         businessCategory: user.businessCategory || user.business_category || 'Health & Wellness',
         designation: user.designation || 'Independent Distributor',
         businessName: user.businessName || user.business_name || '',
+        location: user.location || '',
+        bio: user.bio || '',
+        skills: user.skills ? (Array.isArray(user.skills) ? user.skills.join(', ') : user.skills) : '',
         experience: user.experience || '1 - 2 Years',
         referralId: user.referralId || user.referral_id || '',
         govtIdUrl: user.govtIdUrl || user.govt_id_url || '',
@@ -193,6 +210,18 @@ export default function CompleteProfilePage() {
       newErrors.customCompany = 'Please enter your company or brand name';
     }
 
+    if (!formData.location.trim()) {
+      newErrors.location = 'City / Location is required (to rank in Leaders directory)';
+    }
+
+    if (!formData.bio.trim()) {
+      newErrors.bio = 'Leadership quote/bio is required (e.g. your vision or goal)';
+    }
+
+    if (!formData.skills.trim()) {
+      newErrors.skills = 'Key skills are required (e.g. Marketing, Sales)';
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -202,9 +231,9 @@ export default function CompleteProfilePage() {
 
     if (!validate()) {
       if (!formData.mobileNumber.trim()) {
-        toast.error('Mobile number dalna zaroori hai tabhi data save hoga!');
+        toast.error('Please enter your mobile number to complete your profile.');
       } else {
-        toast.error('Please fill in all required fields.');
+        toast.error('Please fill in all required fields to complete your leader profile.');
       }
       return;
     }
@@ -229,6 +258,9 @@ export default function CompleteProfilePage() {
       businessCategory: formData.businessCategory,
       designation: formData.designation,
       experience: formData.experience,
+      location: formData.location.trim(),
+      bio: formData.bio.trim(),
+      skills: formData.skills.trim(),
       referralId: formData.referralId.trim() || null,
       govtIdUrl: formData.govtIdUrl || null,
       avatarUrl: currentUser?.avatarUrl || currentUser?.picture || null,
@@ -274,9 +306,9 @@ export default function CompleteProfilePage() {
     if (!formData.mobileNumber.trim()) {
       setErrors((prev) => ({
         ...prev,
-        mobileNumber: 'Mobile number dalna mandatory hai tabhi profile save hogi',
+        mobileNumber: 'Mobile number is required to save your profile',
       }));
-      toast.error('Mobile number dalna mandatory hai tabhi data save hoga!');
+      toast.error('Please enter your mobile number to continue');
       document.querySelector('.cp-phone-input')?.focus();
       return;
     }
@@ -284,9 +316,9 @@ export default function CompleteProfilePage() {
     if (!/^[6-9]\d{9}$/.test(cleanMob)) {
       setErrors((prev) => ({
         ...prev,
-        mobileNumber: 'Kripya valid 10-digit Indian mobile number dalein',
+        mobileNumber: 'Please enter a valid 10-digit Indian mobile number',
       }));
-      toast.error('Kripya valid 10-digit Indian mobile number dalein');
+      toast.error('Please enter a valid 10-digit Indian mobile number');
       document.querySelector('.cp-phone-input')?.focus();
       return;
     }
@@ -351,21 +383,41 @@ export default function CompleteProfilePage() {
               <p className="cp-welcome-sub">
                 Complete your profile to unlock verified leader access, networking tools, and your dashboard feed.
               </p>
-              <div style={{
-                marginTop: '12px',
-                padding: '10px 14px',
-                background: '#FEF2F2',
-                border: '1px solid #FECACA',
-                borderRadius: '8px',
-                fontSize: '13px',
-                color: '#991B1B',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '8px',
-                fontWeight: 600,
-              }}>
-                <span>📱</span>
-                <span>Mobile Number dalna mandatory hai — Iske bina data save nahi hoga.</span>
+              <div className="cp-completion-progress-card">
+                <div className="cp-progress-header">
+                  <span className="cp-progress-label">
+                    <span className="cp-progress-sparkle">✨</span> Profile Strength: <strong>{completionPercentage}%</strong>
+                  </span>
+                  <span className="cp-progress-status">
+                    {completionPercentage >= 90 ? 'Ready to publish 🚀' : 'Essential details pending'}
+                  </span>
+                </div>
+                <div className="cp-progress-track">
+                  <div
+                    className="cp-progress-bar-fill"
+                    style={{ width: `${completionPercentage}%` }}
+                  />
+                </div>
+                <div className="cp-perks-row">
+                  <span className="cp-perk-pill">
+                    <svg width="12" height="12" viewBox="0 0 20 20" fill="#10B981">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/>
+                    </svg>
+                    Verified Leader Badge
+                  </span>
+                  <span className="cp-perk-pill">
+                    <svg width="12" height="12" viewBox="0 0 20 20" fill="#10B981">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/>
+                    </svg>
+                    Leaders Directory Listing
+                  </span>
+                  <span className="cp-perk-pill">
+                    <svg width="12" height="12" viewBox="0 0 20 20" fill="#10B981">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/>
+                    </svg>
+                    Direct Networking
+                  </span>
+                </div>
               </div>
             </div>
           </div>
@@ -429,7 +481,7 @@ export default function CompleteProfilePage() {
               {/* Mobile Number */}
               <div className="cp-form-group">
                 <label className="cp-label">
-                  Mobile Number <span className="cp-required">* (Mandatory)</span>
+                  Mobile Number <span className="cp-required">*</span>
                 </label>
                 <div className="cp-phone-wrap">
                   <span className="cp-phone-prefix">+91</span>
@@ -509,6 +561,51 @@ export default function CompleteProfilePage() {
                     </label>
                   ))}
                 </div>
+              </div>
+
+              {/* City / Location */}
+              <div className="cp-form-group">
+                <label className="cp-label">
+                  City / Location <span className="cp-required">*</span>
+                </label>
+                <input
+                  type="text"
+                  className={`cp-input ${errors.location ? 'cp-has-error' : ''}`}
+                  placeholder="e.g. Indore, Madhya Pradesh"
+                  value={formData.location}
+                  onChange={(e) => handleChange('location', e.target.value)}
+                />
+                {errors.location && <span className="cp-error-text">{errors.location}</span>}
+              </div>
+
+              {/* Bio / Quote */}
+              <div className="cp-form-group">
+                <label className="cp-label">
+                  Bio / One-line Leadership Quote <span className="cp-required">*</span>
+                </label>
+                <input
+                  type="text"
+                  className={`cp-input ${errors.bio ? 'cp-has-error' : ''}`}
+                  placeholder="e.g. Direct selling leader passionate about network growth"
+                  value={formData.bio}
+                  onChange={(e) => handleChange('bio', e.target.value)}
+                />
+                {errors.bio && <span className="cp-error-text">{errors.bio}</span>}
+              </div>
+
+              {/* Key Skills / Specialties */}
+              <div className="cp-form-group">
+                <label className="cp-label">
+                  Key Skills / Specialties <span className="cp-required">*</span>
+                </label>
+                <input
+                  type="text"
+                  className={`cp-input ${errors.skills ? 'cp-has-error' : ''}`}
+                  placeholder="e.g. Marketing, Sales, Team Leadership, Business Strategy"
+                  value={formData.skills}
+                  onChange={(e) => handleChange('skills', e.target.value)}
+                />
+                {errors.skills && <span className="cp-error-text">{errors.skills}</span>}
               </div>
             </div>
           </div>

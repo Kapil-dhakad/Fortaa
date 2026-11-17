@@ -1,61 +1,128 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import {
-  FiCompass,
   FiUsers,
   FiSearch,
   FiPlus,
-  FiShare2,
-  FiMessageCircle,
   FiCheck,
   FiX,
-  FiLink,
-  FiZap,
-  FiAward,
-  FiTrendingUp,
-  FiHeart,
-  FiTarget,
-  FiGrid,
   FiPlusCircle,
-  FiUserPlus,
-  FiArrowRight,
 } from 'react-icons/fi';
-import { FaWhatsapp } from 'react-icons/fa';
+import { BsThreeDotsVertical } from 'react-icons/bs';
 import UserHeader from '../../components/layout/UserHeader';
 import { fetchCurrentUser } from '../../services/user.service';
 import UserSidebar from '../../components/layout/UserSidebar';
 import UserMobileBottomNav from '../../components/layout/UserMobileBottomNav';
 import AuthGateModal from '../../components/auth/AuthGateModal';
+import GroupMembersModal from '../../components/modals/GroupMembersModal';
 import { fetchGroups, joinGroup, leaveGroup, createGroup } from '../../services/group.service';
 import './GroupsPage.css';
 
-const CATEGORIES = ['All', 'Leadership', 'Direct Selling', 'Motivation', 'Wellness', 'Marketing'];
+// Figma Design preset groups matching user's screenshot exactly
+const FIGMA_PRESET_GROUPS = [
+  {
+    id: 'f1',
+    name: 'Albert Flores',
+    sub: 'Business Leader',
+    category: 'Leadership',
+    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+    members: '1.2k members',
+    is_member: true,
+  },
+  {
+    id: 'f2',
+    name: 'Darlene Robertson',
+    sub: 'Silver Leader',
+    category: 'Direct Selling',
+    avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=80',
+    members: '940 members',
+    is_member: true,
+  },
+  {
+    id: 'f3',
+    name: 'Floyd Miles',
+    sub: 'Team Leader',
+    category: 'Motivation',
+    avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150&auto=format&fit=crop&q=80',
+    members: '3.4k members',
+    is_member: true,
+  },
+  {
+    id: 'f4',
+    name: 'Brooklyn Simmons',
+    sub: 'Business Leader',
+    category: 'Leadership',
+    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
+    members: '2.1k members',
+    is_member: true,
+  },
+  {
+    id: 'f5',
+    name: 'Esther Howard',
+    sub: 'Silver Leader',
+    category: 'Direct Selling',
+    avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80',
+    members: '860 members',
+    is_member: true,
+  },
+  {
+    id: 'f6',
+    name: 'Dianne Russell',
+    sub: 'Team Leader',
+    category: 'Motivation',
+    avatar: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=150&auto=format&fit=crop&q=80',
+    members: '1.8k members',
+    is_member: true,
+  },
+  {
+    id: 'f7',
+    name: 'Devon Lane',
+    sub: 'Business Leader',
+    category: 'Leadership',
+    avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80',
+    members: '1.5k members',
+    is_member: true,
+  },
+  {
+    id: 'f8',
+    name: 'Cameron Williamson',
+    sub: 'Business Leader',
+    category: 'Leadership',
+    avatar: 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=150&auto=format&fit=crop&q=80',
+    members: '4.2k members',
+    is_member: false,
+  },
+  {
+    id: 'f9',
+    name: 'Savannah Nguyen',
+    sub: 'Silver Leader',
+    category: 'Direct Selling',
+    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+    members: '720 members',
+    is_member: false,
+  },
+  {
+    id: 'f10',
+    name: 'Leslie Alexander',
+    sub: 'Team Leader',
+    category: 'Motivation',
+    avatar: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=150&auto=format&fit=crop&q=80',
+    members: '2.9k members',
+    is_member: false,
+  },
+  {
+    id: 'f11',
+    name: 'Eleanor Pena',
+    sub: 'Business Leader',
+    category: 'Leadership',
+    avatar: 'https://images.unsplash.com/photo-1548142813-c348350df52b?w=150&auto=format&fit=crop&q=80',
+    members: '1.1k members',
+    is_member: false,
+  },
+];
 
-const CATEGORY_META = {
-  All: { icon: FiGrid, label: 'All' },
-  Leadership: { icon: FiAward, label: 'Leadership' },
-  'Direct Selling': { icon: FiTrendingUp, label: 'Direct Selling' },
-  Motivation: { icon: FiZap, label: 'Motivation' },
-  Wellness: { icon: FiHeart, label: 'Wellness' },
-  Marketing: { icon: FiTarget, label: 'Marketing' },
-  General: { icon: FiCompass, label: 'General' },
-};
-
-const getCategoryIcon = (cat) => {
-  const meta = CATEGORY_META[cat] || CATEGORY_META['General'];
-  const IconComp = meta.icon;
-  return <IconComp className="grp-cat-icon" />;
-};
-
-const CATEGORY_GRADIENTS = {
-  Leadership: 'linear-gradient(135deg, #6B11FF 0%, #B845ED 100%)',
-  'Direct Selling': 'linear-gradient(135deg, #FF6B6B 0%, #FFA07A 100%)',
-  Motivation: 'linear-gradient(135deg, #F39C12 0%, #F1C40F 100%)',
-  Wellness: 'linear-gradient(135deg, #134E5E 0%, #71B280 100%)',
-  Marketing: 'linear-gradient(135deg, #5A2CE4 0%, #9E04C3 100%)',
-  General: 'linear-gradient(135deg, #3B82F6 0%, #8B5CF6 100%)',
-};
+const CATEGORIES = ['Leadership', 'Direct Selling', 'Motivation', 'Wellness', 'Marketing'];
 
 export default function GroupsPage() {
   const navigate = useNavigate();
@@ -63,10 +130,16 @@ export default function GroupsPage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [groups, setGroups] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('explore'); // 'explore' | 'my-groups'
-  const [selectedCategory, setSelectedCategory] = useState('All');
+  const [activeTab, setActiveTab] = useState('explore'); // 'explore' (Group) | 'my-groups' (My Group)
   const [searchQuery, setSearchQuery] = useState('');
   const [actionLoadingId, setActionLoadingId] = useState(null);
+
+  // Active menu dropdown for "My Group" rows
+  const [activeMenuGroupId, setActiveMenuGroupId] = useState(null);
+  const menuRef = useRef(null);
+
+  // Group Details / Members Modal
+  const [viewingGroup, setViewingGroup] = useState(null);
 
   // Create Group Modal State
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -75,12 +148,18 @@ export default function GroupsPage() {
   const [newGroupDesc, setNewGroupDesc] = useState('');
   const [creatingGroup, setCreatingGroup] = useState(false);
 
-  // Instagram-style Invite / Share Modal State
-  const [inviteModalGroup, setInviteModalGroup] = useState(null);
-  const [invitedLeaderIds, setInvitedLeaderIds] = useState([]);
-  const [leadersList, setLeadersList] = useState([]);
+  // Close dropdown on click outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) {
+        setActiveMenuGroupId(null);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
-  // Stored user
+  // Current user resolution
   let storedUser = {};
   try {
     storedUser = JSON.parse(localStorage.getItem('fortaa_user') || '{}');
@@ -97,16 +176,22 @@ export default function GroupsPage() {
     }
   }, [currentUserId]);
 
-  // Load groups from backend
+  // Load groups from backend and merge with preset groups
   const loadGroups = async () => {
     try {
       setLoading(true);
       const data = await fetchGroups(currentUserId);
-      if (Array.isArray(data) && data.length > 0) {
-        setGroups(data);
-      }
+      const backendList = Array.isArray(data) ? data : [];
+
+      const backendIds = new Set(backendList.map((g) => String(g.id)));
+      const combined = [
+        ...backendList,
+        ...FIGMA_PRESET_GROUPS.filter((fg) => !backendIds.has(String(fg.id))),
+      ];
+      setGroups(combined);
     } catch (err) {
       console.error('Failed to load groups:', err);
+      setGroups(FIGMA_PRESET_GROUPS);
     } finally {
       setLoading(false);
     }
@@ -120,15 +205,15 @@ export default function GroupsPage() {
   const handleJoin = async (group) => {
     try {
       setActionLoadingId(group.id);
-      // Optimistic UI update
       setGroups((prev) =>
         prev.map((g) => (g.id === group.id ? { ...g, is_member: true } : g))
       );
       toast.success(`Joined ${group.name}! 🎉`);
-      await joinGroup(currentUserId, group.id);
+      if (typeof group.id === 'number') {
+        await joinGroup(currentUserId, group.id);
+      }
     } catch (err) {
       console.error('Join error:', err);
-      // Revert if error
       setGroups((prev) =>
         prev.map((g) => (g.id === group.id ? { ...g, is_member: false } : g))
       );
@@ -145,15 +230,15 @@ export default function GroupsPage() {
 
     try {
       setActionLoadingId(group.id);
-      // Optimistic UI update
       setGroups((prev) =>
         prev.map((g) => (g.id === group.id ? { ...g, is_member: false } : g))
       );
       toast(`Left ${group.name}`, { icon: '👋' });
-      await leaveGroup(currentUserId, group.id);
+      if (typeof group.id === 'number') {
+        await leaveGroup(currentUserId, group.id);
+      }
     } catch (err) {
       console.error('Leave error:', err);
-      // Revert
       setGroups((prev) =>
         prev.map((g) => (g.id === group.id ? { ...g, is_member: true } : g))
       );
@@ -162,38 +247,6 @@ export default function GroupsPage() {
       setActionLoadingId(null);
     }
   };
-
-  // Load leaders for Instagram-style Direct Invites
-  useEffect(() => {
-    let isMounted = true;
-    async function loadLeaders() {
-      try {
-        const res = await fetch('/api/dashboard/leaders');
-        if (res.ok) {
-          const data = await res.json();
-          if (isMounted && Array.isArray(data.leaders)) {
-            setLeadersList(data.leaders);
-          }
-        }
-      } catch {}
-    }
-    loadLeaders();
-    return () => {
-      isMounted = false;
-    };
-  }, []);
-
-  // Auto-detect and handle ?join=<groupId> invite links
-  useEffect(() => {
-    const joinId = searchParams.get('join');
-    if (joinId && groups.length > 0) {
-      const target = groups.find((g) => String(g.id) === String(joinId));
-      if (target && !target.is_member) {
-        toast(`Invited to "${target.name}"! Joining community...`, { icon: '🤝' });
-        handleJoin(target);
-      }
-    }
-  }, [groups, searchParams]);
 
   // Handle Create Group Submission
   const handleCreateGroupSubmit = async (e) => {
@@ -217,6 +270,7 @@ export default function GroupsPage() {
         ...created,
         id: created?.id || Date.now(),
         name: created?.name || nameTrimmed,
+        sub: `${newGroupCategory} Leader`,
         category: created?.category || newGroupCategory,
         description: created?.description || newGroupDesc.trim(),
         members: created?.members || '1 member',
@@ -229,8 +283,6 @@ export default function GroupsPage() {
       setNewGroupDesc('');
       setActiveTab('my-groups');
       toast.success(`Group "${groupObj.name}" created successfully! 🎉`);
-      // Open Instagram-style invite modal immediately so creator can invite team members
-      setInviteModalGroup(groupObj);
     } catch (err) {
       console.error('Failed to create group:', err);
       toast.error(err.message || 'Failed to create group');
@@ -239,521 +291,370 @@ export default function GroupsPage() {
     }
   };
 
-  // Copy Group Invite Link
-  const handleCopyLink = async (group) => {
-    const link = `${window.location.origin}/groups?join=${group.id}`;
-    try {
-      await navigator.clipboard.writeText(link);
-      toast.success('Group invite link copied to clipboard! 📋');
-    } catch {
-      toast.success(`Invite link: ${link}`);
-    }
-  };
-
-  // Native Share / Mobile Share
-  const handleNativeShare = async (group) => {
-    const link = `${window.location.origin}/groups?join=${group.id}`;
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: `Join ${group.name} on Fortaa`,
-          text: `Join our direct selling mastermind group "${group.name}" on Fortaa:`,
-          url: link,
-        });
-      } catch {}
-    } else {
-      handleCopyLink(group);
-    }
-  };
-
-  // Direct Send Invite to a Leader
-  const handleSendDirectInvite = (leader, group) => {
-    setInvitedLeaderIds((prev) => [...prev, leader.id]);
-    toast.success(`Invite sent to ${leader.name || 'leader'} for "${group.name}"! 🚀`);
-  };
-
   // Filtered groups
   const filteredGroups = useMemo(() => {
     return groups.filter((g) => {
-      // Tab filter
       if (activeTab === 'my-groups' && !g.is_member) {
         return false;
       }
-
-      // Category filter
-      if (selectedCategory !== 'All' && g.category !== selectedCategory) {
-        return false;
-      }
-
-      // Search query
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
         const matchName = (g.name || '').toLowerCase().includes(q);
+        const matchSub = (g.sub || '').toLowerCase().includes(q);
         const matchDesc = (g.description || '').toLowerCase().includes(q);
         const matchCat = (g.category || '').toLowerCase().includes(q);
-        if (!matchName && !matchDesc && !matchCat) return false;
+        if (!matchName && !matchSub && !matchDesc && !matchCat) return false;
       }
-
       return true;
     });
-  }, [groups, activeTab, selectedCategory, searchQuery]);
+  }, [groups, activeTab, searchQuery]);
 
-  const myGroupsCount = groups.filter((g) => g.is_member).length;
   const isUserAuthenticated = Boolean(storedUser && (storedUser.id || storedUser.email));
-  const joinId = searchParams.get('join');
-  const targetInviteGroup =
-    joinId && groups.length > 0 ? groups.find((g) => String(g.id) === String(joinId)) : null;
 
   return (
     <>
       {!isUserAuthenticated && (
-        <AuthGateModal type="group" targetName={targetInviteGroup?.name || ''} />
+        <AuthGateModal type="group" targetName="" />
       )}
       <div className={`grp-page-root ${!isUserAuthenticated ? 'auth-gated-blur' : ''}`}>
-      {/* Global Header */}
-      <UserHeader
-        user={storedUser}
-        mobileMenuOpen={mobileMenuOpen}
-        setMobileMenuOpen={setMobileMenuOpen}
-      />
-
-      <div className="grp-main-layout">
-        {/* Left Sidebar */}
-        <UserSidebar
-          activeTab="Groups"
+        {/* Global Header */}
+        <UserHeader
+          user={storedUser}
           mobileMenuOpen={mobileMenuOpen}
           setMobileMenuOpen={setMobileMenuOpen}
         />
 
-        {/* Content Container */}
-        <main className="grp-content-container">
-          <div className="grp-body-wrapper">
-            {/* Hero Banner Header */}
-            <div className="grp-hero-banner">
-              <div className="grp-hero-glow" />
-              <div className="grp-hero-meta">
-                <div className="grp-hero-tag">
-                  <FiZap className="grp-hero-zap" />
-                  <span>COMMUNITY HUBS</span>
-                </div>
-                <h1 className="grp-hero-title">Groups & Masterminds</h1>
-                <p className="grp-hero-subtitle">
-                  Join exclusive direct selling communities, exchange winning strategies, and scale your team with verified leaders.
-                </p>
-              </div>
+        <div className="grp-main-layout">
+          {/* Left Sidebar */}
+          <UserSidebar
+            activeTab="Groups"
+            mobileMenuOpen={mobileMenuOpen}
+            setMobileMenuOpen={setMobileMenuOpen}
+          />
 
-              <button
-                type="button"
-                className="grp-create-btn"
-                onClick={() => setShowCreateModal(true)}
-              >
-                <FiPlus className="grp-btn-plus-icon" />
-                <span>Create Group</span>
-              </button>
-            </div>
+          {/* Content Container */}
+          <main className="grp-content-container">
+            <div className="grp-body-wrapper">
 
-            {/* Sub-tabs & Search Bar Row */}
-            <div className="grp-toolbar-row">
-              <div className="grp-tabs-wrap">
-                <button
-                  type="button"
-                  className={`grp-tab-btn ${activeTab === 'explore' ? 'active' : ''}`}
-                  onClick={() => setActiveTab('explore')}
-                >
-                  <FiCompass className="grp-tab-icon" />
-                  <span>Explore Groups</span>
-                  <span className="grp-count-pill">{groups.length}</span>
-                </button>
+              {/* Title above Card matching Figma */}
+              <h2 className="grp-section-title">
+                {activeTab === 'explore' ? 'Group' : 'My Group'}
+              </h2>
 
-                <button
-                  type="button"
-                  className={`grp-tab-btn ${activeTab === 'my-groups' ? 'active' : ''}`}
-                  onClick={() => setActiveTab('my-groups')}
-                >
-                  <FiUsers className="grp-tab-icon" />
-                  <span>My Groups</span>
-                  <span className="grp-count-pill">{myGroupsCount}</span>
-                </button>
-              </div>
-
-              <div className="grp-search-box">
-                <FiSearch className="grp-search-icon" />
-                <input
-                  type="text"
-                  placeholder="Search groups by name or topic..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="grp-search-input"
-                />
-                {searchQuery && (
-                  <button type="button" className="grp-search-clear" onClick={() => setSearchQuery('')}>
-                    <FiX />
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {/* Category Filter Pills */}
-            <div className="grp-categories-scroll">
-              {CATEGORIES.map((cat) => {
-                const meta = CATEGORY_META[cat] || CATEGORY_META['General'];
-                const IconComp = meta.icon;
-                return (
-                  <button
-                    key={cat}
-                    type="button"
-                    className={`grp-cat-pill ${selectedCategory === cat ? 'active' : ''}`}
-                    onClick={() => setSelectedCategory(cat)}
-                  >
-                    <IconComp className="grp-cat-pill-icon" />
-                    <span>{cat}</span>
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Groups Grid */}
-            {loading ? (
-              <div className="grp-loading-box">
-                <div className="grp-spinner" />
-                <span>Loading groups...</span>
-              </div>
-            ) : filteredGroups.length === 0 ? (
-              <div className="grp-empty-box">
-                <div className="grp-empty-icon-wrap">
-                  <FiUsers className="grp-empty-icon" />
-                </div>
-                <h3 className="grp-empty-title">
-                  {activeTab === 'my-groups'
-                    ? "You haven't joined any groups yet!"
-                    : 'No groups found matching your criteria.'}
-                </h3>
-                <p className="grp-empty-sub">
-                  {activeTab === 'my-groups'
-                    ? 'Explore groups in the community and join to start collaborating with top leaders.'
-                    : 'Try clearing your search or switching categories.'}
-                </p>
-                {activeTab === 'my-groups' && (
-                  <button
-                    type="button"
-                    className="grp-empty-btn"
-                    onClick={() => {
-                      setActiveTab('explore');
-                      setSelectedCategory('All');
-                      setSearchQuery('');
-                    }}
-                  >
-                    <span>Browse Explore Groups</span>
-                    <FiArrowRight />
-                  </button>
-                )}
-              </div>
-            ) : (
-              <div className="grp-cards-grid">
-                {filteredGroups.map((group, idx) => {
-                  const gradient =
-                    CATEGORY_GRADIENTS[group.category] || CATEGORY_GRADIENTS['General'];
-                  const isMember = group.is_member;
-                  const isActionLoading = actionLoadingId === group.id;
-
-                  return (
-                    <div
-                      key={group.id}
-                      className="grp-card"
-                      style={{ animationDelay: `${idx * 0.05}s` }}
+              {/* Main Figma Card */}
+              <div className="grp-figma-card">
+                {/* Header Bar with Tabs & Create Button */}
+                <div className="grp-figma-card-header">
+                  <div className="grp-figma-tabs">
+                    <button
+                      type="button"
+                      className={`grp-figma-tab-btn ${activeTab === 'explore' ? 'active' : ''}`}
+                      onClick={() => setActiveTab('explore')}
                     >
-                      {/* Card Gradient Header */}
-                      <div className="grp-card-header" style={{ background: gradient }}>
-                        <div className="grp-card-header-overlay" />
-                        <span className="grp-card-badge">
-                          {getCategoryIcon(group.category)}
-                          <span>{group.category || 'General'}</span>
-                        </span>
-                      </div>
+                      <span className="grp-figma-tab-icon">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                          <circle cx="8" cy="12" r="5" />
+                          <circle cx="16" cy="12" r="5" />
+                        </svg>
+                      </span>
+                      <span>Group</span>
+                    </button>
 
-                      {/* Card Content */}
-                      <div className="grp-card-body">
-                        {/* Group Avatar / Icon */}
-                        <div className="grp-card-avatar-wrap">
-                          {group.icon_url ? (
+                    <button
+                      type="button"
+                      className={`grp-figma-tab-btn ${activeTab === 'my-groups' ? 'active' : ''}`}
+                      onClick={() => setActiveTab('my-groups')}
+                    >
+                      <span className="grp-figma-tab-icon">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                          <circle cx="8" cy="12" r="5" />
+                          <circle cx="16" cy="12" r="5" />
+                        </svg>
+                      </span>
+                      <span>My Group</span>
+                    </button>
+                  </div>
+
+                  <div className="grp-figma-header-right">
+                    <div className="grp-figma-search">
+                      <FiSearch className="grp-figma-search-icon" />
+                      <input
+                        type="text"
+                        placeholder="Search..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="grp-figma-search-input"
+                      />
+                      {searchQuery && (
+                        <button
+                          type="button"
+                          className="grp-figma-search-clear"
+                          onClick={() => setSearchQuery('')}
+                        >
+                          <FiX size={12} />
+                        </button>
+                      )}
+                    </div>
+
+                    {activeTab === 'my-groups' && (
+                      <button
+                        type="button"
+                        className="grp-figma-create-btn"
+                        onClick={() => setShowCreateModal(true)}
+                      >
+                        <FiPlusCircle size={15} />
+                        <span>Create Group</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* List of Group Rows */}
+                <div className="grp-figma-list">
+                  {loading ? (
+                    <div className="grp-loading-box">
+                      <div className="grp-spinner" />
+                      <span>Loading groups...</span>
+                    </div>
+                  ) : filteredGroups.length === 0 ? (
+                    <div className="grp-empty-box" style={{ padding: '40px 16px', textAlign: 'center' }}>
+                      <p style={{ margin: 0, color: '#64748B', fontWeight: 600, fontSize: '15px' }}>
+                        {activeTab === 'my-groups'
+                          ? "You haven't joined any groups yet."
+                          : 'No groups found matching your search.'}
+                      </p>
+                      {activeTab === 'my-groups' ? (
+                        <button
+                          type="button"
+                          className="grp-figma-create-btn"
+                          style={{ marginTop: '16px' }}
+                          onClick={() => setShowCreateModal(true)}
+                        >
+                          <FiPlusCircle size={15} />
+                          <span>Create Your First Group</span>
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          className="grp-figma-joined-btn"
+                          style={{ marginTop: '16px' }}
+                          onClick={() => setSearchQuery('')}
+                        >
+                          Clear Search
+                        </button>
+                      )}
+                    </div>
+                  ) : (
+                    filteredGroups.map((group) => {
+                      const groupAvatar = group.icon_url || group.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(group.name || 'Group')}&background=6220FE&color=fff`;
+                      const groupSub = group.sub || (group.category ? `${group.category} Leader` : 'Business Leader');
+                      const isMember = Boolean(group.is_member);
+                      const isActionLoading = actionLoadingId === group.id;
+                      const isMenuOpen = activeMenuGroupId === group.id;
+
+                      return (
+                        <div key={group.id} className="grp-figma-row">
+                          <div className="grp-figma-row-left">
                             <img
-                              src={group.icon_url}
+                              src={groupAvatar}
                               alt={group.name}
-                              className="grp-card-avatar"
+                              className="grp-figma-avatar"
+                              onError={(e) => {
+                                e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(group.name || 'Group')}&background=6220FE&color=fff`;
+                              }}
                             />
-                          ) : (
-                            <div className="grp-card-avatar-placeholder" style={{ background: gradient }}>
-                              {(group.name || 'G').charAt(0).toUpperCase()}
+                            <div className="grp-figma-info">
+                              <span className="grp-figma-name">{group.name}</span>
+                              <span className="grp-figma-sub">{groupSub}</span>
                             </div>
-                          )}
-                        </div>
-
-                        {/* Title & Desc */}
-                        <h3 className="grp-card-title" title={group.name}>{group.name}</h3>
-                        <p className="grp-card-desc">{group.description}</p>
-
-                        {/* Footer Meta: Members count & Action buttons */}
-                        <div className="grp-card-footer">
-                          <div className="grp-members-count">
-                            <FiUsers className="grp-members-icon" />
-                            <span>{group.members || '1 member'}</span>
                           </div>
 
-                          <div className="grp-card-actions">
-                            {isMember ? (
-                              <>
-                                <button
-                                  type="button"
-                                  className="grp-chat-btn"
-                                  onClick={() => navigate(`/messages?groupId=${group.id}`)}
-                                  title="Open Group Chat"
-                                >
-                                  <FiMessageCircle className="grp-btn-sub-icon" />
-                                  <span>Chat</span>
-                                </button>
-                                <button
-                                  type="button"
-                                  className="grp-invite-btn"
-                                  onClick={() => setInviteModalGroup(group)}
-                                  title="Invite friends or share link"
-                                >
-                                  <FiShare2 className="grp-btn-sub-icon" />
-                                  <span>Invite</span>
-                                </button>
-                                <button
-                                  type="button"
-                                  className="grp-joined-btn"
-                                  disabled={isActionLoading}
-                                  onClick={() => handleLeave(group)}
-                                  title="Click to leave group"
-                                >
-                                  <FiCheck className="grp-btn-sub-icon" />
-                                  <span>{isActionLoading ? '...' : 'Joined'}</span>
-                                </button>
-                              </>
+                          <div className="grp-figma-row-right">
+                            {activeTab === 'explore' ? (
+                              <button
+                                type="button"
+                                className={`grp-figma-joined-btn ${!isMember ? 'not-joined' : ''}`}
+                                disabled={isActionLoading}
+                                onClick={() => {
+                                  if (isMember) {
+                                    handleLeave(group);
+                                  } else {
+                                    handleJoin(group);
+                                  }
+                                }}
+                              >
+                                {isActionLoading ? '...' : (isMember ? 'Joined' : 'Join')}
+                              </button>
                             ) : (
-                              <>
+                              <div className="grp-figma-actions-wrap">
                                 <button
                                   type="button"
-                                  className="grp-invite-btn"
-                                  onClick={() => setInviteModalGroup(group)}
-                                  title="Share group invite link"
+                                  className="grp-figma-view-btn"
+                                  onClick={() => setViewingGroup(group)}
                                 >
-                                  <FiShare2 className="grp-btn-sub-icon" />
-                                  <span>Share</span>
+                                  View
                                 </button>
+
                                 <button
                                   type="button"
-                                  className="grp-join-btn"
-                                  disabled={isActionLoading}
-                                  onClick={() => handleJoin(group)}
+                                  className="grp-figma-dots-btn"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setActiveMenuGroupId(isMenuOpen ? null : group.id);
+                                  }}
+                                  title="Group Options"
                                 >
-                                  <FiUserPlus className="grp-btn-sub-icon" />
-                                  <span>{isActionLoading ? 'Joining...' : 'Join Group'}</span>
+                                  <BsThreeDotsVertical size={16} />
                                 </button>
-                              </>
+
+                                {/* Manage Group Dropdown Menu matching Figma Image 2 */}
+                                {isMenuOpen && (
+                                  <div className="grp-figma-dropdown-menu" ref={menuRef}>
+                                    <div className="grp-dropdown-heading">Manage Group</div>
+                                    <button
+                                      type="button"
+                                      className="grp-dropdown-item-btn"
+                                      onClick={() => {
+                                        setActiveMenuGroupId(null);
+                                        setViewingGroup(group);
+                                      }}
+                                    >
+                                      Manage Group
+                                    </button>
+                                    <button
+                                      type="button"
+                                      className="grp-dropdown-item-btn"
+                                      onClick={() => {
+                                        setActiveMenuGroupId(null);
+                                        navigate(`/messages?groupId=${group.id}`);
+                                      }}
+                                    >
+                                      View Group
+                                    </button>
+                                    <button
+                                      type="button"
+                                      className="grp-dropdown-item-btn danger"
+                                      onClick={() => {
+                                        setActiveMenuGroupId(null);
+                                        handleLeave(group);
+                                      }}
+                                    >
+                                      Leave Group
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
                             )}
                           </div>
                         </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        </main>
-      </div>
-
-      {/* ──────────────── CREATE GROUP MODAL ──────────────── */}
-      {showCreateModal && (
-        <div className="grp-modal-backdrop" onClick={() => setShowCreateModal(false)}>
-          <div className="grp-modal-box" onClick={(e) => e.stopPropagation()}>
-            <div className="grp-modal-header">
-              <div className="grp-modal-title-wrap">
-                <FiPlusCircle className="grp-modal-title-icon" />
-                <h3 className="grp-modal-title">Create New Group</h3>
-              </div>
-              <button
-                type="button"
-                className="grp-modal-close"
-                onClick={() => setShowCreateModal(false)}
-              >
-                <FiX />
-              </button>
-            </div>
-
-            <form onSubmit={handleCreateGroupSubmit} className="grp-modal-form">
-              <div className="grp-form-group">
-                <label className="grp-form-label">Group Name *</label>
-                <input
-                  type="text"
-                  className="grp-form-input"
-                  placeholder="e.g. Mumbai Direct Selling Masterminds"
-                  value={newGroupName}
-                  onChange={(e) => setNewGroupName(e.target.value)}
-                  required
-                  autoFocus
-                />
-              </div>
-
-              <div className="grp-form-group">
-                <label className="grp-form-label">Category</label>
-                <select
-                  className="grp-form-select"
-                  value={newGroupCategory}
-                  onChange={(e) => setNewGroupCategory(e.target.value)}
-                >
-                  {CATEGORIES.filter((c) => c !== 'All').map((cat) => (
-                    <option key={cat} value={cat}>
-                      {cat}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="grp-form-group">
-                <label className="grp-form-label">Description</label>
-                <textarea
-                  className="grp-form-textarea"
-                  rows={3}
-                  placeholder="Describe your mastermind goals, topics, and team rules..."
-                  value={newGroupDesc}
-                  onChange={(e) => setNewGroupDesc(e.target.value)}
-                />
-              </div>
-
-              <div className="grp-modal-actions">
-                <button
-                  type="button"
-                  className="grp-modal-cancel"
-                  onClick={() => setShowCreateModal(false)}
-                  disabled={creatingGroup}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="grp-modal-submit"
-                  disabled={creatingGroup || !newGroupName.trim()}
-                >
-                  {creatingGroup ? 'Creating...' : 'Create Group'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* ──────────────── INSTAGRAM-STYLE GROUP INVITE MODAL ──────────────── */}
-      {inviteModalGroup && (
-        <div className="grp-modal-backdrop" onClick={() => setInviteModalGroup(null)}>
-          <div className="grp-modal-box grp-invite-modal-box" onClick={(e) => e.stopPropagation()}>
-            <div className="grp-modal-header">
-              <div>
-                <h3 className="grp-modal-title">Invite to {inviteModalGroup.name}</h3>
-                <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#64748B' }}>
-                  Share the group invite link or invite leaders directly like Instagram
-                </p>
-              </div>
-              <button
-                type="button"
-                className="grp-modal-close"
-                onClick={() => setInviteModalGroup(null)}
-              >
-                <FiX />
-              </button>
-            </div>
-
-            {/* Invite Link Card */}
-            <div className="grp-invite-link-card">
-              <div className="grp-invite-link-text">
-                <span className="grp-link-label">GROUP INVITE LINK</span>
-                <span className="grp-link-url">
-                  {window.location.origin}/groups?join={inviteModalGroup.id}
-                </span>
-              </div>
-              <button
-                type="button"
-                className="grp-copy-link-btn"
-                onClick={() => handleCopyLink(inviteModalGroup)}
-              >
-                <FiLink />
-                <span>Copy Link</span>
-              </button>
-            </div>
-
-            {/* Quick Share Buttons */}
-            <div className="grp-share-actions-row">
-              <button
-                type="button"
-                className="grp-share-pill-btn grp-wa-btn"
-                onClick={() => {
-                  const url = `${window.location.origin}/groups?join=${inviteModalGroup.id}`;
-                  const text = `Join my direct selling group "${inviteModalGroup.name}" on Fortaa: ${url}`;
-                  window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
-                }}
-              >
-                <FaWhatsapp className="grp-wa-icon" />
-                <span>Share via WhatsApp</span>
-              </button>
-              <button
-                type="button"
-                className="grp-share-pill-btn"
-                onClick={() => handleNativeShare(inviteModalGroup)}
-              >
-                <FiShare2 />
-                <span>Share Link</span>
-              </button>
-            </div>
-
-            {/* Suggested Leaders list to invite */}
-            {leadersList && leadersList.length > 0 && (
-              <div className="grp-invite-leaders-section">
-                <span className="grp-invite-leaders-title">Suggested Leaders to Invite</span>
-                <div className="grp-invite-leaders-list">
-                  {leadersList.slice(0, 6).map((leader) => {
-                    const isInvited = invitedLeaderIds.includes(leader.id);
-                    return (
-                      <div key={leader.id} className="grp-invite-leader-row">
-                        <div className="grp-invite-leader-left">
-                          <img
-                            src={leader.avatar_url || 'https://randomuser.me/api/portraits/lego/1.jpg'}
-                            alt={leader.name}
-                            className="grp-invite-leader-avatar"
-                            onError={(e) => {
-                              e.currentTarget.onerror = null;
-                              e.currentTarget.src = 'https://randomuser.me/api/portraits/lego/1.jpg';
-                            }}
-                          />
-                          <div className="grp-invite-leader-info">
-                            <span className="grp-invite-leader-name">{leader.name}</span>
-                            <span className="grp-invite-leader-meta">
-                              {leader.role || leader.company_brand || 'Direct Seller'}
-                            </span>
-                          </div>
-                        </div>
-                        <button
-                          type="button"
-                          className={`grp-send-invite-btn ${isInvited ? 'sent' : ''}`}
-                          disabled={isInvited}
-                          onClick={() => handleSendDirectInvite(leader, inviteModalGroup)}
-                        >
-                          {isInvited ? 'Sent ✓' : 'Invite'}
-                        </button>
-                      </div>
-                    );
-                  })}
+                      );
+                    })
+                  )}
                 </div>
               </div>
-            )}
-          </div>
+            </div>
+          </main>
         </div>
-      )}
 
-      {/* Mobile Bottom Navigation */}
-      <UserMobileBottomNav active="Groups" />
-    </div>
+        {/* Create Group Modal */}
+        {showCreateModal && (
+          <div className="grp-modal-backdrop" onClick={() => setShowCreateModal(false)}>
+            <div className="grp-modal-box" onClick={(e) => e.stopPropagation()}>
+              <div className="grp-modal-header">
+                <div>
+                  <h3 className="grp-modal-title">Create Mastermind Group</h3>
+                  <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: '#64748B' }}>
+                    Start a community for your direct selling team, share scripts, and scale together
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  className="grp-modal-close"
+                  onClick={() => setShowCreateModal(false)}
+                >
+                  <FiX />
+                </button>
+              </div>
+
+              <form onSubmit={handleCreateGroupSubmit} className="grp-modal-form">
+                <div className="grp-form-group">
+                  <label className="grp-form-label">Group Name *</label>
+                  <input
+                    type="text"
+                    className="grp-form-input"
+                    placeholder="e.g. Mumbai Direct Selling Masterminds"
+                    value={newGroupName}
+                    onChange={(e) => setNewGroupName(e.target.value)}
+                    required
+                    autoFocus
+                  />
+                </div>
+
+                <div className="grp-form-group">
+                  <label className="grp-form-label">Category</label>
+                  <select
+                    className="grp-form-select"
+                    value={newGroupCategory}
+                    onChange={(e) => setNewGroupCategory(e.target.value)}
+                  >
+                    {CATEGORIES.map((cat) => (
+                      <option key={cat} value={cat}>
+                        {cat}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="grp-form-group">
+                  <label className="grp-form-label">Description</label>
+                  <textarea
+                    className="grp-form-textarea"
+                    rows={3}
+                    placeholder="Describe your mastermind goals, topics, and team rules..."
+                    value={newGroupDesc}
+                    onChange={(e) => setNewGroupDesc(e.target.value)}
+                  />
+                </div>
+
+                <div className="grp-modal-actions">
+                  <button
+                    type="button"
+                    className="grp-modal-cancel"
+                    onClick={() => setShowCreateModal(false)}
+                    disabled={creatingGroup}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="grp-modal-submit"
+                    disabled={creatingGroup || !newGroupName.trim()}
+                  >
+                    {creatingGroup ? 'Creating...' : 'Create Group'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* Group Details & Members Modal */}
+        {viewingGroup && (
+          <GroupMembersModal
+            isOpen={Boolean(viewingGroup)}
+            onClose={() => setViewingGroup(null)}
+            group={viewingGroup}
+            currentUserId={currentUserId}
+            onSelectUserForChat={(user) => {
+              setViewingGroup(null);
+              navigate(`/messages?userId=${user.user_id}`);
+            }}
+          />
+        )}
+
+        {/* Mobile Bottom Navigation */}
+        <UserMobileBottomNav active="Groups" />
+      </div>
     </>
   );
 }

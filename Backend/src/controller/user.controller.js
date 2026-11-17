@@ -496,8 +496,11 @@ async function updateUserProfile(req, res) {
       coverUrl,
       cover_url,
       businessName,
+      business_name,
       companyBrand,
+      company_brand,
       businessCategory,
+      business_category,
       designation,
       whatsappNumber,
       referralId,
@@ -512,15 +515,20 @@ async function updateUserProfile(req, res) {
     if (mobileNumber) {
       cleanMobile = String(mobileNumber).trim().replace(/\D/g, '').slice(-10);
       if (cleanMobile.length === 10 && db.isDBConnected()) {
-        const dupCheck = await db.query(
-          'SELECT id FROM users WHERE mobile_number = $1 AND id != $2 LIMIT 1',
-          [cleanMobile, userId]
-        );
-        if (dupCheck.rows.length > 0) {
-          return res.status(400).json({
-            success: false,
-            message: 'This mobile number is already registered with another account.',
-          });
+        const curUserRes = await db.query('SELECT mobile_number FROM users WHERE id = $1', [userId]);
+        const curMobile = curUserRes.rows[0]?.mobile_number;
+        // Only run duplicate mobile validation if user is actually changing to a new mobile number
+        if (curMobile !== cleanMobile) {
+          const dupCheck = await db.query(
+            'SELECT id FROM users WHERE mobile_number = $1 AND id != $2 LIMIT 1',
+            [cleanMobile, userId]
+          );
+          if (dupCheck.rows.length > 0) {
+            return res.status(400).json({
+              success: false,
+              message: 'This mobile number is already registered with another account.',
+            });
+          }
         }
       }
     }
@@ -563,9 +571,9 @@ async function updateUserProfile(req, res) {
           bio || null,
           cleanMobile || mobileNumber || null,
           avatarUrl || null,
-          businessName || null,
-          companyBrand || null,
-          businessCategory || null,
+          businessName || business_name || null,
+          companyBrand || company_brand || null,
+          businessCategory || business_category || null,
           designation || null,
           whatsappNumber || null,
           referralId || null,

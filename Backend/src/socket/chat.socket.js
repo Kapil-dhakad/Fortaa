@@ -476,7 +476,12 @@ function setupChatSocket(io) {
         userSockets.delete(socket.id);
         if (userSockets.size === 0) {
           onlineUsers.delete(currentUserId);
+          const nowIso = new Date().toISOString();
           io.emit('online_users', Array.from(onlineUsers.keys()));
+          io.emit('user_last_seen', { userId: currentUserId, last_seen: nowIso });
+          if (db.isDBConnected()) {
+            db.query('UPDATE users SET last_seen = CURRENT_TIMESTAMP WHERE id = $1', [currentUserId]).catch(() => {});
+          }
         }
       }
       console.log(`[Socket.IO] Client disconnected (${socket.id})`);

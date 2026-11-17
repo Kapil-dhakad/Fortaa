@@ -52,14 +52,14 @@ export default function GoogleLoginButton({
         if (onSuccess) {
           onSuccess(result);
         } else {
-          // Naya user (pehle se registered nahi hai) -> Complete Profile page par redirect
-          if (result.isNewUser) {
-            toast.success(`Google verified! Welcome to Fortaa, complete your details, ${result.user?.name || userName}.`, {
+          // Naya user ya incomplete profile -> Complete Profile page par redirect
+          if (result.isNewUser || result.isProfileCompleted === false) {
+            toast.success(`Welcome to Fortaa! Complete your profile details, ${result.user?.name || userName}.`, {
               id: 'google-auth-toast',
             });
             navigate('/complete-profile');
           } else {
-            // User pehle se register hai -> Seedhe User Dashboard par redirect
+            // User pehle se register hai & profile complete hai -> Seedhe User Dashboard par redirect
             toast.success(`Welcome back, ${result.user?.name || userName}!`, {
               id: 'google-auth-toast',
             });
@@ -170,8 +170,8 @@ export default function GoogleLoginButton({
 
             if (onSuccess) {
               onSuccess(result);
-            } else if (result.isNewUser) {
-              toast.success(`Google verified! Welcome, ${result.user?.name || profile.name}.`, {
+            } else if (result.isNewUser || result.isProfileCompleted === false) {
+              toast.success(`Google verified! Welcome, ${result.user?.name || profile.name}. Please complete your profile.`, {
                 id: 'google-auth-toast',
               });
               navigate('/complete-profile');

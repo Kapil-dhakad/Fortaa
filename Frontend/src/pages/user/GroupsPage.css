@@ -1,4 +1,7 @@
-/* Groups Page Styles */
+/* ==========================================================================
+   GROUPS PAGE (Figma Design Spec)
+   ========================================================================== */
+
 .grp-page-root {
   height: 100vh;
   min-height: 100vh;
@@ -8,6 +11,7 @@
   overflow: hidden;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   color: #1E1B4B;
+  box-sizing: border-box;
 }
 
 .grp-main-layout {
@@ -24,339 +28,342 @@
   height: 100%;
   overflow-y: auto;
   box-sizing: border-box;
+  background-color: #F8F9FD;
+}
+
+.grp-content-container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.grp-content-container::-webkit-scrollbar-track {
+  background: #F1F5F9;
+}
+
+.grp-content-container::-webkit-scrollbar-thumb {
+  background: #CBD5E1;
+  border-radius: 4px;
 }
 
 .grp-body-wrapper {
-  max-width: 1140px;
+  max-width: 920px;
   margin: 0 auto;
-  padding: 24px 24px 80px 24px;
+  padding: 24px 20px 80px 20px;
   box-sizing: border-box;
 }
 
-/* ──────────────── Hero Banner ──────────────── */
-.grp-hero-banner {
-  background: linear-gradient(135deg, #2E0362 0%, #4C1D95 50%, #6D28D9 100%);
-  border-radius: 20px;
-  padding: 30px 34px;
-  color: #FFFFFF;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 20px;
-  box-shadow: 0 12px 32px rgba(46, 3, 98, 0.18), 0 2px 6px rgba(0, 0, 0, 0.04);
-  margin-bottom: 24px;
-  position: relative;
-  overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-}
-
-.grp-hero-glow {
-  position: absolute;
-  top: -60%;
-  right: -10%;
-  width: 320px;
-  height: 320px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(167, 139, 250, 0.35) 0%, rgba(139, 92, 246, 0) 70%);
-  pointer-events: none;
-  animation: grpGlowPulse 6s ease-in-out infinite alternate;
-}
-
-@keyframes grpGlowPulse {
-  0% { transform: scale(0.9) translate(0, 0); opacity: 0.6; }
-  100% { transform: scale(1.15) translate(-15px, 15px); opacity: 0.95; }
-}
-
-.grp-hero-meta {
-  max-width: 650px;
-  position: relative;
-  z-index: 2;
-}
-
-.grp-hero-tag {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  background: rgba(255, 255, 255, 0.16);
-  padding: 5px 12px;
-  border-radius: 20px;
-  font-size: 11px;
+/* ──────────────── Title above Card (Matching "Group" / "My Group" in Figma) ──────────────── */
+.grp-section-title {
+  font-size: 26px;
   font-weight: 700;
-  letter-spacing: 0.8px;
-  margin-bottom: 10px;
-  backdrop-filter: blur(4px);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #334155;
+  margin: 0 0 16px 0;
+  letter-spacing: -0.3px;
 }
 
-.grp-hero-zap {
-  font-size: 13px;
-  color: #FBBF24;
-  animation: grpZapBounce 2s ease-in-out infinite;
-}
-
-@keyframes grpZapBounce {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-2px); }
-}
-
-.grp-hero-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: #A7F3D0;
-}
-
-.grp-hero-title {
-  font-size: 25px;
-  font-weight: 800;
-  margin: 0 0 6px 0;
-  color: #FFFFFF;
-  line-height: 1.25;
-}
-
-.grp-hero-subtitle {
-  font-size: 13.5px;
-  color: rgba(255, 255, 255, 0.85);
-  margin: 0;
-  line-height: 1.5;
-}
-
-.grp-create-btn {
+/* ──────────────── Main Figma Card Container ──────────────── */
+.grp-figma-card {
   background: #FFFFFF;
-  color: #5A2CE4;
-  border: none;
+  border: 1px solid #ECE7F6;
   border-radius: 12px;
-  padding: 12px 22px;
-  font-size: 14px;
-  font-weight: 700;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.14);
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-  white-space: nowrap;
-  flex-shrink: 0;
-  position: relative;
-  z-index: 2;
+  padding: 16px 20px 24px 20px;
+  box-shadow: 0 4px 20px rgba(35, 35, 86, 0.04);
+  box-sizing: border-box;
 }
 
-.grp-create-btn:hover {
-  transform: translateY(-2px) scale(1.02);
-  background: #FAF8FF;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
-}
-
-.grp-btn-plus-icon {
-  font-size: 16px;
-  stroke-width: 2.8;
-}
-
-/* ──────────────── Toolbar Row ──────────────── */
-.grp-toolbar-row {
+/* Card Header */
+.grp-figma-card-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 18px;
+  border-bottom: 1px solid #F1F5F9;
+  padding-bottom: 12px;
+  margin-bottom: 14px;
   flex-wrap: wrap;
+  gap: 12px;
 }
 
-.grp-tabs-wrap {
+/* Tabs: [Icon] Group and [Icon] My Group */
+.grp-figma-tabs {
   display: flex;
-  gap: 8px;
-  background: #EDE8F7;
-  padding: 4px;
-  border-radius: 12px;
+  align-items: center;
+  gap: 24px;
 }
 
-.grp-tab-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
-  border-radius: 9px;
+.grp-figma-tab-btn {
   border: none;
   background: transparent;
-  color: #64748B;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.grp-tab-icon {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   font-size: 15px;
-  transition: transform 0.2s ease;
-}
-
-.grp-tab-btn:hover .grp-tab-icon {
-  transform: scale(1.15);
-}
-
-.grp-tab-btn.active {
-  background: #FFFFFF;
-  color: #5A2CE4;
-  box-shadow: 0 2px 8px rgba(90, 44, 228, 0.12);
-}
-
-.grp-tab-btn.active .grp-tab-icon {
-  color: #5A2CE4;
-}
-
-.grp-count-pill {
-  background: #F1F5F9;
+  font-weight: 600;
   color: #64748B;
-  font-size: 11px;
-  padding: 2px 7px;
-  border-radius: 10px;
+  cursor: pointer;
+  padding: 6px 0;
+  position: relative;
+  transition: all 0.18s ease;
+}
+
+.grp-figma-tab-btn:hover {
+  color: #1E1B4B;
+}
+
+.grp-figma-tab-btn.active {
+  color: #1E1B4B;
   font-weight: 700;
 }
 
-.grp-tab-btn.active .grp-count-pill {
-  background: #F3EEFE;
-  color: #5A2CE4;
+.grp-figma-tab-btn.active::after {
+  content: '';
+  position: absolute;
+  bottom: -13px;
+  left: 0;
+  right: 0;
+  height: 2.5px;
+  background: #6B11D7;
+  border-radius: 2px;
 }
 
-.grp-search-box {
+.grp-figma-tab-icon {
   display: flex;
   align-items: center;
-  gap: 10px;
-  background: #FFFFFF;
+  color: #6B11D7;
+}
+
+/* Right side header controls */
+.grp-figma-header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Search input */
+.grp-figma-search {
+  display: flex;
+  align-items: center;
+  background: #F8FAFC;
   border: 1px solid #E2E8F0;
-  border-radius: 10px;
-  padding: 8px 14px;
-  min-width: 280px;
-  flex: 1;
-  max-width: 360px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
-  transition: all 0.2s ease;
+  border-radius: 6px;
+  padding: 5px 10px;
+  gap: 6px;
+  transition: all 0.18s ease;
 }
 
-.grp-search-icon {
-  font-size: 17px;
-  color: #64748B;
-  flex-shrink: 0;
+.grp-figma-search:focus-within {
+  border-color: #6B11D7;
+  background: #FFFFFF;
 }
 
-.grp-search-box:focus-within {
-  border-color: #5A2CE4;
-  box-shadow: 0 0 0 2px rgba(90, 44, 228, 0.15);
-}
-
-.grp-search-input {
-  border: none;
-  outline: none;
-  background: transparent;
-  font-size: 13px;
-  color: #1E1B4B;
-  width: 100%;
-}
-
-.grp-search-input::placeholder {
+.grp-figma-search-icon {
   color: #94A3B8;
+  font-size: 13px;
 }
 
-.grp-search-clear {
-  background: transparent;
+.grp-figma-search-input {
   border: none;
+  background: transparent;
+  font-size: 12.5px;
+  color: #1E293B;
+  outline: none;
+  width: 140px;
+}
+
+.grp-figma-search-clear {
+  border: none;
+  background: transparent;
   color: #94A3B8;
   cursor: pointer;
-  font-size: 14px;
-  padding: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.grp-search-clear:hover {
-  color: #1E1B4B;
-}
-
-/* ──────────────── Category Filter Pills ──────────────── */
-.grp-categories-scroll {
   display: flex;
-  gap: 8px;
-  overflow-x: auto;
-  padding-bottom: 8px;
-  margin-bottom: 24px;
-  scrollbar-width: none;
-}
-
-.grp-categories-scroll::-webkit-scrollbar {
-  display: none;
-}
-
-.grp-cat-pill {
-  display: inline-flex;
   align-items: center;
-  gap: 7px;
-  padding: 7px 15px;
-  border-radius: 20px;
-  border: 1px solid #E2E8F0;
-  background: #FFFFFF;
-  color: #64748B;
+  padding: 0;
+}
+
+/* + Create Group Button (Solid Purple) */
+.grp-figma-create-btn {
+  background: #6B11D7;
+  color: #FFFFFF;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 14px;
   font-size: 12.5px;
   font-weight: 600;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.18s ease;
   white-space: nowrap;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
 }
 
-.grp-cat-pill-icon {
-  font-size: 13.5px;
-  transition: transform 0.2s ease;
+.grp-figma-create-btn:hover {
+  background: #580EAF;
+  box-shadow: 0 3px 10px rgba(107, 17, 215, 0.28);
 }
 
-.grp-cat-pill:hover {
-  background: #F8FAFC;
-  color: #1E1B4B;
-  border-color: #CBD5E1;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
-}
-
-.grp-cat-pill:hover .grp-cat-pill-icon {
-  transform: scale(1.15);
-}
-
-.grp-cat-pill.active {
-  background: linear-gradient(135deg, #5A2CE4 0%, #7C3AED 100%);
-  color: #FFFFFF;
-  border-color: transparent;
-  box-shadow: 0 4px 12px rgba(90, 44, 228, 0.28);
-  transform: translateY(-2px);
-}
-
-.grp-cat-pill.active .grp-cat-pill-icon {
-  color: #FFFFFF;
-}
-
-/* ──────────────── Cards Grid ──────────────── */
-.grp-cards-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 22px;
-}
-
-.grp-card {
-  background: #FFFFFF;
-  border: 1px solid #E8EBF5;
-  border-radius: 18px;
-  overflow: hidden;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
-  transition: all 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+/* ──────────────── List of Group Rows ──────────────── */
+.grp-figma-list {
   display: flex;
   flex-direction: column;
-  position: relative;
-  animation: grpCardSlideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+  gap: 8px;
 }
 
-@keyframes grpCardSlideUp {
+.grp-figma-row {
+  border: 1px solid #E2E8F0;
+  background: #FFFFFF;
+  border-radius: 8px;
+  padding: 8px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  transition: all 0.15s ease;
+}
+
+.grp-figma-row:hover {
+  border-color: #CBD5E1;
+  background: #FAFAFD;
+}
+
+.grp-figma-row-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.grp-figma-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  border: 1px solid #F1F5F9;
+}
+
+.grp-figma-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.grp-figma-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1E293B;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.grp-figma-sub {
+  font-size: 12px;
+  color: #64748B;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.grp-figma-row-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.grp-figma-actions-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+}
+
+/* Action: "Joined" or "Join" outline button */
+.grp-figma-joined-btn {
+  border: 1.5px solid #8B5CF6;
+  color: #7C3AED;
+  background: #FFFFFF;
+  border-radius: 6px;
+  padding: 5px 18px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.grp-figma-joined-btn:hover {
+  background: #FAF5FF;
+}
+
+.grp-figma-joined-btn.not-joined {
+  background: #7C3AED;
+  color: #FFFFFF;
+  border-color: #7C3AED;
+}
+
+.grp-figma-joined-btn.not-joined:hover {
+  background: #6B11D7;
+}
+
+/* Action: "View" outline button in My Group */
+.grp-figma-view-btn {
+  border: 1.5px solid #8B5CF6;
+  color: #7C3AED;
+  background: #FFFFFF;
+  border-radius: 6px;
+  padding: 5px 18px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.grp-figma-view-btn:hover {
+  background: #FAF5FF;
+}
+
+/* Action: 3-dots icon button */
+.grp-figma-dots-btn {
+  border: none;
+  background: transparent;
+  color: #7C3AED;
+  cursor: pointer;
+  padding: 6px 6px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s ease;
+}
+
+.grp-figma-dots-btn:hover {
+  background: #F3E8FF;
+}
+
+/* ──────────────── Manage Group Dropdown Menu (Figma Image 2) ──────────────── */
+.grp-figma-dropdown-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 8px;
+  background: #FFFFFF;
+  border: 1px solid #CBD5E1;
+  border-radius: 10px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+  padding: 12px 14px;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 175px;
+  animation: grpDropdownFade 0.18s ease-out;
+}
+
+@keyframes grpDropdownFade {
   from {
     opacity: 0;
-    transform: translateY(14px);
+    transform: translateY(-4px);
   }
   to {
     opacity: 1;
@@ -364,333 +371,67 @@
   }
 }
 
-.grp-card:hover {
-  transform: translateY(-6px);
-  box-shadow: 0 16px 36px rgba(90, 44, 228, 0.12), 0 4px 12px rgba(0, 0, 0, 0.04);
-  border-color: #C4B5FD;
-}
-
-.grp-card-header {
-  height: 68px;
-  padding: 10px 16px;
-  display: flex;
-  align-items: flex-start;
-  justify-content: flex-end;
-  position: relative;
-  overflow: hidden;
-}
-
-.grp-card-header-overlay {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0.2));
-  pointer-events: none;
-}
-
-.grp-card-badge {
-  position: relative;
-  z-index: 2;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  background: rgba(255, 255, 255, 0.92);
-  backdrop-filter: blur(8px);
-  color: #1E1B4B;
-  font-size: 11.5px;
+.grp-dropdown-heading {
+  font-size: 14px;
   font-weight: 700;
-  padding: 4px 11px;
-  border-radius: 14px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-  transition: transform 0.2s ease;
+  color: #334155;
+  margin-bottom: 2px;
 }
 
-.grp-card:hover .grp-card-badge {
-  transform: scale(1.04);
-}
-
-.grp-cat-icon {
-  font-size: 13px;
-  color: #5A2CE4;
-}
-
-.grp-card-body {
-  padding: 0 18px 18px 18px;
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-}
-
-.grp-card-avatar-wrap {
-  margin-top: -30px;
-  margin-bottom: 12px;
-}
-
-.grp-card-avatar {
-  width: 58px;
-  height: 58px;
-  border-radius: 16px;
-  object-fit: cover;
-  border: 3px solid #FFFFFF;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
-  display: block;
-  transition: transform 0.25s ease;
-}
-
-.grp-card-avatar-placeholder {
-  width: 58px;
-  height: 58px;
-  border-radius: 16px;
-  border: 3px solid #FFFFFF;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #FFFFFF;
-  font-size: 22px;
-  font-weight: 800;
-  transition: transform 0.25s ease;
-}
-
-.grp-card:hover .grp-card-avatar,
-.grp-card:hover .grp-card-avatar-placeholder {
-  transform: scale(1.06);
-}
-
-.grp-card-title {
-  font-size: 16.5px;
-  font-weight: 700;
-  color: #1E1B4B;
-  margin: 0 0 6px 0;
-  line-height: 1.3;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.grp-card-desc {
-  font-size: 12.5px;
-  color: #64748B;
-  line-height: 1.5;
-  margin: 0 0 16px 0;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  flex: 1;
-}
-
-.grp-card-footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding-top: 14px;
-  border-top: 1px solid #F1F5F9;
-  gap: 10px;
-}
-
-.grp-members-count {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12.5px;
-  color: #64748B;
-  font-weight: 600;
-}
-
-.grp-members-icon {
-  font-size: 15px;
-  color: #7C3AED;
-}
-
-.grp-card-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.grp-btn-sub-icon {
+.grp-dropdown-item-btn {
+  background: #FFFFFF;
+  border: 1.5px solid #334155;
+  border-radius: 8px;
+  padding: 7px 14px;
   font-size: 13.5px;
-  flex-shrink: 0;
-}
-
-.grp-chat-btn {
-  background: #F3EEFE;
-  color: #5A2CE4;
-  border: 1px solid #E2D5FC;
-  border-radius: 8px;
-  padding: 6px 12px;
-  font-size: 12px;
   font-weight: 600;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  transition: all 0.18s ease;
-}
-
-.grp-chat-btn:hover {
-  background: #5A2CE4;
-  color: #FFFFFF;
-  border-color: #5A2CE4;
-  transform: translateY(-1px);
-}
-
-.grp-invite-btn {
-  background: #F8FAFC;
-  color: #475569;
-  border: 1px solid #CBD5E1;
-  border-radius: 8px;
-  padding: 6px 11px;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  transition: all 0.18s ease;
-}
-
-.grp-invite-btn:hover {
-  background: #EEF2F6;
   color: #1E293B;
-  border-color: #94A3B8;
-  transform: translateY(-1px);
-}
-
-.grp-join-btn {
-  background: linear-gradient(135deg, #5A2CE4 0%, #7C3AED 100%);
-  color: #FFFFFF;
-  border: none;
-  border-radius: 8px;
-  padding: 7px 15px;
-  font-size: 12.5px;
-  font-weight: 700;
   cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  box-shadow: 0 2px 8px rgba(90, 44, 228, 0.25);
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  text-align: center;
+  transition: all 0.15s ease;
+  width: 100%;
+  box-sizing: border-box;
 }
 
-.grp-join-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 14px rgba(90, 44, 228, 0.35);
+.grp-dropdown-item-btn:hover {
+  border-color: #6B11D7;
+  color: #6B11D7;
+  background: #FAF5FF;
 }
 
-.grp-joined-btn {
-  background: #ECFDF5;
-  color: #059669;
-  border: 1px solid #A7F3D0;
-  border-radius: 8px;
-  padding: 6px 13px;
-  font-size: 12px;
-  font-weight: 700;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  transition: all 0.18s ease;
-}
-
-.grp-joined-btn:hover {
+.grp-dropdown-item-btn.danger:hover {
+  border-color: #EF4444;
+  color: #EF4444;
   background: #FEF2F2;
-  color: #DC2626;
-  border-color: #FECACA;
 }
 
-/* ──────────────── Empty & Loading States ──────────────── */
+/* ──────────────── Loading & Empty States ──────────────── */
 .grp-loading-box,
 .grp-empty-box {
-  background: #FFFFFF;
-  border-radius: 18px;
-  border: 1px dashed #CBD5E1;
-  padding: 56px 24px;
+  padding: 48px 20px;
   text-align: center;
-  margin-top: 10px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  color: #64748B;
 }
 
 .grp-spinner {
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   border: 3px solid #E2E8F0;
-  border-top-color: #5A2CE4;
+  border-top-color: #6B11D7;
   border-radius: 50%;
   animation: grpSpin 0.7s linear infinite;
-  margin: 0 auto 14px auto;
+  margin: 0 auto 12px auto;
 }
 
 @keyframes grpSpin {
-  to {
-    transform: rotate(360deg);
-  }
+  to { transform: rotate(360deg); }
 }
 
-.grp-empty-icon-wrap {
-  width: 72px;
-  height: 72px;
-  border-radius: 50%;
-  background: #F3EEFE;
-  color: #7C3AED;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 32px;
-  margin-bottom: 16px;
-  box-shadow: 0 0 0 10px rgba(124, 58, 237, 0.08);
-  animation: grpEmptyPulse 2.5s ease-in-out infinite;
-}
-
-@keyframes grpEmptyPulse {
-  0%, 100% { box-shadow: 0 0 0 8px rgba(124, 58, 237, 0.08); }
-  50% { box-shadow: 0 0 0 16px rgba(124, 58, 237, 0.14); }
-}
-
-.grp-empty-icon {
-  font-size: 32px;
-}
-
-.grp-empty-title {
-  font-size: 18px;
-  font-weight: 700;
-  color: #1E1B4B;
-  margin: 0 0 8px 0;
-}
-
-.grp-empty-sub {
-  font-size: 13.5px;
-  color: #64748B;
-  margin: 0 0 20px 0;
-  max-width: 440px;
-  line-height: 1.5;
-}
-
-.grp-empty-btn {
-  background: linear-gradient(135deg, #5A2CE4 0%, #7C3AED 100%);
-  color: #FFFFFF;
-  border: none;
-  border-radius: 10px;
-  padding: 10px 22px;
-  font-size: 13.5px;
-  font-weight: 600;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  transition: all 0.2s ease;
-  box-shadow: 0 4px 12px rgba(90, 44, 228, 0.25);
-}
-
-.grp-empty-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(90, 44, 228, 0.35);
-}
-
-/* ──────────────── Modal Styles ──────────────── */
+/* ──────────────── Create Group Modal ──────────────── */
 .grp-modal-backdrop {
   position: fixed;
   inset: 0;
@@ -705,7 +446,7 @@
 
 .grp-modal-box {
   background: #FFFFFF;
-  border-radius: 18px;
+  border-radius: 16px;
   width: 100%;
   max-width: 480px;
   padding: 24px 28px;
@@ -714,32 +455,15 @@
 }
 
 @keyframes grpModalPop {
-  from {
-    opacity: 0;
-    transform: scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
 }
 
 .grp-modal-header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   margin-bottom: 20px;
-}
-
-.grp-modal-title-wrap {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.grp-modal-title-icon {
-  font-size: 22px;
-  color: #5A2CE4;
 }
 
 .grp-modal-title {
@@ -750,21 +474,15 @@
 }
 
 .grp-modal-close {
-  background: #F1F5F9;
+  background: transparent;
   border: none;
-  color: #64748B;
-  font-size: 16px;
+  font-size: 18px;
+  color: #94A3B8;
   cursor: pointer;
-  padding: 6px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.15s ease;
+  padding: 4px;
 }
 
 .grp-modal-close:hover {
-  background: #E2E8F0;
   color: #1E1B4B;
 }
 
@@ -781,7 +499,7 @@
 }
 
 .grp-form-label {
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 600;
   color: #334155;
 }
@@ -790,293 +508,93 @@
 .grp-form-select,
 .grp-form-textarea {
   width: 100%;
+  box-sizing: border-box;
   padding: 10px 14px;
   border: 1px solid #CBD5E1;
-  border-radius: 9px;
+  border-radius: 8px;
   font-size: 13.5px;
-  font-family: inherit;
-  color: #1E1B4B;
+  color: #1E293B;
   outline: none;
-  box-sizing: border-box;
+  transition: border-color 0.18s ease;
 }
 
 .grp-form-input:focus,
 .grp-form-select:focus,
 .grp-form-textarea:focus {
-  border-color: #5A2CE4;
-  box-shadow: 0 0 0 2px rgba(90, 44, 228, 0.15);
+  border-color: #6B11D7;
 }
 
 .grp-modal-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 12px;
-  margin-top: 8px;
+  gap: 10px;
+  margin-top: 10px;
 }
 
 .grp-modal-cancel {
   background: #F1F5F9;
-  border: none;
   color: #475569;
-  padding: 9px 18px;
+  border: none;
   border-radius: 8px;
+  padding: 8px 18px;
+  font-size: 13.5px;
   font-weight: 600;
-  font-size: 13px;
   cursor: pointer;
+}
+
+.grp-modal-cancel:hover {
+  background: #E2E8F0;
 }
 
 .grp-modal-submit {
-  background: #5A2CE4;
-  color: #FFFFFF;
-  border: none;
-  padding: 9px 20px;
-  border-radius: 8px;
-  font-weight: 700;
-  font-size: 13px;
-  cursor: pointer;
-  box-shadow: 0 4px 12px rgba(90, 44, 228, 0.25);
-}
-
-/* ──────────────── Instagram-style Group Invite Modal ──────────────── */
-.grp-invite-modal-box {
-  max-width: 480px;
-}
-
-.grp-invite-link-card {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  background: #F8FAFC;
-  border: 1px solid #E2E8F0;
-  border-radius: 12px;
-  padding: 12px 14px;
-  margin-bottom: 16px;
-}
-
-.grp-invite-link-text {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
-
-.grp-link-label {
-  font-size: 10px;
-  font-weight: 700;
-  color: #64748B;
-  letter-spacing: 0.5px;
-}
-
-.grp-link-url {
-  font-size: 12px;
-  color: #1E293B;
-  font-family: monospace;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.grp-copy-link-btn {
-  background: #5A2CE4;
+  background: #6B11D7;
   color: #FFFFFF;
   border: none;
   border-radius: 8px;
-  padding: 8px 14px;
-  font-size: 12px;
+  padding: 8px 20px;
+  font-size: 13.5px;
   font-weight: 600;
   cursor: pointer;
-  white-space: nowrap;
-  transition: all 0.15s ease;
-  flex-shrink: 0;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
 }
 
-.grp-copy-link-btn:hover {
-  background: #4B24BD;
-  transform: translateY(-1px);
+.grp-modal-submit:hover {
+  background: #580EAF;
 }
 
-.grp-share-actions-row {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 20px;
+.grp-modal-submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
-.grp-share-pill-btn {
-  flex: 1;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 10px 14px;
-  border-radius: 10px;
-  border: 1px solid #E2E8F0;
-  background: #FFFFFF;
-  color: #334155;
-  font-size: 12.5px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.grp-share-pill-btn:hover {
-  background: #F8FAFC;
-  border-color: #CBD5E1;
-  transform: translateY(-1px);
-}
-
-.grp-share-pill-btn.grp-wa-btn {
-  background: #25D366;
-  border-color: #25D366;
-  color: #FFFFFF;
-}
-
-.grp-share-pill-btn.grp-wa-btn:hover {
-  background: #1EBE5D;
-  border-color: #1EBE5D;
-  color: #FFFFFF;
-}
-
-.grp-wa-icon {
-  font-size: 16px;
-}
-
-.grp-invite-leaders-section {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  border-top: 1px solid #F1F5F9;
-  padding-top: 16px;
-}
-
-.grp-invite-leaders-title {
-  font-size: 12px;
-  font-weight: 700;
-  color: #64748B;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.grp-invite-leaders-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  max-height: 220px;
-  overflow-y: auto;
-}
-
-.grp-invite-leader-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 8px 10px;
-  border-radius: 10px;
-  background: #FFFFFF;
-  border: 1px solid #F1F5F9;
-  transition: background 0.15s ease;
-}
-
-.grp-invite-leader-row:hover {
-  background: #F8FAFC;
-}
-
-.grp-invite-leader-left {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-width: 0;
-}
-
-.grp-invite-leader-avatar {
-  width: 38px;
-  height: 38px;
-  border-radius: 50%;
-  object-fit: cover;
-  flex-shrink: 0;
-}
-
-.grp-invite-leader-info {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-
-.grp-invite-leader-name {
-  font-size: 13px;
-  font-weight: 600;
-  color: #1E293B;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.grp-invite-leader-meta {
-  font-size: 11px;
-  color: #64748B;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.grp-send-invite-btn {
-  background: #F3EEFE;
-  color: #5A2CE4;
-  border: 1px solid #E2D5FC;
-  border-radius: 7px;
-  padding: 5px 12px;
-  font-size: 11.5px;
-  font-weight: 600;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: all 0.15s ease;
-  flex-shrink: 0;
-}
-
-.grp-send-invite-btn:hover:not(:disabled) {
-  background: #5A2CE4;
-  color: #FFFFFF;
-}
-
-.grp-send-invite-btn.sent {
-  background: #ECFDF5;
-  color: #059669;
-  border-color: #A7F3D0;
-  cursor: default;
-}
-
-/* ──────────────── Responsive ──────────────── */
+/* ──────────────── Responsive Mobile View ──────────────── */
 @media (max-width: 768px) {
   .grp-body-wrapper {
-    padding: 16px 14px 90px 14px;
+    padding: 16px 12px 90px 12px;
   }
-
-  .grp-hero-banner {
+  .grp-section-title {
+    font-size: 22px;
+    margin-bottom: 12px;
+  }
+  .grp-figma-card {
+    padding: 14px 14px 20px 14px;
+  }
+  .grp-figma-card-header {
     flex-direction: column;
     align-items: flex-start;
-    padding: 20px;
-    gap: 14px;
+    gap: 12px;
   }
-
-  .grp-create-btn {
+  .grp-figma-header-right {
     width: 100%;
-    justify-content: center;
+    justify-content: space-between;
   }
-
-  .grp-toolbar-row {
-    flex-direction: column;
-    align-items: stretch;
+  .grp-figma-search-input {
+    width: 100px;
   }
-
-  .grp-search-box {
-    max-width: 100%;
+  .grp-figma-row {
+    padding: 8px 10px;
   }
-
-  .grp-cards-grid {
-    grid-template-columns: 1fr;
-    gap: 14px;
+  .grp-figma-avatar {
+    width: 38px;
+    height: 38px;
   }
 }

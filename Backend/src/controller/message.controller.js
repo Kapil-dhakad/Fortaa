@@ -41,6 +41,7 @@ async function getConversations(req, res) {
         u.designation,
         u.company_brand,
         u.avatar_url,
+        COALESCE(u.last_seen, rm.created_at) as last_seen,
         COALESCE(unread.count, 0) as unread_count
       FROM recent_messages rm
       JOIN users u ON u.id = rm.partner_id

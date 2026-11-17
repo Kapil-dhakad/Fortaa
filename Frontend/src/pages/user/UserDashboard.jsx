@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { FaRegThumbsUp, FaThumbsUp, FaRegComment, FaVolumeMute, FaVolumeUp } from 'react-icons/fa';
@@ -312,7 +312,7 @@ function InFeedSuggestedPeople({
         name: l.name,
         role: l.role || 'Business Leader',
         stats: 'Direct Selling Leader',
-        avatar: l.avatar_url || userAvatarImg,
+        avatar: (l.avatar_url && !l.avatar_url.includes('user_avatar_rahul')) ? l.avatar_url : `https://ui-avatars.com/api/?name=${encodeURIComponent(l.name || 'User')}&background=6220FE&color=fff&size=150&bold=true`,
         isTrainer: false,
         company: l.company_brand || l.business_name || 'Fortaa',
         username: l.username,
@@ -837,6 +837,9 @@ export default function UserDashboard() {
     memberId: storedUser.memberId || 'NS381517',
     company: storedUser.companyBrand || storedUser.businessName || 'Index Technology',
     avatarUrl: storedUser.avatarUrl || null,
+    location: storedUser.location || '',
+    bio: storedUser.bio || '',
+    skills: storedUser.skills || '',
   });
 
   const [stats, setStats] = useState({
@@ -1007,6 +1010,9 @@ export default function UserDashboard() {
             memberId: overview.user.member_id || storedUser.memberId || 'NS381517',
             company: overview.user.company_brand || overview.user.business_name || 'Index Technology',
             avatarUrl: freshAvatar,
+            location: overview.user.location || '',
+            bio: overview.user.bio || '',
+            skills: overview.user.skills || '',
           });
 
           // Sync localStorage so id and profile info are accurately persisted

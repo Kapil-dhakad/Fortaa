@@ -127,13 +127,13 @@ async function getDashboardOverview(req, res) {
     if (db.isDBConnected()) {
       if (userId) {
         const userRes = await db.query(
-          'SELECT id, member_id, name, email, designation, company_brand, business_name, account_type, avatar_url FROM users WHERE id = $1',
+          'SELECT id, member_id, name, email, designation, company_brand, business_name, account_type, avatar_url, cover_url, location, bio, skills FROM users WHERE id = $1',
           [userId]
         );
         if (userRes.rows.length > 0) user = userRes.rows[0];
       } else if (email) {
         const userRes = await db.query(
-          'SELECT id, member_id, name, email, designation, company_brand, business_name, account_type, avatar_url FROM users WHERE LOWER(email) = LOWER($1)',
+          'SELECT id, member_id, name, email, designation, company_brand, business_name, account_type, avatar_url, cover_url, location, bio, skills FROM users WHERE LOWER(email) = LOWER($1)',
           [email]
         );
         if (userRes.rows.length > 0) user = userRes.rows[0];
@@ -715,8 +715,10 @@ async function getLeaders(req, res) {
       if (currentUserId && !isNaN(currentUserId)) {
         queryStr = `
           SELECT u.id, u.name, u.email, u.username,
+                 COALESCE(u.designation, '') as designation,
                  COALESCE(u.designation, '') as role,
                  u.avatar_url,
+                 u.cover_url,
                  COALESCE(u.company_brand, u.business_name, '') as company_brand,
                  u.location,
                  u.bio,
@@ -739,8 +741,10 @@ async function getLeaders(req, res) {
       } else {
         queryStr = `
           SELECT u.id, u.name, u.email, u.username,
+                 COALESCE(u.designation, '') as designation,
                  COALESCE(u.designation, '') as role,
                  u.avatar_url,
+                 u.cover_url,
                  COALESCE(u.company_brand, u.business_name, '') as company_brand,
                  u.location,
                  u.bio,

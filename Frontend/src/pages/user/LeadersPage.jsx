@@ -14,13 +14,104 @@ import {
 import { fetchLeaders } from '../../services/dashboard.service';
 import { fetchCurrentUser } from '../../services/user.service';
 import { joinChat, subscribeToFollowEvents } from '../../services/socket.service';
-import userAvatarRahul from '../../assets/dashboard/user_avatar_rahul.png';
 import './LeadersPage.css';
 
 const CATEGORY_TABS = [
   { id: 'all', label: 'All Leaders', icon: null },
-  { id: 'top', label: 'Top Performers', icon: '👑' },
+  { id: 'top', label: 'Top Leaders', icon: '👑' },
+  { id: 'diamond', label: 'Diamond', icon: '💎' },
+  { id: 'platinum', label: 'Platinum', icon: '⭐' },
+  { id: 'gold', label: 'Gold', icon: '🏆' },
+  { id: 'silver', label: 'Silver', icon: '🥈' },
+  { id: 'bronze', label: 'Bronze', icon: '🥉' },
 ];
+
+const SCENIC_BANNERS = [
+  'https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=600&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=600&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=600&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1519681393784-d120267933ba?w=600&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=600&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1432405972618-c60b0225b8f9?w=600&auto=format&fit=crop&q=80',
+];
+
+const getLeaderTierInfo = (u) => {
+  const roleText = `${u.role || ''} ${u.designation || ''}`.toLowerCase();
+  if (roleText.includes('diamond')) {
+    return {
+      key: 'diamond',
+      label: 'Diamond Leader',
+      title: 'Diamond Leaders',
+      icon: '💎',
+      badgeGradient: 'linear-gradient(135deg, #FF416C 0%, #FF4B2B 100%)',
+    };
+  }
+  if (roleText.includes('platinum')) {
+    return {
+      key: 'platinum',
+      label: 'Platinum Leader',
+      title: 'Platinum Leaders',
+      icon: '⭐',
+      badgeGradient: 'linear-gradient(135deg, #4A00E0 0%, #8E2DE2 100%)',
+    };
+  }
+  if (roleText.includes('gold')) {
+    return {
+      key: 'gold',
+      label: 'Gold Leader',
+      title: 'Gold Leaders',
+      icon: '🏆',
+      badgeGradient: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)',
+    };
+  }
+  if (roleText.includes('silver')) {
+    return {
+      key: 'silver',
+      label: 'Silver Leader',
+      title: 'Silver Leaders',
+      icon: '🥈',
+      badgeGradient: 'linear-gradient(135deg, #D946EF 0%, #9333EA 100%)',
+    };
+  }
+  if (roleText.includes('bronze')) {
+    return {
+      key: 'bronze',
+      label: 'Bronze Leader',
+      title: 'Bronze Leaders',
+      icon: '🥉',
+      badgeGradient: 'linear-gradient(135deg, #B45309 0%, #78350F 100%)',
+    };
+  }
+  if (roleText.includes('admin') || roleText.includes('super admin')) {
+    return {
+      key: 'admin',
+      label: u.designation || 'Admin',
+      title: u.designation || 'Admin',
+      icon: '🛡️',
+      badgeGradient: 'linear-gradient(135deg, #1E1B4B 0%, #3B82F6 100%)',
+    };
+  }
+
+  // Real designation / role if present
+  const rawRole = (u.designation || u.role || '').trim();
+  if (rawRole && rawRole.toLowerCase() !== 'user') {
+    return {
+      key: 'leader',
+      label: rawRole,
+      title: rawRole,
+      icon: '⭐',
+      badgeGradient: 'linear-gradient(135deg, #6220FE 0%, #8B5CF6 100%)',
+    };
+  }
+
+  return {
+    key: 'member',
+    label: 'Member',
+    title: 'Member',
+    icon: '👤',
+    badgeGradient: 'linear-gradient(135deg, #64748B 0%, #475569 100%)',
+  };
+};
 
 export default function LeadersPage() {
   const navigate = useNavigate();
@@ -192,20 +283,33 @@ export default function LeadersPage() {
             ? (typeof u.skills === 'string' ? u.skills.split(',').map((s) => s.trim()).filter(Boolean) : (Array.isArray(u.skills) ? u.skills : []))
             : [];
 
+          const tier = getLeaderTierInfo(u);
+          const coverBanner = u.cover_url || SCENIC_BANNERS[idx % SCENIC_BANNERS.length];
+          const displayBio = realBio;
+          const displayLocation = realLocation;
+          const displayTags = resolvedTags;
+
+          // Unique initial avatar fallback instead of duplicate stock photo
+          const defaultAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(u.name || 'User')}&background=6220FE&color=fff&size=150&bold=true`;
+          const avatarUrl = (u.avatar_url && !u.avatar_url.includes('user_avatar_rahul')) ? u.avatar_url : defaultAvatar;
+
           return {
             id: u.id,
             name: u.name,
             rank: idx + 1,
             role: realRole,
             company: realCompany,
-            location: realLocation,
+            location: displayLocation,
             followers: formattedFollowers,
             followersCount: followersCount,
             following: formattedFollowing,
             posts: String(postsCount),
-            bio: realBio,
-            tags: resolvedTags.slice(0, 3),
-            avatar: u.avatar_url || userAvatarRahul,
+            bio: displayBio,
+            tags: displayTags,
+            avatar: avatarUrl,
+            cover: coverBanner,
+            tier: tier,
+            tierKey: tier.key,
             follow_status: u.follow_status || 'none',
           };
         });
@@ -309,6 +413,16 @@ export default function LeadersPage() {
       // Category Tab filter
       if (activeTab === 'top') {
         if ((leader.followersCount || 0) < 1 && (Number(leader.posts) || 0) < 1) return false;
+      } else if (activeTab === 'diamond') {
+        if (leader.tierKey !== 'diamond') return false;
+      } else if (activeTab === 'platinum') {
+        if (leader.tierKey !== 'platinum') return false;
+      } else if (activeTab === 'gold') {
+        if (leader.tierKey !== 'gold') return false;
+      } else if (activeTab === 'silver') {
+        if (leader.tierKey !== 'silver') return false;
+      } else if (activeTab === 'bronze') {
+        if (leader.tierKey !== 'bronze') return false;
       }
 
       // Search bar
@@ -374,6 +488,29 @@ export default function LeadersPage() {
           <div className="lead-body-wrapper">
           {/* Main Left Column (Desktop 895px / Responsive) */}
           <main className="lead-main-column">
+            {/* Hero Banner (Frame 307: Matches Figma Image 2) */}
+            <div className="lead-hero-banner">
+              <div className="lead-hero-left">
+                <div className="lead-hero-title-row">
+                  <span className="lead-hero-crown">👑</span>
+                  <h1 className="lead-hero-heading">Leaders</h1>
+                </div>
+                <p className="lead-hero-subtext">
+                  Connect with successful leaders and grow your business with their guidance.
+                </p>
+              </div>
+              <div className="lead-hero-right">
+                <button
+                  type="button"
+                  className="lead-be-leader-btn"
+                  onClick={() => navigate('/complete-profile')}
+                >
+                  <span>Be a Leader</span>
+                  <span style={{ fontSize: '18px', fontWeight: 'bold' }}>→</span>
+                </button>
+              </div>
+            </div>
+
             {/* Category Filter Tabs Bar (Frame 340-348) */}
             <div className="lead-category-bar">
               <div className="lead-tabs-scrollable">
@@ -468,19 +605,25 @@ export default function LeadersPage() {
                       onClick={() => navigate(`/leader/${leader.id}`, { state: { leader } })}
                       style={{ cursor: 'pointer' }}
                     >
-                      {/* Top Banner */}
+                      {/* Top Banner (Scenic Landscape Wallpaper matching Figma) */}
                       <div
                         className="lead-card-banner"
                         style={{
-                          background: 'linear-gradient(135deg, #6366F1 0%, #8B5CF6 50%, #4338CA 100%)',
+                          backgroundImage: `url(${leader.cover})`,
+                          backgroundSize: 'cover',
+                          backgroundPosition: 'center',
                         }}
                       >
-                        {/* Real Role / Designation Badge */}
-                        {leader.role && (
-                          <div className="lead-level-badge">
-                            <span className="lead-badge-text">{leader.role}</span>
-                          </div>
-                        )}
+                        {/* Tier Badge (💎 Diamond, ⭐ Platinum, 🏆 Gold, 🥈 Silver, 🥉 Bronze) */}
+                        <div
+                          className="lead-level-badge"
+                          style={{
+                            background: leader.tier?.badgeGradient || 'linear-gradient(135deg, #FF416C, #FF4B2B)',
+                          }}
+                        >
+                          <span className="lead-badge-icon">{leader.tier?.icon || '💎'}</span>
+                          <span className="lead-badge-text">{leader.tier?.label || leader.role || 'Diamond Leader'}</span>
+                        </div>
 
                         {/* Dismiss X Icon Button (LinkedIn style) */}
                         <button
@@ -504,7 +647,7 @@ export default function LeadersPage() {
                             className="lead-card-avatar-img"
                             onError={(e) => {
                               e.currentTarget.onerror = null;
-                              e.currentTarget.src = userAvatarRahul;
+                              e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(leader.name || 'User')}&background=6220FE&color=fff&size=150&bold=true`;
                             }}
                           />
                         </div>
@@ -517,10 +660,11 @@ export default function LeadersPage() {
                           {leader.name}
                         </h3>
 
-                        {/* Role & Company */}
+                        {/* Level & Company with Icon */}
                         <div className="lead-card-level-row">
+                          <span className="lead-level-icon-sm">{leader.tier?.icon || '⭐'}</span>
                           <span className="lead-card-level-text">
-                            {leader.role || 'Member'}
+                            {leader.tier?.title || leader.tier?.label || 'Leader'}
                             {leader.company ? ` • ${leader.company}` : ''}
                           </span>
                         </div>
@@ -531,7 +675,12 @@ export default function LeadersPage() {
                             <span className="lead-pin-icon">📍</span>
                             <span className="lead-card-location-text">{leader.location}</span>
                           </div>
-                        ) : null}
+                        ) : (
+                          <div className="lead-card-location-row" style={{ visibility: 'hidden' }}>
+                            <span className="lead-pin-icon">📍</span>
+                            <span className="lead-card-location-text">&nbsp;</span>
+                          </div>
+                        )}
 
                         {/* Stats Row */}
                         <div className="lead-card-stats-row">
@@ -549,13 +698,15 @@ export default function LeadersPage() {
                           </div>
                         </div>
 
-                        {/* Real User Bio - only if entered by user */}
+                        {/* Quote / Bio (Only real bio, no static dummy quotes) */}
                         {leader.bio ? (
                           <p className="lead-card-quote">“{leader.bio}”</p>
-                        ) : null}
+                        ) : (
+                          <p className="lead-card-quote" style={{ visibility: 'hidden' }}>&nbsp;</p>
+                        )}
 
-                        {/* Real Skills Tags - only if user has skills */}
-                        {leader.tags && leader.tags.length > 0 && (
+                        {/* Skills / Tags Row (Only real skills, no static dummy tags) */}
+                        {leader.tags && leader.tags.length > 0 ? (
                           <div className="lead-card-tags-row">
                             {leader.tags.slice(0, 3).map((tag, tIdx) => (
                               <span key={tIdx} className="lead-tag-pill">
@@ -565,6 +716,10 @@ export default function LeadersPage() {
                                 {tag}
                               </span>
                             ))}
+                          </div>
+                        ) : (
+                          <div className="lead-card-tags-row" style={{ visibility: 'hidden' }}>
+                            <span className="lead-tag-pill">&nbsp;</span>
                           </div>
                         )}
 
@@ -763,7 +918,7 @@ export default function LeadersPage() {
                         className="lead-top-avatar"
                         onError={(e) => {
                           e.currentTarget.onerror = null;
-                          e.currentTarget.src = userAvatarRahul;
+                          e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(topLdr.name || 'User')}&background=6220FE&color=fff&size=150&bold=true`;
                         }}
                       />
 

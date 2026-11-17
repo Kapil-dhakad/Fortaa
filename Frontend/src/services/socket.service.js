@@ -115,6 +115,15 @@ export function subscribeToOnlineUsers(callback) {
 }
 
 /**
+ * Listen for user last seen updates
+ */
+export function subscribeToUserLastSeen(callback) {
+  const s = getSocket();
+  s.on('user_last_seen', callback);
+  return () => s.off('user_last_seen', callback);
+}
+
+/**
  * Typing notification helpers
  */
 export function emitTyping({ senderId, receiverId }) {

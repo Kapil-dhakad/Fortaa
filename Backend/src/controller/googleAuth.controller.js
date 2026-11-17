@@ -67,7 +67,9 @@ async function handleGoogleAuth(req, res) {
 
       const isProfileCompleted = Boolean(
         existingUser.mobile_number &&
-        (existingUser.company_brand || existingUser.business_name || existingUser.designation)
+        (existingUser.company_brand || existingUser.business_name || existingUser.designation) &&
+        existingUser.location &&
+        existingUser.bio
       );
 
       console.log(`[Google Auth]: Existing user found (${cleanEmail}). Profile completed: ${isProfileCompleted}`);
