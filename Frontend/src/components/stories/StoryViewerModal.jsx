@@ -62,7 +62,7 @@ export default function StoryViewerModal({
   const pressTimerRef = useRef(null);
   const isLongPressRef = useRef(false);
 
-  // Sync initial group index when opened
+  // Sync initial group index when opened & manage background audio/video playback
   useEffect(() => {
     if (isOpen) {
       setGroupIndex(initialGroupIndex);
@@ -77,6 +77,27 @@ export default function StoryViewerModal({
       setReplyFeedback('');
       setSharedStatus({});
       setCopiedLink(false);
+
+      // Immediately pause all external background videos (e.g. Feed videos)
+      const allVids = document.querySelectorAll('video');
+      allVids.forEach((v) => {
+        if (videoRef.current && v === videoRef.current) return;
+        try {
+          if (!v.paused) v.pause();
+        } catch (_) {}
+      });
+
+      // Notify dashboard feed videos to pause
+      window.dispatchEvent(new CustomEvent('fortaa:modal_video_active', { detail: { active: true } }));
+
+      return () => {
+        if (videoRef.current && !videoRef.current.paused) {
+          try {
+            videoRef.current.pause();
+          } catch (_) {}
+        }
+        window.dispatchEvent(new CustomEvent('fortaa:modal_video_active', { detail: { active: false } }));
+      };
     }
   }, [isOpen, initialGroupIndex]);
 
@@ -169,7 +190,14 @@ export default function StoryViewerModal({
       vid.addEventListener('timeupdate', onTimeUpdate);
       vid.addEventListener('ended', onEnded);
 
-      // Attempt to play video
+      // Ensure no background video is playing
+      document.querySelectorAll('video').forEach((v) => {
+        if (v !== vid && !v.paused) {
+          try { v.pause(); } catch (_) {}
+        }
+      });
+
+      // Attempt to play story video
       vid.play().catch(() => {
         vid.muted = true;
         vid.play().catch(() => {});

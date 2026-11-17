@@ -496,11 +496,46 @@ const broadcastFeedAudioState = (muted) => {
   window.dispatchEvent(new CustomEvent('fortaa:feed_video_mute_toggle', { detail: { muted } }));
 };
 
+let isModalMediaActive = false;
+
 // ── Feed Video with Instagram-style Autoplay & Audio Toggle ──
 function FeedVideo({ src, onDoubleTap, onSingleTap, isHeartActive, isMobile = false }) {
   const videoRef = useRef(null);
   const [isMuted, setIsMuted] = useState(globalFeedAudioMuted);
   const [isPlaying, setIsPlaying] = useState(false);
+
+  const isModalOpen = () => {
+    if (isModalMediaActive) return true;
+    if (typeof document !== 'undefined') {
+      if (
+        document.querySelector('.svm-backdrop') ||
+        document.querySelector('.csm-backdrop') ||
+        document.querySelector('.ipm-backdrop')
+      ) {
+        return true;
+      }
+    }
+    return false;
+  };
+
+  // Sync modal active state (e.g., StoryViewerModal or PostModal open) to pause background playback
+  useEffect(() => {
+    const handleModalMedia = (e) => {
+      const active = Boolean(e.detail?.active);
+      isModalMediaActive = active;
+      if (active) {
+        if (videoRef.current && !videoRef.current.paused) {
+          videoRef.current.pause();
+          setIsPlaying(false);
+        }
+      }
+    };
+
+    window.addEventListener('fortaa:modal_video_active', handleModalMedia);
+    return () => {
+      window.removeEventListener('fortaa:modal_video_active', handleModalMedia);
+    };
+  }, []);
 
   // Sync sound state across all feed videos in real time
   useEffect(() => {
@@ -533,7 +568,24 @@ function FeedVideo({ src, onDoubleTap, onSingleTap, isHeartActive, isMobile = fa
     if (!el) return;
 
     const playSafely = () => {
+      if (isModalOpen()) {
+        if (!el.paused) {
+          el.pause();
+          setIsPlaying(false);
+        }
+        return;
+      }
+
       if (!el.paused) return;
+
+      // Ensure only ONE feed video plays at any given time across the entire dashboard feed
+      const allFeedVids = document.querySelectorAll('.ud-feed-video-el');
+      allFeedVids.forEach((other) => {
+        if (other !== el && !other.paused) {
+          try { other.pause(); } catch (_) {}
+        }
+      });
+
       el.muted = globalFeedAudioMuted;
       el.play()
         .then(() => setIsPlaying(true))
@@ -550,6 +602,14 @@ function FeedVideo({ src, onDoubleTap, onSingleTap, isHeartActive, isMobile = fa
 
     const checkVisibility = () => {
       if (!el) return;
+      if (isModalOpen()) {
+        if (!el.paused) {
+          el.pause();
+          setIsPlaying(false);
+        }
+        return;
+      }
+
       const rect = el.getBoundingClientRect();
       const windowHeight = window.innerHeight || document.documentElement.clientHeight;
 
@@ -575,6 +635,11 @@ function FeedVideo({ src, onDoubleTap, onSingleTap, isHeartActive, isMobile = fa
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
+          if (isModalOpen()) {
+            el.pause();
+            setIsPlaying(false);
+            return;
+          }
           if (entry.isIntersecting && entry.intersectionRatio >= 0.45) {
             playSafely();
           } else {
@@ -616,6 +681,13 @@ function FeedVideo({ src, onDoubleTap, onSingleTap, isHeartActive, isMobile = fa
     e.stopPropagation();
     if (!videoRef.current) return;
     if (videoRef.current.paused) {
+      if (isModalOpen()) return;
+      const allFeedVids = document.querySelectorAll('.ud-feed-video-el');
+      allFeedVids.forEach((other) => {
+        if (other !== videoRef.current && !other.paused) {
+          try { other.pause(); } catch (_) {}
+        }
+      });
       videoRef.current.play().then(() => setIsPlaying(true)).catch(() => {});
     } else {
       videoRef.current.pause();

@@ -50,6 +50,22 @@ export default function InstagramPostModal({
   const inputRef = useRef(null);
   const commentsScrollRef = useRef(null);
 
+  // Pause all background videos when post modal is open
+  useEffect(() => {
+    if (isOpen) {
+      const allVids = document.querySelectorAll('video');
+      allVids.forEach((v) => {
+        try {
+          if (!v.paused) v.pause();
+        } catch (_) {}
+      });
+      window.dispatchEvent(new CustomEvent('fortaa:modal_video_active', { detail: { active: true } }));
+      return () => {
+        window.dispatchEvent(new CustomEvent('fortaa:modal_video_active', { detail: { active: false } }));
+      };
+    }
+  }, [isOpen]);
+
   // Sync state when post changes
   useEffect(() => {
     if (post) {

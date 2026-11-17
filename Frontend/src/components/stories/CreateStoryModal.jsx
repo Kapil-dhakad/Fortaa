@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { uploadSingleImage, uploadSingleVideo } from '../../services/upload.service';
 import { createStory } from '../../services/story.service';
@@ -38,6 +38,22 @@ export default function CreateStoryModal({
 
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef(null);
+
+  // Pause all background feed videos when create story modal is open
+  useEffect(() => {
+    if (isOpen) {
+      const allVids = document.querySelectorAll('video');
+      allVids.forEach((v) => {
+        try {
+          if (!v.paused) v.pause();
+        } catch (_) {}
+      });
+      window.dispatchEvent(new CustomEvent('fortaa:modal_video_active', { detail: { active: true } }));
+      return () => {
+        window.dispatchEvent(new CustomEvent('fortaa:modal_video_active', { detail: { active: false } }));
+      };
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
