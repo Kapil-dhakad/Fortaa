@@ -2,6 +2,29 @@
 
 const BASE_URL = '/api/users';
 
+/**
+ * Fetch authenticated current user profile from /api/users/me using Bearer token
+ */
+export async function fetchCurrentUser() {
+  try {
+    const token = localStorage.getItem('fortaa_token');
+    const headers = { 'Content-Type': 'application/json' };
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    const res = await fetch(`${BASE_URL}/me`, {
+      method: 'GET',
+      headers,
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data?.success ? data.user : null;
+  } catch (err) {
+    console.error('fetchCurrentUser error:', err);
+    return null;
+  }
+}
+
 export async function fetchUserProfile(userId, viewerId = null) {
   try {
     const url = viewerId

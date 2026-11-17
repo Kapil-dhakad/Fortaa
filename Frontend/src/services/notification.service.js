@@ -48,6 +48,23 @@ export async function markNotificationsRead(userId) {
 }
 
 /**
+ * Mark a single notification as read (or unread)
+ */
+export async function markNotificationAsRead(notificationId, isRead = true) {
+  try {
+    const res = await fetch(`${BASE_URL}/${notificationId}/read`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ is_read: isRead }),
+    });
+    return await res.json();
+  } catch (err) {
+    console.error('markNotificationAsRead error:', err);
+    return { success: false };
+  }
+}
+
+/**
  * Delete a notification
  */
 export async function deleteNotification(notificationId, userId) {

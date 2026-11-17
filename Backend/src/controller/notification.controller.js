@@ -102,6 +102,38 @@ async function markAllAsRead(req, res) {
 }
 
 /**
+ * Mark a single notification as read (or toggle)
+ */
+async function markOneAsRead(req, res) {
+  try {
+    const notificationId = parseInt(req.params.id, 10);
+    const isRead = req.body.is_read !== undefined ? Boolean(req.body.is_read) : true;
+
+    if (!notificationId || isNaN(notificationId)) {
+      return res.status(400).json({ success: false, message: 'Invalid notification ID' });
+    }
+
+    if (!db.isDBConnected()) {
+      return res.status(200).json({ success: true, message: 'Marked read (offline)' });
+    }
+
+    await db.query(
+      'UPDATE notifications SET is_read = $1 WHERE id = $2',
+      [isRead, notificationId]
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: `Notification marked as ${isRead ? 'read' : 'unread'}`,
+      is_read: isRead,
+    });
+  } catch (error) {
+    console.error('markOneAsRead error:', error);
+    return res.status(500).json({ success: false, message: 'Failed to update notification' });
+  }
+}
+
+/**
  * Delete a specific notification
  */
 async function deleteNotification(req, res) {
@@ -133,5 +165,6 @@ module.exports = {
   getUserNotifications,
   getUnreadCount,
   markAllAsRead,
+  markOneAsRead,
   deleteNotification,
 };

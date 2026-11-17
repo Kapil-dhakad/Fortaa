@@ -4,8 +4,11 @@ const BASE_URL = '/api/dashboard';
 
 export async function fetchDashboardOverview(email = '') {
   try {
+    const token = localStorage.getItem('fortaa_token');
+    const headers = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
     const url = email ? `${BASE_URL}/overview?email=${encodeURIComponent(email)}` : `${BASE_URL}/overview`;
-    const res = await fetch(url);
+    const res = await fetch(url, { headers });
     if (!res.ok) throw new Error('Failed to fetch dashboard overview');
     return await res.json();
   } catch (err) {

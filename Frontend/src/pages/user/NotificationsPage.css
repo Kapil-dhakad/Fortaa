@@ -150,73 +150,6 @@
   border-color: #CBD5E1;
 }
 
-/* ── Filter Bar (Pills) ── */
-.np-filter-bar {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 24px;
-  background: #FAF8FD;
-  border-bottom: 1px solid #F1F5F9;
-  overflow-x: auto;
-  scrollbar-width: none;
-}
-
-.np-filter-bar::-webkit-scrollbar {
-  display: none;
-}
-
-.np-filter-chip {
-  background: #FFFFFF;
-  border: 1px solid #E2E8F0;
-  border-radius: 20px;
-  padding: 6px 14px;
-  font-size: 12.5px;
-  font-weight: 600;
-  color: #64748B;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  white-space: nowrap;
-  transition: all 0.2s ease;
-}
-
-.np-filter-chip:hover {
-  border-color: #CBD5E1;
-  color: #1E293B;
-  background: #F8FAFC;
-}
-
-.np-filter-chip.active {
-  background: #5A2CE4;
-  border-color: #5A2CE4;
-  color: #FFFFFF;
-  box-shadow: 0 2px 8px rgba(90, 44, 228, 0.25);
-}
-
-.np-chip-count {
-  font-size: 11px;
-  background: #F1F5F9;
-  color: #64748B;
-  padding: 1px 6px;
-  border-radius: 10px;
-}
-
-.np-filter-chip.active .np-chip-count {
-  background: rgba(255, 255, 255, 0.25);
-  color: #FFFFFF;
-}
-
-.np-chip-badge {
-  background: #EF4444;
-  color: #FFFFFF;
-  font-size: 10.5px;
-  font-weight: 700;
-  padding: 1px 6px;
-  border-radius: 10px;
-}
-
 /* ── Notification Items List ── */
 .np-list-container {
   display: flex;
@@ -226,12 +159,12 @@
 .np-item-card {
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 16px 24px;
-  border-bottom: 1px solid #F1F5F9;
+  gap: 12px;
+  padding: 16px 20px;
+  border-bottom: 1px solid #EAEFF5;
   cursor: pointer;
-  background: #FFFFFF;
-  transition: background-color 0.18s ease;
+  background-color: #FFFFFF;
+  transition: background-color 0.22s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
 }
 
@@ -239,16 +172,47 @@
   border-bottom: none;
 }
 
-.np-item-card:hover {
+/* READ STATE: Clean pure white */
+.np-item-card.is-read {
+  background-color: #FFFFFF;
+}
+
+.np-item-card.is-read:hover {
   background-color: #F8FAFC;
 }
 
+/* UNREAD STATE: Authentic LinkedIn / Instagram highlighted background tint */
 .np-item-card.is-unread {
-  background-color: #FAF8FF;
+  background-color: #EDF3F8; /* Distinct LinkedIn light blue-gray tint */
 }
 
 .np-item-card.is-unread:hover {
-  background-color: #F3EEFE;
+  background-color: #E1ECF7;
+}
+
+/* Far-left Unread Indicator Column & Dot (LinkedIn style) */
+.np-unread-col {
+  width: 14px;
+  min-width: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.np-unread-dot-linkedin {
+  width: 10px;
+  height: 10px;
+  background-color: #0A66C2; /* LinkedIn signature bright blue dot */
+  border-radius: 50%;
+  display: block;
+  box-shadow: 0 0 0 2px rgba(10, 102, 194, 0.22);
+}
+
+.np-unread-dot-placeholder {
+  width: 10px;
+  height: 10px;
+  visibility: hidden;
 }
 
 /* Avatar & Badge */
@@ -383,8 +347,96 @@
 .np-actions-col {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   flex-shrink: 0;
+}
+
+.np-time-text {
+  font-size: 12px;
+  color: #64748B;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* 3-Dots More Options (LinkedIn style) */
+.np-more-wrap {
+  position: relative;
+}
+
+.np-more-btn {
+  background: transparent;
+  border: none;
+  color: #64748B;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.np-more-btn:hover {
+  background: #E2E8F0;
+  color: #0F172A;
+}
+
+.np-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 10px;
+  box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.15), 0 8px 10px -6px rgba(15, 23, 42, 0.1);
+  padding: 6px;
+  min-width: 150px;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  animation: npDropdownFade 0.15s ease-out;
+}
+
+@keyframes npDropdownFade {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.np-dropdown-item {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 8px 12px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #334155;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.15s ease;
+}
+
+.np-dropdown-item:hover {
+  background: #F1F5F9;
+  color: #0F172A;
+}
+
+.np-dropdown-item.np-dropdown-delete:hover {
+  background: #FEF2F2;
+  color: #EF4444;
 }
 
 .np-btn-group {
@@ -621,23 +673,22 @@
     display: none; /* Icon-only on very tight screens */
   }
 
-  .np-filter-bar {
-    padding: 10px 14px;
-    gap: 6px;
-    position: sticky;
-    top: 61px;
-    z-index: 19;
-  }
-
-  .np-filter-chip {
-    padding: 5px 12px;
-    font-size: 11.5px;
-  }
-
   .np-item-card {
-    padding: 14px 14px;
+    padding: 12px 14px;
     gap: 10px;
     flex-wrap: wrap; /* Actions wrap below on tiny mobile screens */
+    align-items: flex-start;
+  }
+
+  .np-unread-col {
+    width: 10px;
+    min-width: 10px;
+    padding-top: 14px; /* vertically align dot with avatar */
+  }
+
+  .np-unread-dot-linkedin {
+    width: 8px;
+    height: 8px;
   }
 
   .np-avatar-container {
@@ -657,7 +708,8 @@
   }
 
   .np-content-col {
-    min-width: calc(100% - 60px);
+    flex: 1;
+    min-width: calc(100% - 75px);
   }
 
   .np-actor-name {
@@ -674,9 +726,12 @@
 
   .np-actions-col {
     width: 100%;
-    margin-left: 52px; /* align under content */
-    margin-top: 4px;
+    margin-left: 20px;
+    margin-top: 6px;
+    display: flex;
+    align-items: center;
     justify-content: flex-start;
+    gap: 10px;
   }
 
   .np-btn-sm {
@@ -684,7 +739,7 @@
     font-size: 11.5px;
   }
 
-  .np-dismiss-btn {
-    margin-left: auto; /* push dismiss cross to right */
+  .np-more-wrap {
+    margin-left: auto; /* push 3-dots to far right */
   }
 }

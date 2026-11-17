@@ -2120,29 +2120,61 @@
   align-items: center;
   justify-content: center;
   height: 100%;
-  min-height: 400px;
+  min-height: 480px;
   text-align: center;
   padding: 40px 20px;
   color: #64748B;
+  background-color: #FFFFFF;
 }
 
-.msg-no-contact-icon {
-  font-size: 48px;
-  color: #A78BFA;
+.msg-insta-empty-circle {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  border: 2px solid #0F172A;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #0F172A;
   margin-bottom: 16px;
 }
 
-.msg-no-contact-selected h3 {
-  font-size: 20px;
-  font-weight: 600;
-  color: #1E293B;
-  margin: 0 0 8px 0;
+.msg-insta-empty-circle svg {
+  transform: translate(-2px, 2px);
 }
 
-.msg-no-contact-selected p {
+.msg-insta-empty-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: #0F172A;
+  margin: 0 0 6px 0;
+  font-family: inherit;
+}
+
+.msg-insta-empty-sub {
   font-size: 14px;
   color: #64748B;
-  margin: 0;
+  margin: 0 0 20px 0;
+}
+
+.msg-insta-empty-btn {
+  background-color: #7C3AED;
+  color: #FFFFFF;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 18px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s ease, transform 0.1s ease;
+}
+
+.msg-insta-empty-btn:hover {
+  background-color: #6D28D9;
+}
+
+.msg-insta-empty-btn:active {
+  transform: scale(0.98);
 }
 
 .msg-no-conversations-found {

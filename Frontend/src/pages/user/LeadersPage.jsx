@@ -12,208 +12,14 @@ import {
   fetchFollowingIds,
 } from '../../services/follow.service';
 import { fetchLeaders } from '../../services/dashboard.service';
+import { fetchCurrentUser } from '../../services/user.service';
 import { joinChat, subscribeToFollowEvents } from '../../services/socket.service';
+import userAvatarRahul from '../../assets/dashboard/user_avatar_rahul.png';
 import './LeadersPage.css';
-
-// Default / Figma Demo Leaders Dataset (100% matching Figma screenshot and specs)
-const INITIAL_LEADERS = [
-  {
-    id: 1,
-    name: 'Vikram Yadav',
-    level: 'Diamond',
-    levelTitle: 'Diamond Leaders',
-    badgeType: 'diamond',
-    badgeColor: '#F60808',
-    location: 'Hyderabad, India',
-    followers: '3.9k',
-    followersCount: 3900,
-    following: '2.1k',
-    posts: '8',
-    quote: '“Small steps every day lead to big result.”',
-    tags: [],
-    role: 'Digital Marketing',
-    bannerImg: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=600&auto=format&fit=crop&q=80',
-    bannerGradient: 'linear-gradient(135deg, #FF6B6B 0%, #FFA07A 50%, #4A0E4E 100%)',
-    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80',
-    networkSize: '1k-5k',
-  },
-  {
-    id: 2,
-    name: 'Kristin Watson',
-    level: 'Silver',
-    levelTitle: 'Silver Leaders',
-    badgeType: 'silver',
-    badgeColor: '#D51CFD',
-    location: 'Delhi, India',
-    followers: '9k',
-    followersCount: 9000,
-    following: '21k',
-    posts: '8',
-    quote: '“Build your team, Build your dreams.”',
-    tags: [],
-    role: 'Team Building',
-    bannerImg: 'https://images.unsplash.com/photo-1518495973542-4542c06a5843?w=600&auto=format&fit=crop&q=80',
-    bannerGradient: 'linear-gradient(135deg, #6B11FF 0%, #B845ED 50%, #200052 100%)',
-    avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&auto=format&fit=crop&q=80',
-    networkSize: '5k-10k',
-  },
-  {
-    id: 3,
-    name: 'Floyd Miles',
-    level: 'Platinum',
-    levelTitle: 'Platinum Leaders',
-    badgeType: 'platinum',
-    badgeColor: '#5A2CE4',
-    location: 'Punjab, India',
-    followers: '3k',
-    followersCount: 3000,
-    following: '1k',
-    posts: '8',
-    quote: '“Together we grow stronger.”',
-    tags: [],
-    role: 'Direct Selling',
-    bannerImg: 'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=600&auto=format&fit=crop&q=80',
-    bannerGradient: 'linear-gradient(135deg, #F39C12 0%, #E67E22 50%, #2C3E50 100%)',
-    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&auto=format&fit=crop&q=80',
-    networkSize: '1k-5k',
-  },
-  {
-    id: 4,
-    name: 'Savannah Nguyen',
-    level: 'Diamond',
-    levelTitle: 'Diamond Leaders',
-    badgeType: 'diamond',
-    badgeColor: '#F60808',
-    location: 'Indore, Madhya Pradesh',
-    followers: '12k',
-    followersCount: 12000,
-    following: '22k',
-    posts: '8',
-    quote: '“Small steps every day lead to big result.”',
-    tags: [],
-    role: 'Business Strategy',
-    bannerImg: 'https://images.unsplash.com/photo-1509198397868-475647b2a1e5?w=600&auto=format&fit=crop&q=80',
-    bannerGradient: 'linear-gradient(135deg, #0F2027 0%, #203A43 50%, #2C5364 100%)',
-    avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=200&auto=format&fit=crop&q=80',
-    networkSize: '10k+',
-  },
-  {
-    id: 5,
-    name: 'Jerome Bell',
-    level: 'Platinum',
-    levelTitle: 'Platinum Leaders',
-    badgeType: 'platinum',
-    badgeColor: '#5A2CE4',
-    location: 'Nigeria',
-    followers: '30k',
-    followersCount: 30000,
-    following: '2.1k',
-    posts: '8',
-    quote: '“Together we grow stronger.”',
-    tags: [],
-    role: 'Global Expansion',
-    bannerImg: 'https://images.unsplash.com/photo-1511497584788-87676104235f?w=600&auto=format&fit=crop&q=80',
-    bannerGradient: 'linear-gradient(135deg, #134E5E 0%, #71B280 100%)',
-    avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&auto=format&fit=crop&q=80',
-    networkSize: '10k+',
-  },
-  {
-    id: 6,
-    name: 'Bessie Cooper',
-    level: 'Silver',
-    levelTitle: 'Silver Leaders',
-    badgeType: 'silver',
-    badgeColor: '#D51CFD',
-    location: 'Oman',
-    followers: '3.9k',
-    followersCount: 3900,
-    following: '2k',
-    posts: '8',
-    quote: '“Build your team, Build your dreams.”',
-    tags: [],
-    role: 'Sales Coach',
-    bannerImg: 'https://images.unsplash.com/photo-1432405972618-c60b0225b8f9?w=600&auto=format&fit=crop&q=80',
-    bannerGradient: 'linear-gradient(135deg, #1D2671 0%, #C33764 100%)',
-    avatar: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=200&auto=format&fit=crop&q=80',
-    networkSize: '1k-5k',
-  },
-  {
-    id: 7,
-    name: 'Cameron Williamson',
-    level: 'Gold',
-    levelTitle: 'Gold Leaders',
-    badgeType: 'gold',
-    badgeColor: '#F59E0B',
-    location: 'Mumbai, India',
-    followers: '15k',
-    followersCount: 15000,
-    following: '3.2k',
-    posts: '14',
-    quote: '“Empowering others to achieve excellence.”',
-    tags: ['Leadership', 'Sales', 'Growth'],
-    role: 'Product Specialist',
-    bannerGradient: 'linear-gradient(135deg, #F7971E 0%, #FFD200 100%)',
-    avatar: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=150&auto=format&fit=crop&q=80',
-    networkSize: '10k+',
-  },
-  {
-    id: 8,
-    name: 'Eleanor Pena',
-    level: 'Bronze',
-    levelTitle: 'Bronze Leaders',
-    badgeType: 'bronze',
-    badgeColor: '#CD7F32',
-    location: 'Bangalore, India',
-    followers: '2.4k',
-    followersCount: 2400,
-    following: '850',
-    posts: '6',
-    quote: '“Consistency is the mother of mastery.”',
-    tags: ['Network', 'Mentorship', 'Strategy'],
-    role: 'Affiliate Coach',
-    bannerGradient: 'linear-gradient(135deg, #8E2DE2 0%, #4A00E0 100%)',
-    avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150&auto=format&fit=crop&q=80',
-    networkSize: '1k-5k',
-  },
-  {
-    id: 9,
-    name: 'Albert Flores',
-    level: 'Top',
-    levelTitle: 'Top Leaders',
-    badgeType: 'top',
-    badgeColor: '#6220FE',
-    location: 'Jaipur, Rajasthan',
-    followers: '45k',
-    followersCount: 45000,
-    following: '5k',
-    posts: '32',
-    quote: '“Lead with vision, inspire with actions.”',
-    tags: ['Vision', 'Marketing', 'Scale'],
-    role: 'Executive Director',
-    bannerGradient: 'linear-gradient(135deg, #2E0854 0%, #8A2387 100%)',
-    avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=150&auto=format&fit=crop&q=80',
-    networkSize: '10k+',
-  },
-];
-
-// Top Performing Leaders for the right widget
-const INITIAL_TOP_PERFORMING = [
-  { id: 101, rank: '01', name: 'Arlene', role: 'Diamond Leader', followers: '3.8k Followers', avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80' },
-  { id: 102, rank: '02', name: 'Kyle', role: 'Silver Leader', followers: '4k Followers', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop&q=80' },
-  { id: 103, rank: '03', name: 'Kristin', role: 'Gold Leader', followers: '1.2k Followers', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&auto=format&fit=crop&q=80' },
-  { id: 104, rank: '04', name: 'Cameron', role: 'Platinum Leader', followers: '2k Followers', avatar: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=100&auto=format&fit=crop&q=80' },
-  { id: 105, rank: '05', name: 'Angel', role: 'Gold Leader', followers: '1.2k Followers', avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100&auto=format&fit=crop&q=80' },
-  { id: 106, rank: '06', name: 'Ann', role: 'Platinum Leader', followers: '2k Followers', avatar: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=100&auto=format&fit=crop&q=80' },
-];
 
 const CATEGORY_TABS = [
   { id: 'all', label: 'All Leaders', icon: null },
-  { id: 'top', label: 'Top Leaders', icon: '👑' },
-  { id: 'diamond', label: 'Diamond', icon: '💎' },
-  { id: 'platinum', label: 'Platinum', icon: '⭐' },
-  { id: 'gold', label: 'Gold', icon: '🏆' },
-  { id: 'silver', label: 'Silver', icon: '🥈' },
-  { id: 'bronze', label: 'Bronze', icon: '🥉' },
+  { id: 'top', label: 'Top Performers', icon: '👑' },
 ];
 
 export default function LeadersPage() {
@@ -229,28 +35,25 @@ export default function LeadersPage() {
   const [resolvedUserId, setResolvedUserId] = useState(() => storedUser.id || storedUser._id || null);
   const currentUserId = resolvedUserId || storedUser.id || 1;
 
-  // Auto-resolve user ID if missing from localStorage
+  // Auto-resolve user ID if missing from localStorage using authenticated user
   useEffect(() => {
     if (storedUser.id || storedUser._id) {
       setResolvedUserId(storedUser.id || storedUser._id);
       return;
     }
-    if (storedUser.email) {
-      fetch(`/api/dashboard/overview?email=${encodeURIComponent(storedUser.email)}`)
-        .then((r) => r.json())
-        .then((data) => {
-          if (data?.success && data?.user?.id) {
-            setResolvedUserId(data.user.id);
-            try {
-              const cur = JSON.parse(localStorage.getItem('fortaa_user') || '{}');
-              localStorage.setItem('fortaa_user', JSON.stringify({ ...cur, id: data.user.id, ...data.user }));
-              window.dispatchEvent(new CustomEvent('fortaa_user_synced', { detail: data.user }));
-            } catch {}
-          }
-        })
-        .catch((e) => console.log('Resolve user id in leaders error:', e));
-    }
-  }, [storedUser.id, storedUser._id, storedUser.email]);
+    fetchCurrentUser()
+      .then((me) => {
+        if (me?.id) {
+          setResolvedUserId(me.id);
+          try {
+            const cur = JSON.parse(localStorage.getItem('fortaa_user') || '{}');
+            localStorage.setItem('fortaa_user', JSON.stringify({ ...cur, ...me, id: me.id }));
+            window.dispatchEvent(new CustomEvent('fortaa_user_synced', { detail: me }));
+          } catch {}
+        }
+      })
+      .catch((e) => console.log('Resolve user id in leaders error:', e));
+  }, [storedUser.id, storedUser._id]);
 
   useEffect(() => {
     const handleUserSynced = (e) => {
@@ -294,17 +97,8 @@ export default function LeadersPage() {
   };
 
   // Filter Sidebar State
-  const [levelFilters, setLevelFilters] = useState({
-    top: false,
-    diamond: false,
-    platinum: false,
-    gold: false,
-    silver: false,
-    bronze: false,
-  });
   const [locationFilter, setLocationFilter] = useState('');
   const [roleFilter, setRoleFilter] = useState('');
-  const [networkSizeFilter, setNetworkSizeFilter] = useState('');
 
   // Follow State Tracking: { [userId]: 'none' | 'pending' | 'accepted' }
   // Initialized from cache so state never flickers or reverts to "Follow" on refresh!
@@ -373,65 +167,45 @@ export default function LeadersPage() {
           updateFollowMap(initialStatusMap);
         }
 
-        // Map database leaders into the leader card shape with ACTUAL real data
-        const mapped = dbLeaders.map((u, idx) => {
-          const levelNames = ['Diamond', 'Platinum', 'Gold', 'Silver', 'Bronze', 'Top'];
-          const chosenLevel = levelNames[idx % levelNames.length];
-          const badgeColors = {
-            Diamond: '#F60808',
-            Platinum: '#5A2CE4',
-            Gold: '#F59E0B',
-            Silver: '#D51CFD',
-            Bronze: '#CD7F32',
-            Top: '#6220FE',
-          };
-          const gradients = [
-            'linear-gradient(135deg, #FF6B6B 0%, #FFA07A 50%, #4A0E4E 100%)',
-            'linear-gradient(135deg, #6B11FF 0%, #B845ED 50%, #200052 100%)',
-            'linear-gradient(135deg, #F39C12 0%, #E67E22 50%, #2C3E50 100%)',
-            'linear-gradient(135deg, #134E5E 0%, #71B280 100%)',
-          ];
+        // Map database leaders into the leader card shape with ACTUAL real data (excluding self)
+        const myId = currentUserId || resolvedUserId || storedUser.id || storedUser._id;
+        const validDbLeaders = dbLeaders.filter((u) => {
+          const isSelf =
+            (myId && (String(u.id) === String(myId) || String(u._id) === String(myId))) ||
+            (storedUser?.email && u.email && storedUser.email.toLowerCase() === u.email.toLowerCase());
+          return !isSelf;
+        });
 
+        const mapped = validDbLeaders.map((u, idx) => {
           const followersCount = typeof u.followers_count === 'number' ? u.followers_count : 0;
           const followingCount = typeof u.following_count === 'number' ? u.following_count : 0;
           const postsCount = typeof u.posts_count === 'number' ? u.posts_count : 0;
           const formattedFollowers = followersCount >= 1000 ? `${(followersCount / 1000).toFixed(1)}k` : `${followersCount}`;
           const formattedFollowing = followingCount >= 1000 ? `${(followingCount / 1000).toFixed(1)}k` : `${followingCount}`;
 
-          const resolvedQuote = u.bio
-            ? `“${u.bio}”`
-            : u.company_brand
-            ? `“Growing business with ${u.company_brand}.”`
-            : '“Small steps every day lead to big result.”';
+          const realBio = (u.bio || '').trim();
+          const realCompany = (u.company_brand || '').trim();
+          const realRole = (u.role || u.designation || '').trim();
+          const realLocation = (u.location || '').trim();
 
           const resolvedTags = u.skills
             ? (typeof u.skills === 'string' ? u.skills.split(',').map((s) => s.trim()).filter(Boolean) : (Array.isArray(u.skills) ? u.skills : []))
             : [];
 
-          const resolvedLocation = u.location
-            ? `${u.location}, India`
-            : u.company_brand
-            ? `${u.company_brand}, India`
-            : 'India';
-
           return {
             id: u.id,
             name: u.name,
-            level: chosenLevel,
-            levelTitle: `${chosenLevel} Leaders`,
-            badgeType: chosenLevel.toLowerCase(),
-            badgeColor: badgeColors[chosenLevel] || '#5A2CE4',
-            location: resolvedLocation,
+            rank: idx + 1,
+            role: realRole,
+            company: realCompany,
+            location: realLocation,
             followers: formattedFollowers,
             followersCount: followersCount,
             following: formattedFollowing,
             posts: String(postsCount),
-            quote: resolvedQuote,
+            bio: realBio,
             tags: resolvedTags.slice(0, 3),
-            role: u.role || 'Business Leader',
-            bannerGradient: gradients[idx % gradients.length],
-            avatar: u.avatar_url || `https://images.unsplash.com/photo-${1534528741775 + idx}?w=150&auto=format&fit=crop&q=80`,
-            networkSize: `${followersCount} network`,
+            avatar: u.avatar_url || userAvatarRahul,
             follow_status: u.follow_status || 'none',
           };
         });
@@ -473,7 +247,7 @@ export default function LeadersPage() {
       const confirm = window.confirm(`Are you sure you want to unfollow ${targetName}?`);
       if (!confirm) return;
       updateFollowMap({ [targetId]: 'none' });
-      toast(`Unfollowed ${targetName}`);
+      // toast(`Unfollowed ${targetName}`);
       try {
         await unfollowUser(targetId, currentUserId);
       } catch (err) {
@@ -483,7 +257,7 @@ export default function LeadersPage() {
       const confirm = window.confirm(`Cancel follow request to ${targetName}?`);
       if (!confirm) return;
       updateFollowMap({ [targetId]: 'none' });
-      toast('Follow request cancelled', { icon: '✖' });
+      // toast('Follow request cancelled', { icon: '✖' });
       try {
         await cancelFollowRequest(targetId, currentUserId);
       } catch (err) {
@@ -497,9 +271,9 @@ export default function LeadersPage() {
         if (res?.status) {
           updateFollowMap({ [targetId]: res.status });
           if (res.status === 'accepted') {
-            toast.success(`You are now following ${targetName}! 🎉`);
+            // toast.success(`You are now following ${targetName}! 🎉`);
           } else {
-            toast.success(`Follow request sent to ${targetName}! ⏳`);
+            // toast.success(`Follow request sent to ${targetName}! ⏳`);
           }
         }
       } catch (err) {
@@ -508,24 +282,10 @@ export default function LeadersPage() {
     }
   };
 
-  // Toggle Level Checkbox in filter sidebar
-  const handleLevelCheckbox = (key) => {
-    setLevelFilters((prev) => ({ ...prev, [key]: !prev[key] }));
-  };
-
   // Clear all filters
   const handleClearAll = () => {
-    setLevelFilters({
-      top: false,
-      diamond: false,
-      platinum: false,
-      gold: false,
-      silver: false,
-      bronze: false,
-    });
     setLocationFilter('');
     setRoleFilter('');
-    setNetworkSizeFilter('');
     setSearchQuery('');
     setActiveTab('all');
     setDismissedIds([]);
@@ -537,35 +297,29 @@ export default function LeadersPage() {
 
   // Filtered leaders calculation
   const filteredLeaders = useMemo(() => {
+    const myId = currentUserId || resolvedUserId || storedUser.id || storedUser._id;
     return leaders.filter((leader) => {
+      // Exclude self from leaders directory
+      if (myId && (String(leader.id) === String(myId) || String(leader._id) === String(myId))) return false;
+      if (storedUser?.email && leader.email && storedUser.email.toLowerCase() === leader.email.toLowerCase()) return false;
+
       // Exclude dismissed cards (LinkedIn style dismissal)
       if (dismissedIds.includes(leader.id)) return false;
 
       // Category Tab filter
-      if (activeTab !== 'all') {
-        if (activeTab === 'top' && leader.level !== 'Top') return false;
-        if (activeTab === 'diamond' && leader.level !== 'Diamond') return false;
-        if (activeTab === 'platinum' && leader.level !== 'Platinum') return false;
-        if (activeTab === 'gold' && leader.level !== 'Gold') return false;
-        if (activeTab === 'silver' && leader.level !== 'Silver') return false;
-        if (activeTab === 'bronze' && leader.level !== 'Bronze') return false;
-      }
-
-      // Checkbox filters (if any checked)
-      const anyLevelChecked = Object.values(levelFilters).some(Boolean);
-      if (anyLevelChecked) {
-        const leaderLvlKey = leader.level.toLowerCase();
-        if (!levelFilters[leaderLvlKey]) return false;
+      if (activeTab === 'top') {
+        if ((leader.followersCount || 0) < 1 && (Number(leader.posts) || 0) < 1) return false;
       }
 
       // Search bar
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
-        const matchName = leader.name.toLowerCase().includes(q);
-        const matchRole = leader.role.toLowerCase().includes(q);
-        const matchLoc = leader.location.toLowerCase().includes(q);
-        const matchTags = leader.tags.some((t) => t.toLowerCase().includes(q));
-        if (!matchName && !matchRole && !matchLoc && !matchTags) return false;
+        const matchName = (leader.name || '').toLowerCase().includes(q);
+        const matchRole = (leader.role || '').toLowerCase().includes(q);
+        const matchCompany = (leader.company || '').toLowerCase().includes(q);
+        const matchLoc = (leader.location || '').toLowerCase().includes(q);
+        const matchTags = (leader.tags || []).some((t) => t.toLowerCase().includes(q));
+        if (!matchName && !matchRole && !matchCompany && !matchLoc && !matchTags) return false;
       }
 
       // Location filter
@@ -578,14 +332,9 @@ export default function LeadersPage() {
         if (!leader.role.toLowerCase().includes(roleFilter.toLowerCase())) return false;
       }
 
-      // Network size filter
-      if (networkSizeFilter && networkSizeFilter !== 'all') {
-        if (leader.networkSize !== networkSizeFilter) return false;
-      }
-
       return true;
     });
-  }, [leaders, activeTab, levelFilters, searchQuery, locationFilter, roleFilter, networkSizeFilter, dismissedIds]);
+  }, [leaders, activeTab, searchQuery, locationFilter, roleFilter, dismissedIds, currentUserId, resolvedUserId, storedUser.id, storedUser._id, storedUser.email]);
 
   // Paginated leaders
   const totalPages = Math.ceil(filteredLeaders.length / itemsPerPage) || 1;
@@ -723,28 +472,15 @@ export default function LeadersPage() {
                       <div
                         className="lead-card-banner"
                         style={{
-                          backgroundImage: leader.bannerImg
-                            ? `url(${leader.bannerImg})`
-                            : leader.bannerGradient,
-                          backgroundSize: 'cover',
-                          backgroundPosition: 'center',
+                          background: 'linear-gradient(135deg, #6366F1 0%, #8B5CF6 50%, #4338CA 100%)',
                         }}
                       >
-                        {/* Level Badge Pill (Frame 302: 152px x 25px) */}
-                        <div
-                          className="lead-level-badge"
-                          style={{ background: leader.badgeColor }}
-                        >
-                          <span className="lead-badge-icon">
-                            {leader.level === 'Diamond' && '💎'}
-                            {leader.level === 'Silver' && '🥈'}
-                            {leader.level === 'Platinum' && '⭐'}
-                            {leader.level === 'Gold' && '🏆'}
-                            {leader.level === 'Bronze' && '🥉'}
-                            {leader.level === 'Top' && '👑'}
-                          </span>
-                          <span className="lead-badge-text">{leader.level} Leader</span>
-                        </div>
+                        {/* Real Role / Designation Badge */}
+                        {leader.role && (
+                          <div className="lead-level-badge">
+                            <span className="lead-badge-text">{leader.role}</span>
+                          </div>
+                        )}
 
                         {/* Dismiss X Icon Button (LinkedIn style) */}
                         <button
@@ -760,15 +496,15 @@ export default function LeadersPage() {
                           </svg>
                         </button>
 
-                        {/* Circular Avatar (Ellipse 43: 114px x 114px, top 71px, left 4px) */}
+                        {/* Circular Avatar */}
                         <div className="lead-card-avatar-wrap">
                           <img
                             src={leader.avatar}
                             alt={leader.name}
                             className="lead-card-avatar-img"
                             onError={(e) => {
-                              e.currentTarget.src =
-                                'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80';
+                              e.currentTarget.onerror = null;
+                              e.currentTarget.src = userAvatarRahul;
                             }}
                           />
                         </div>
@@ -781,24 +517,21 @@ export default function LeadersPage() {
                           {leader.name}
                         </h3>
 
-                        {/* Level Title with mini icon */}
+                        {/* Role & Company */}
                         <div className="lead-card-level-row">
-                          <span className="lead-level-icon-sm">
-                            {leader.level === 'Diamond' && '💎'}
-                            {leader.level === 'Silver' && '🥈'}
-                            {leader.level === 'Platinum' && '⭐'}
-                            {leader.level === 'Gold' && '🏆'}
-                            {leader.level === 'Bronze' && '🥉'}
-                            {leader.level === 'Top' && '👑'}
+                          <span className="lead-card-level-text">
+                            {leader.role || 'Member'}
+                            {leader.company ? ` • ${leader.company}` : ''}
                           </span>
-                          <span className="lead-card-level-text">{leader.levelTitle}</span>
                         </div>
 
                         {/* Location */}
-                        <div className="lead-card-location-row">
-                          <span className="lead-pin-icon">📍</span>
-                          <span className="lead-card-location-text">{leader.location}</span>
-                        </div>
+                        {leader.location ? (
+                          <div className="lead-card-location-row">
+                            <span className="lead-pin-icon">📍</span>
+                            <span className="lead-card-location-text">{leader.location}</span>
+                          </div>
+                        ) : null}
 
                         {/* Stats Row */}
                         <div className="lead-card-stats-row">
@@ -816,8 +549,10 @@ export default function LeadersPage() {
                           </div>
                         </div>
 
-                        {/* Quote */}
-                        <p className="lead-card-quote">{leader.quote}</p>
+                        {/* Real User Bio - only if entered by user */}
+                        {leader.bio ? (
+                          <p className="lead-card-quote">“{leader.bio}”</p>
+                        ) : null}
 
                         {/* Real Skills Tags - only if user has skills */}
                         {leader.tags && leader.tags.length > 0 && (
@@ -851,7 +586,16 @@ export default function LeadersPage() {
                             className="lead-btn-message"
                             onClick={(e) => {
                               e.stopPropagation();
-                              navigate(`/messages?user=${leader.id}&name=${encodeURIComponent(leader.name)}`);
+                              navigate(`/messages?userId=${leader.id}&name=${encodeURIComponent(leader.name || '')}&role=${encodeURIComponent(leader.role || '')}&avatar=${encodeURIComponent(leader.avatar || '')}`, {
+                                state: {
+                                  contact: {
+                                    user_id: leader.id,
+                                    name: leader.name,
+                                    role: leader.role,
+                                    avatar_url: leader.avatar,
+                                  },
+                                },
+                              });
                             }}
                           >
                             Message
@@ -937,111 +681,29 @@ export default function LeadersPage() {
                 </button>
               </div>
 
-              {/* Leader Level Checkboxes */}
-              <div className="lead-filter-section">
-                <h4 className="lead-filter-subtitle">Leader Level</h4>
-                <div className="lead-checkbox-group">
-                  <label className="lead-checkbox-label">
-                    <input
-                      type="checkbox"
-                      checked={levelFilters.top}
-                      onChange={() => handleLevelCheckbox('top')}
-                    />
-                    <span className="lead-check-icon">👑</span>
-                    <span className="lead-check-text">Top Leaders</span>
-                  </label>
-
-                  <label className="lead-checkbox-label">
-                    <input
-                      type="checkbox"
-                      checked={levelFilters.diamond}
-                      onChange={() => handleLevelCheckbox('diamond')}
-                    />
-                    <span className="lead-check-icon">💎</span>
-                    <span className="lead-check-text">Diamond Leader</span>
-                  </label>
-
-                  <label className="lead-checkbox-label">
-                    <input
-                      type="checkbox"
-                      checked={levelFilters.platinum}
-                      onChange={() => handleLevelCheckbox('platinum')}
-                    />
-                    <span className="lead-check-icon">⭐</span>
-                    <span className="lead-check-text">Platinum Leader</span>
-                  </label>
-
-                  <label className="lead-checkbox-label">
-                    <input
-                      type="checkbox"
-                      checked={levelFilters.gold}
-                      onChange={() => handleLevelCheckbox('gold')}
-                    />
-                    <span className="lead-check-icon">🏆</span>
-                    <span className="lead-check-text">Gold Leader</span>
-                  </label>
-
-                  <label className="lead-checkbox-label">
-                    <input
-                      type="checkbox"
-                      checked={levelFilters.silver}
-                      onChange={() => handleLevelCheckbox('silver')}
-                    />
-                    <span className="lead-check-icon">🥈</span>
-                    <span className="lead-check-text">Silver Leader</span>
-                  </label>
-
-                  <label className="lead-checkbox-label">
-                    <input
-                      type="checkbox"
-                      checked={levelFilters.bronze}
-                      onChange={() => handleLevelCheckbox('bronze')}
-                    />
-                    <span className="lead-check-icon">🥉</span>
-                    <span className="lead-check-text">Bronze Leader</span>
-                  </label>
-                </div>
-              </div>
-
               {/* Location Input */}
               <div className="lead-filter-section">
                 <h4 className="lead-filter-subtitle">Location</h4>
                 <div className="lead-input-wrap">
                   <input
                     type="text"
-                    placeholder="e.g. Delhi"
+                    placeholder="e.g. Delhi, Indore"
                     value={locationFilter}
                     onChange={(e) => setLocationFilter(e.target.value)}
                   />
                 </div>
               </div>
 
-              {/* Role Input */}
+              {/* Role / Designation Input */}
               <div className="lead-filter-section">
-                <h4 className="lead-filter-subtitle">Role</h4>
+                <h4 className="lead-filter-subtitle">Role / Designation</h4>
                 <div className="lead-input-wrap">
                   <input
                     type="text"
-                    placeholder="e.g. Digital marketing"
+                    placeholder="e.g. Senior Leader, Marketing"
                     value={roleFilter}
                     onChange={(e) => setRoleFilter(e.target.value)}
                   />
-                </div>
-              </div>
-
-              {/* Network Size Dropdown */}
-              <div className="lead-filter-section">
-                <h4 className="lead-filter-subtitle">Network Size</h4>
-                <div className="lead-input-wrap">
-                  <select
-                    value={networkSizeFilter}
-                    onChange={(e) => setNetworkSizeFilter(e.target.value)}
-                  >
-                    <option value="">Select Network Size</option>
-                    <option value="1k-5k">1k - 5k Members</option>
-                    <option value="5k-10k">5k - 10k Members</option>
-                    <option value="10k+">10k+ Members</option>
-                  </select>
                 </div>
               </div>
 
@@ -1100,8 +762,8 @@ export default function LeadersPage() {
                         alt={topLdr.name}
                         className="lead-top-avatar"
                         onError={(e) => {
-                          e.currentTarget.src =
-                            'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80';
+                          e.currentTarget.onerror = null;
+                          e.currentTarget.src = userAvatarRahul;
                         }}
                       />
 
@@ -1169,74 +831,13 @@ export default function LeadersPage() {
             </div>
 
             <div className="lead-mob-drawer-body">
-              {/* Leader Level Checkboxes */}
-              <div className="lead-filter-section">
-                <h4 className="lead-filter-subtitle">Leader Level</h4>
-                <div className="lead-checkbox-group">
-                  <label className="lead-checkbox-label">
-                    <input
-                      type="checkbox"
-                      checked={levelFilters.top}
-                      onChange={() => handleLevelCheckbox('top')}
-                    />
-                    <span className="lead-check-icon">👑</span>
-                    <span className="lead-check-text">Top Leaders</span>
-                  </label>
-                  <label className="lead-checkbox-label">
-                    <input
-                      type="checkbox"
-                      checked={levelFilters.diamond}
-                      onChange={() => handleLevelCheckbox('diamond')}
-                    />
-                    <span className="lead-check-icon">💎</span>
-                    <span className="lead-check-text">Diamond Leader</span>
-                  </label>
-                  <label className="lead-checkbox-label">
-                    <input
-                      type="checkbox"
-                      checked={levelFilters.platinum}
-                      onChange={() => handleLevelCheckbox('platinum')}
-                    />
-                    <span className="lead-check-icon">⭐</span>
-                    <span className="lead-check-text">Platinum Leader</span>
-                  </label>
-                  <label className="lead-checkbox-label">
-                    <input
-                      type="checkbox"
-                      checked={levelFilters.gold}
-                      onChange={() => handleLevelCheckbox('gold')}
-                    />
-                    <span className="lead-check-icon">🏆</span>
-                    <span className="lead-check-text">Gold Leader</span>
-                  </label>
-                  <label className="lead-checkbox-label">
-                    <input
-                      type="checkbox"
-                      checked={levelFilters.silver}
-                      onChange={() => handleLevelCheckbox('silver')}
-                    />
-                    <span className="lead-check-icon">🥈</span>
-                    <span className="lead-check-text">Silver Leader</span>
-                  </label>
-                  <label className="lead-checkbox-label">
-                    <input
-                      type="checkbox"
-                      checked={levelFilters.bronze}
-                      onChange={() => handleLevelCheckbox('bronze')}
-                    />
-                    <span className="lead-check-icon">🥉</span>
-                    <span className="lead-check-text">Bronze Leader</span>
-                  </label>
-                </div>
-              </div>
-
               {/* Location */}
               <div className="lead-filter-section">
                 <h4 className="lead-filter-subtitle">Location</h4>
                 <input
                   type="text"
                   className="lead-mob-input"
-                  placeholder="e.g. Delhi"
+                  placeholder="e.g. Delhi, Indore"
                   value={locationFilter}
                   onChange={(e) => setLocationFilter(e.target.value)}
                 />
@@ -1244,29 +845,14 @@ export default function LeadersPage() {
 
               {/* Role */}
               <div className="lead-filter-section">
-                <h4 className="lead-filter-subtitle">Role</h4>
+                <h4 className="lead-filter-subtitle">Role / Designation</h4>
                 <input
                   type="text"
                   className="lead-mob-input"
-                  placeholder="e.g. Digital marketing"
+                  placeholder="e.g. Senior Leader, Marketing"
                   value={roleFilter}
                   onChange={(e) => setRoleFilter(e.target.value)}
                 />
-              </div>
-
-              {/* Network Size */}
-              <div className="lead-filter-section">
-                <h4 className="lead-filter-subtitle">Network Size</h4>
-                <select
-                  className="lead-mob-select"
-                  value={networkSizeFilter}
-                  onChange={(e) => setNetworkSizeFilter(e.target.value)}
-                >
-                  <option value="">Select Network Size</option>
-                  <option value="1k-5k">1k - 5k Members</option>
-                  <option value="5k-10k">5k - 10k Members</option>
-                  <option value="10k+">10k+ Members</option>
-                </select>
               </div>
 
               {/* Drawer Action Buttons */}

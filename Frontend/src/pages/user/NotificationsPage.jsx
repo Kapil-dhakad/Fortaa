@@ -7,12 +7,14 @@ import UserMobileBottomNav from '../../components/layout/UserMobileBottomNav';
 import {
   fetchNotifications,
   markNotificationsRead,
+  markNotificationAsRead,
   deleteNotification,
 } from '../../services/notification.service';
 import {
   acceptFollowRequest,
   rejectFollowRequest,
 } from '../../services/follow.service';
+import { fetchCurrentUser } from '../../services/user.service';
 import { getSocket } from '../../services/socket.service';
 import userAvatarImg from '../../assets/dashboard/user_avatar_rahul.png';
 import './NotificationsPage.css';
@@ -27,13 +29,28 @@ export default function NotificationsPage() {
   } catch {
     storedUser = {};
   }
-  const currentUserId = Number(storedUser.id || storedUser._id || 13);
+  const [currentUserId, setCurrentUserId] = useState(() => storedUser.id || storedUser._id || null);
+
+  useEffect(() => {
+    if (!currentUserId) {
+      fetchCurrentUser().then((me) => {
+        if (me?.id) setCurrentUserId(me.id);
+      }).catch(() => {});
+    }
+  }, [currentUserId]);
 
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeFilter, setActiveFilter] = useState('all'); // 'all' | 'unread' | 'requests' | 'activity'
   const [actionStates, setActionStates] = useState({}); // { [notifId or actorId]: 'accepted' | 'declined' }
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [openOptionsId, setOpenOptionsId] = useState(null); // ID for 3-dots dropdown menu
+
+  // Auto close 3-dots dropdown on outside click
+  useEffect(() => {
+    const handleOutsideClick = () => setOpenOptionsId(null);
+    window.addEventListener('click', handleOutsideClick);
+    return () => window.removeEventListener('click', handleOutsideClick);
+  }, []);
 
   // Load notifications from API
   const loadNotifications = async (showLoading = false) => {
@@ -79,13 +96,13 @@ export default function NotificationsPage() {
     if (!currentUserId || notifications.length === 0) return;
     const hasUnread = notifications.some((n) => !n.is_read);
     if (!hasUnread) {
-      toast('All notifications are already marked as read', { icon: '✨' });
+      // toast('All notifications are already marked as read', { icon: '✨' });
       return;
     }
 
     // Optimistic UI update
     setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
-    toast.success('All notifications marked as read');
+    // toast.success('All notifications marked as read');
 
     try {
       await markNotificationsRead(currentUserId);
@@ -99,7 +116,7 @@ export default function NotificationsPage() {
   const handleDelete = async (e, notifId) => {
     e.stopPropagation();
     setNotifications((prev) => prev.filter((n) => n.id !== notifId));
-    toast.success('Notification removed');
+    // toast.success('Notification removed');
     try {
       await deleteNotification(notifId, currentUserId);
       window.dispatchEvent(new CustomEvent('notifications_count_refresh'));
@@ -128,7 +145,7 @@ export default function NotificationsPage() {
           : n
       )
     );
-    toast.success(`You accepted ${actorName}'s follow request! 🎉`);
+    // toast.success(`You accepted ${actorName}'s follow request! 🎉`);
 
     try {
       await acceptFollowRequest(actorId, currentUserId, notifId);
@@ -159,7 +176,7 @@ export default function NotificationsPage() {
           : n
       )
     );
-    toast('Follow request declined', { icon: 'ℹ️' });
+    // toast('Follow request declined', { icon: 'ℹ️' });
 
     try {
       await rejectFollowRequest(actorId, currentUserId, notifId);
@@ -170,8 +187,21 @@ export default function NotificationsPage() {
     }
   };
 
-  // Navigate when notification item is clicked
-  const handleNotificationClick = (item) => {
+  // Navigate when notification item is clicked & auto-mark as read (LinkedIn/Instagram style)
+  const handleNotificationClick = async (item) => {
+    // If notification is unread, immediately mark read (removes light bg & blue dot)
+    if (!item.is_read) {
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === item.id ? { ...n, is_read: true } : n))
+      );
+      try {
+        await markNotificationAsRead(item.id, true);
+        window.dispatchEvent(new CustomEvent('notifications_count_refresh'));
+      } catch (err) {
+        console.error('Failed to mark read on click:', err);
+      }
+    }
+
     const actorId = item.actor_id || item.ref_id;
     if (item.type === 'message' && actorId) {
       navigate(`/messages?userId=${actorId}`);
@@ -184,39 +214,43 @@ export default function NotificationsPage() {
     }
   };
 
-  // Relative time helper
+  // Toggle read/unread status from 3-dots menu
+  const handleToggleRead = async (e, item) => {
+    e.stopPropagation();
+    setOpenOptionsId(null);
+    const newStatus = !item.is_read;
+
+    // Optimistic UI update
+    setNotifications((prev) =>
+      prev.map((n) => (n.id === item.id ? { ...n, is_read: newStatus } : n))
+    );
+
+    try {
+      await markNotificationAsRead(item.id, newStatus);
+      window.dispatchEvent(new CustomEvent('notifications_count_refresh'));
+      // toast.success(newStatus ? 'Marked as read' : 'Marked as unread');
+    } catch (err) {
+      console.error('Toggle read error:', err);
+    }
+  };
+
+  // Relative time helper (compact LinkedIn style)
   const formatTimeAgo = (dateStr) => {
-    if (!dateStr) return 'Recently';
+    if (!dateStr) return 'now';
     const diff = Math.floor((new Date() - new Date(dateStr)) / 1000);
     if (diff < 60) return 'Just now';
-    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
-    if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
-    if (diff < 604800) return `${Math.floor(diff / 86400)}d ago`;
+    if (diff < 3600) return `${Math.floor(diff / 60)}m`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)}h`;
+    if (diff < 604800) return `${Math.floor(diff / 86400)}d`;
+    if (diff < 2592000) return `${Math.floor(diff / 604800)}w`;
     return new Date(dateStr).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
   };
 
-  // Filter calculations
+  // Total unread notifications count
   const unreadCount = useMemo(
     () => notifications.filter((n) => !n.is_read).length,
     [notifications]
   );
-  const requestsCount = useMemo(
-    () => notifications.filter((n) => n.type === 'follow_request').length,
-    [notifications]
-  );
-
-  const filteredNotifications = useMemo(() => {
-    if (activeFilter === 'unread') {
-      return notifications.filter((n) => !n.is_read);
-    }
-    if (activeFilter === 'requests') {
-      return notifications.filter((n) => n.type === 'follow_request');
-    }
-    if (activeFilter === 'activity') {
-      return notifications.filter((n) => n.type !== 'follow_request');
-    }
-    return notifications;
-  }, [notifications, activeFilter]);
 
   // Helper for notification type icons & labels
   const getNotificationBadge = (type) => {
@@ -306,65 +340,20 @@ export default function NotificationsPage() {
               </div>
             </div>
 
-            {/* Filter Tabs (Pills) */}
-            <div className="np-filter-bar">
-              <button
-                type="button"
-                className={`np-filter-chip ${activeFilter === 'all' ? 'active' : ''}`}
-                onClick={() => setActiveFilter('all')}
-              >
-                All
-                <span className="np-chip-count">{notifications.length}</span>
-              </button>
-              <button
-                type="button"
-                className={`np-filter-chip ${activeFilter === 'unread' ? 'active' : ''}`}
-                onClick={() => setActiveFilter('unread')}
-              >
-                Unread
-                {unreadCount > 0 && <span className="np-chip-badge">{unreadCount}</span>}
-              </button>
-              <button
-                type="button"
-                className={`np-filter-chip ${activeFilter === 'requests' ? 'active' : ''}`}
-                onClick={() => setActiveFilter('requests')}
-              >
-                Requests
-                {requestsCount > 0 && <span className="np-chip-count">{requestsCount}</span>}
-              </button>
-              <button
-                type="button"
-                className={`np-filter-chip ${activeFilter === 'activity' ? 'active' : ''}`}
-                onClick={() => setActiveFilter('activity')}
-              >
-                Activity
-              </button>
-            </div>
-
             {/* Notification Items List */}
             {loading ? (
               <div className="np-loading-state">
                 <div className="np-spinner" />
                 <p>Loading your notifications...</p>
               </div>
-            ) : filteredNotifications.length === 0 ? (
+            ) : notifications.length === 0 ? (
               <div className="np-empty-state">
                 <div className="np-empty-icon-wrap">
                   <span className="np-empty-icon">🔔</span>
                 </div>
-                <h3 className="np-empty-title">
-                  {activeFilter === 'unread'
-                    ? 'No unread notifications'
-                    : activeFilter === 'requests'
-                    ? 'No follow requests'
-                    : 'No notifications yet'}
-                </h3>
+                <h3 className="np-empty-title">No notifications yet</h3>
                 <p className="np-empty-desc">
-                  {activeFilter === 'unread'
-                    ? "You're all caught up! Check the 'All' tab to review your previous activity."
-                    : activeFilter === 'requests'
-                    ? 'When other leaders send you connection or follow requests, they will show up here.'
-                    : 'When leaders connect with you, view your profile, or like your posts, you will see them here.'}
+                  When leaders connect with you, view your profile, or like your posts, you will see them here.
                 </p>
                 <button
                   type="button"
@@ -376,7 +365,7 @@ export default function NotificationsPage() {
               </div>
             ) : (
               <div className="np-list-container">
-                {filteredNotifications.map((item) => {
+                {notifications.map((item) => {
                   const badge = getNotificationBadge(item.type);
                   const isUnread = !item.is_read;
                   const currentStatus =
@@ -388,9 +377,18 @@ export default function NotificationsPage() {
                   return (
                     <article
                       key={item.id}
-                      className={`np-item-card ${isUnread ? 'is-unread' : ''}`}
+                      className={`np-item-card ${isUnread ? 'is-unread' : 'is-read'}`}
                       onClick={() => handleNotificationClick(item)}
                     >
+                      {/* Far-left LinkedIn Style Unread Blue Indicator Dot */}
+                      <div className="np-unread-col">
+                        {isUnread ? (
+                          <span className="np-unread-dot-linkedin" title="Unread notification" />
+                        ) : (
+                          <span className="np-unread-dot-placeholder" />
+                        )}
+                      </div>
+
                       {/* Left: Avatar + Badge */}
                       <div className="np-avatar-container">
                         <img
@@ -431,7 +429,6 @@ export default function NotificationsPage() {
                                 ? 'viewed your profile.'
                                 : 'interacted with your profile.')}
                           </span>
-                          {isUnread && <span className="np-unread-dot" title="Unread notification" />}
                         </div>
 
                         <div className="np-meta-row">
@@ -439,13 +436,13 @@ export default function NotificationsPage() {
                             {item.actor_role || 'Business Leader'}
                             {item.actor_company ? ` • ${item.actor_company}` : ''}
                           </span>
-                          <span className="np-meta-sep">•</span>
-                          <span className="np-time-text">{formatTimeAgo(item.created_at)}</span>
                         </div>
                       </div>
 
-                      {/* Right: Contextual Action Buttons */}
+                      {/* Right: Time, Contextual Action Buttons & 3-Dots Options */}
                       <div className="np-actions-col" onClick={(e) => e.stopPropagation()}>
+                        <span className="np-time-text">{formatTimeAgo(item.created_at)}</span>
+
                         {item.type === 'follow_request' && (
                           <>
                             {currentStatus === 'accepted' ? (
@@ -502,16 +499,43 @@ export default function NotificationsPage() {
                           </button>
                         )}
 
-                        {/* Dismiss notification */}
-                        <button
-                          type="button"
-                          className="np-dismiss-btn"
-                          onClick={(e) => handleDelete(e, item.id)}
-                          title="Remove notification"
-                          aria-label="Remove notification"
-                        >
-                          ✕
-                        </button>
+                        {/* 3-Dots More Options (LinkedIn style) */}
+                        <div className="np-more-wrap">
+                          <button
+                            type="button"
+                            className="np-more-btn"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setOpenOptionsId(openOptionsId === item.id ? null : item.id);
+                            }}
+                            title="More options"
+                            aria-label="More options"
+                          >
+                            •••
+                          </button>
+
+                          {openOptionsId === item.id && (
+                            <div className="np-dropdown-menu" onClick={(e) => e.stopPropagation()}>
+                              <button
+                                type="button"
+                                className="np-dropdown-item"
+                                onClick={(e) => handleToggleRead(e, item)}
+                              >
+                                {isUnread ? 'Mark as read' : 'Mark as unread'}
+                              </button>
+                              <button
+                                type="button"
+                                className="np-dropdown-item np-dropdown-delete"
+                                onClick={(e) => {
+                                  setOpenOptionsId(null);
+                                  handleDelete(e, item.id);
+                                }}
+                              >
+                                Delete
+                              </button>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </article>
                   );

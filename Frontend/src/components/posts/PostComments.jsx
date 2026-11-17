@@ -142,7 +142,7 @@ export default function PostComments({
       });
 
       if (res && res.success) {
-        toast.success('Comment added!');
+        // toast.success('Comment added!');
         // Replace temp comment with confirmed one from server
         if (res.comment) {
           setComments((prev) =>
@@ -155,7 +155,7 @@ export default function PostComments({
       }
     } catch (err) {
       console.error('Error adding comment:', err);
-      toast.error('Failed to post comment');
+      // toast.error('Failed to post comment');
     } finally {
       setSubmitting(false);
     }
@@ -198,7 +198,7 @@ export default function PostComments({
   // Delete a comment
   const handleDeleteComment = async (commentId) => {
     setComments((prev) => prev.filter((c) => c.id !== commentId));
-    toast.success('Comment deleted');
+    // toast.success('Comment deleted');
     try {
       if (typeof commentId === 'number') {
         const res = await deletePostCommentApi(commentId);

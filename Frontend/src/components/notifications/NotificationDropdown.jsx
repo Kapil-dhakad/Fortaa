@@ -101,7 +101,7 @@ export default function NotificationDropdown({
       [notifId]: 'accepted',
       [actorId]: 'accepted',
     }));
-    toast.success(`You accepted ${actorName}'s follow request!`);
+    // toast.success(`You accepted ${actorName}'s follow request!`);
 
     // Update notifications in state - KEEP IN LIST, mark accepted and read
     setNotifications((prev) =>
@@ -144,7 +144,7 @@ export default function NotificationDropdown({
       [notifId]: 'declined',
       [actorId]: 'declined',
     }));
-    toast('Follow request declined', { icon: 'ℹ️' });
+    // toast('Follow request declined', { icon: 'ℹ️' });
 
     // KEEP notification in list so user can still scroll and view history
     setNotifications((prev) =>
@@ -174,7 +174,7 @@ export default function NotificationDropdown({
       await markNotificationsRead(effectiveUserId);
       setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
       onNotificationCountChange?.(0);
-      toast.success('All marked as read');
+      // toast.success('All marked as read');
     } catch (err) {
       console.error('Mark read error:', err);
     }

@@ -37,6 +37,8 @@ class UserInstance {
     this.catalog_url = data.catalog_url || data.catalogUrl || null;
     this.avatar_url = data.avatar_url || data.avatarUrl || null;
     this.avatarUrl = this.avatar_url;
+    this.cover_url = data.cover_url || data.coverUrl || null;
+    this.coverUrl = this.cover_url;
     this.created_at = data.created_at || new Date().toISOString();
   }
 

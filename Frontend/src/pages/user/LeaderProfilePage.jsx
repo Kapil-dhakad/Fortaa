@@ -5,7 +5,7 @@ import UserHeader from '../../components/layout/UserHeader';
 import UserSidebar from '../../components/layout/UserSidebar';
 import UserMobileBottomNav from '../../components/layout/UserMobileBottomNav';
 import AuthGateModal from '../../components/auth/AuthGateModal';
-import { fetchUserProfile } from '../../services/user.service';
+import { fetchCurrentUser, fetchUserProfile } from '../../services/user.service';
 import {
   sendFollowRequest,
   unfollowUser,
@@ -49,7 +49,7 @@ import {
 } from 'react-icons/hi';
 import { MdLanguage, MdCampaign } from 'react-icons/md';
 import { BsThreeDotsVertical } from 'react-icons/bs';
-import { FiShare2, FiLock } from 'react-icons/fi';
+import { FiShare2, FiLock, FiEdit2 } from 'react-icons/fi';
 
 // Assets
 import userAvatarRahul from '../../assets/dashboard/user_avatar_rahul.png';
@@ -154,7 +154,17 @@ export default function LeaderProfilePage() {
   try {
     storedUser = JSON.parse(localStorage.getItem('fortaa_user') || '{}');
   } catch {}
-  const currentUserId = storedUser.id || storedUser._id || 1;
+  const [currentUserId, setCurrentUserId] = useState(() => storedUser.id || storedUser._id || null);
+
+  useEffect(() => {
+    if (!currentUserId) {
+      fetchCurrentUser()
+        .then((me) => {
+          if (me?.id) setCurrentUserId(me.id);
+        })
+        .catch(() => {});
+    }
+  }, [currentUserId]);
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('Overview');
@@ -231,7 +241,25 @@ export default function LeaderProfilePage() {
     .trim();
 
   // Privacy and access calculation
-  const isOwnProfile = Number(currentUserId) === Number(leader.id || id);
+  const isOwnProfile = Boolean(
+    (currentUserId && (
+      Number(currentUserId) === Number(leader.id || id) ||
+      String(currentUserId) === String(leader.id || id)
+    )) ||
+    (storedUser?.id && (
+      Number(storedUser.id) === Number(leader.id || id) ||
+      String(storedUser.id) === String(leader.id || id)
+    )) ||
+    (storedUser?.email && leader.email && storedUser.email.toLowerCase() === leader.email.toLowerCase())
+  );
+
+  // If user opens their own profile via leader route, redirect to personal profile page
+  useEffect(() => {
+    if (isOwnProfile) {
+      navigate('/profile', { replace: true });
+    }
+  }, [isOwnProfile, navigate]);
+
   const isAccountPrivate = (leader.profile_visibility || 'public') !== 'public';
   const canViewContent = isOwnProfile || !isAccountPrivate || followStatus === 'accepted';
 
@@ -264,6 +292,7 @@ export default function LeaderProfilePage() {
               specialization: fetched.skills || prev.specialization,
               company: fetched.company_brand || fetched.business_name || prev.company || 'Fortaa',
               avatar: fetched.avatar_url || fetched.avatarUrl || prev.avatar,
+              coverUrl: fetched.cover_url || prev.coverUrl || null,
               quote: fetched.bio || prev.quote,
               level: fetched.designation || prev.level || 'Leader',
               levelTitle: fetched.designation || prev.levelTitle || 'Leader',
@@ -329,7 +358,7 @@ export default function LeaderProfilePage() {
         onFollowAccepted: ({ targetUserId }) => {
           if (String(targetUserId) === String(targetLeaderId)) {
             updateCachedFollowStatus(targetLeaderId, 'accepted');
-            toast.success(`${leader.name} accepted your follow request!`);
+            // toast.success(`${leader.name} accepted your follow request!`);
           }
         },
         onFollowUpdated: (data) => {
@@ -358,7 +387,7 @@ export default function LeaderProfilePage() {
       const confirm = window.confirm(`Are you sure you want to unfollow ${targetName}?`);
       if (!confirm) return;
       updateCachedFollowStatus(targetId, 'none');
-      toast(`Unfollowed ${targetName}`);
+      // toast(`Unfollowed ${targetName}`);
       try {
         if (!isNaN(Number(targetId))) {
           await unfollowUser(Number(targetId), currentUserId);
@@ -370,7 +399,7 @@ export default function LeaderProfilePage() {
       const confirm = window.confirm(`Cancel follow request to ${targetName}?`);
       if (!confirm) return;
       updateCachedFollowStatus(targetId, 'none');
-      toast('Follow request cancelled', { icon: '✖' });
+      // toast('Follow request cancelled', { icon: '✖' });
       try {
         if (!isNaN(Number(targetId))) {
           await cancelFollowRequest(Number(targetId), currentUserId);
@@ -386,9 +415,9 @@ export default function LeaderProfilePage() {
           if (res?.status) {
             updateCachedFollowStatus(targetId, res.status);
             if (res.status === 'accepted') {
-              toast.success(`You are now following ${targetName}! 🎉`);
+              // toast.success(`You are now following ${targetName}! 🎉`);
             } else {
-              toast.success(`Follow request sent to ${targetName}! ⏳`);
+              // toast.success(`Follow request sent to ${targetName}! ⏳`);
             }
           }
         }
@@ -432,11 +461,11 @@ export default function LeaderProfilePage() {
   const handleTopFollowToggle = (topId, topName) => {
     setTopFollowMap((prev) => {
       const next = !prev[topId];
-      if (next) {
+      /* if (next) {
         toast.success(`Following ${topName}`);
       } else {
         toast.success(`Unfollowed ${topName}`);
-      }
+      } */
       return { ...prev, [topId]: next };
     });
   };
@@ -462,7 +491,16 @@ export default function LeaderProfilePage() {
   };
 
   const handleMessageClick = () => {
-    navigate(`/messages?user=${leader.id}&name=${encodeURIComponent(leader.name)}`);
+    navigate(`/messages?userId=${leader.id}&name=${encodeURIComponent(leader.name || '')}&role=${encodeURIComponent(leader.role || leader.levelTitle || '')}&avatar=${encodeURIComponent(leader.avatar || '')}`, {
+      state: {
+        contact: {
+          user_id: leader.id,
+          name: leader.name,
+          role: leader.role || leader.levelTitle,
+          avatar_url: leader.avatar,
+        },
+      },
+    });
   };
 
   return (
@@ -563,22 +601,35 @@ export default function LeaderProfilePage() {
 
                     {/* Action Buttons Row */}
                     <div className="lp-hero-actions-row">
-                      <button
-                        type="button"
-                        className={getFollowBtnClass('lp-btn-follow')}
-                        onClick={handleFollowToggle}
-                      >
-                        {renderFollowBtnContent(false)}
-                      </button>
+                      {isOwnProfile ? (
+                        <button
+                          type="button"
+                          className="lp-btn-follow"
+                          onClick={() => navigate('/profile')}
+                        >
+                          <FiEdit2 size={16} />
+                          <span>Edit Profile</span>
+                        </button>
+                      ) : (
+                        <>
+                          <button
+                            type="button"
+                            className={getFollowBtnClass('lp-btn-follow')}
+                            onClick={handleFollowToggle}
+                          >
+                            {renderFollowBtnContent(false)}
+                          </button>
 
-                      <button
-                        type="button"
-                        className="lp-btn-message"
-                        onClick={handleMessageClick}
-                      >
-                        <FaRegCommentDots size={16} />
-                        <span>Message</span>
-                      </button>
+                          <button
+                            type="button"
+                            className="lp-btn-message"
+                            onClick={handleMessageClick}
+                          >
+                            <FaRegCommentDots size={16} />
+                            <span>Message</span>
+                          </button>
+                        </>
+                      )}
 
                       <button
                         type="button"
@@ -951,16 +1002,29 @@ export default function LeaderProfilePage() {
 
                   {/* 4 horizontal action items matching Figma */}
                   <div className="lp-quick-horizontal-row">
-                    <button
-                      type="button"
-                      className="lp-quick-action-btn"
-                      onClick={handleMessageClick}
-                    >
-                      <div className="lp-quick-action-icon-wrap">
-                        <HiChatAlt2 size={24} color="#7C3AED" />
-                      </div>
-                      <span className="lp-quick-action-label">Send Message</span>
-                    </button>
+                    {isOwnProfile ? (
+                      <button
+                        type="button"
+                        className="lp-quick-action-btn"
+                        onClick={() => navigate('/profile')}
+                      >
+                        <div className="lp-quick-action-icon-wrap">
+                          <FiEdit2 size={24} color="#7C3AED" />
+                        </div>
+                        <span className="lp-quick-action-label">Edit Profile</span>
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        className="lp-quick-action-btn"
+                        onClick={handleMessageClick}
+                      >
+                        <div className="lp-quick-action-icon-wrap">
+                          <HiChatAlt2 size={24} color="#7C3AED" />
+                        </div>
+                        <span className="lp-quick-action-label">Send Message</span>
+                      </button>
+                    )}
 
                     <button
                       type="button"
@@ -1019,7 +1083,10 @@ export default function LeaderProfilePage() {
           ==================================================================== */}
       <div className="lp-mobile-view lp-li-mobile">
         {/* 1. LinkedIn Cover Photo with Top Floating Actions */}
-        <div className="lp-li-cover">
+        <div
+          className="lp-li-cover"
+          style={leader.coverUrl ? { backgroundImage: `url(${leader.coverUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}}
+        >
           <div className="lp-li-cover-overlay" />
           <div className="lp-li-cover-nav">
             <button
@@ -1125,22 +1192,35 @@ export default function LeaderProfilePage() {
 
           {/* Action Buttons Row (LinkedIn Style) */}
           <div className="lp-li-actions-row">
-            <button
-              type="button"
-              className="lp-li-btn-primary"
-              onClick={handleMessageClick}
-            >
-              <HiChatAlt2 size={16} />
-              <span>Message</span>
-            </button>
+            {isOwnProfile ? (
+              <button
+                type="button"
+                className="lp-li-btn-primary"
+                onClick={() => navigate('/profile')}
+              >
+                <FiEdit2 size={16} />
+                <span>Edit Profile</span>
+              </button>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  className="lp-li-btn-primary"
+                  onClick={handleMessageClick}
+                >
+                  <HiChatAlt2 size={16} />
+                  <span>Message</span>
+                </button>
 
-            <button
-              type="button"
-              className={getFollowBtnClass('lp-li-btn-secondary')}
-              onClick={handleFollowToggle}
-            >
-              {renderFollowBtnContent(true)}
-            </button>
+                <button
+                  type="button"
+                  className={getFollowBtnClass('lp-li-btn-secondary')}
+                  onClick={handleFollowToggle}
+                >
+                  {renderFollowBtnContent(true)}
+                </button>
+              </>
+            )}
 
             <button
               type="button"

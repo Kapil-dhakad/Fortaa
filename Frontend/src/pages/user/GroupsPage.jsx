@@ -23,6 +23,7 @@ import {
 } from 'react-icons/fi';
 import { FaWhatsapp } from 'react-icons/fa';
 import UserHeader from '../../components/layout/UserHeader';
+import { fetchCurrentUser } from '../../services/user.service';
 import UserSidebar from '../../components/layout/UserSidebar';
 import UserMobileBottomNav from '../../components/layout/UserMobileBottomNav';
 import AuthGateModal from '../../components/auth/AuthGateModal';
@@ -86,7 +87,15 @@ export default function GroupsPage() {
   } catch {
     storedUser = {};
   }
-  const currentUserId = storedUser.id || storedUser._id || 1;
+  const [currentUserId, setCurrentUserId] = useState(() => storedUser.id || storedUser._id || null);
+
+  useEffect(() => {
+    if (!currentUserId) {
+      fetchCurrentUser().then((me) => {
+        if (me?.id) setCurrentUserId(me.id);
+      }).catch(() => {});
+    }
+  }, [currentUserId]);
 
   // Load groups from backend
   const loadGroups = async () => {

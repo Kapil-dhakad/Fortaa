@@ -1031,7 +1031,7 @@
 .prof-post-body {
   display: flex;
   flex-direction: column;
-  padding-left: 78px;
+  padding-left: 0;
 }
 
 .prof-post-caption {
@@ -1077,24 +1077,27 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 0 6px;
-  margin-left: 78px;
+  padding: 8px 0 6px;
+  margin-left: 0;
   font-family: 'Inter', sans-serif;
-  font-size: 13.5px;
+  font-size: 13px;
   color: #475569;
   border-bottom: 1px solid #F1F5F9;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .prof-post-metrics-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 0 8px;
-  margin-left: 78px;
+  padding: 8px 0 6px;
+  margin-left: 0;
   font-family: 'Inter', sans-serif;
-  font-size: 15px;
+  font-size: 13.5px;
   color: rgba(35, 35, 86, 0.8);
   border-bottom: 1px solid #F1F5F9;
+  width: 100%;
 }
 
 .prof-reactions-group {
@@ -1120,11 +1123,13 @@
 }
 
 .prof-post-actions-row {
-  display: flex;
-  align-items: center;
-  gap: 28px;
-  padding-top: 4px;
-  margin-left: 78px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+  padding-top: 6px;
+  margin-left: 0;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .prof-action-btn {
@@ -2107,6 +2112,7 @@
 
 @media (max-width: 600px) {
   .prof-post-body,
+  .prof-post-reactions-row,
   .prof-post-metrics-row,
   .prof-post-actions-row {
     padding-left: 0;
@@ -2533,4 +2539,325 @@
   color: #64748B;
   max-width: 260px;
   line-height: 1.45;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   INSTAGRAM-STYLE SOCIAL LIST MODAL (Followers / Following / Network)
+   ───────────────────────────────────────────────────────────── */
+.prof-insta-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(5px);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  animation: profInstaFadeIn 0.2s ease-out;
+}
+
+@keyframes profInstaFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.prof-insta-modal-card {
+  width: 100%;
+  max-width: 460px;
+  max-height: 85vh;
+  background: #FFFFFF;
+  border-radius: 16px;
+  box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.25);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: profInstaSlideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes profInstaSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.prof-insta-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #F1F5F9;
+  padding: 0 14px 0 6px;
+  min-height: 52px;
+}
+
+.prof-insta-modal-tabs {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.prof-insta-tab-btn {
+  background: none;
+  border: none;
+  font-size: 14px;
+  font-weight: 600;
+  color: #64748B;
+  padding: 14px 12px;
+  cursor: pointer;
+  position: relative;
+  transition: color 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.prof-insta-tab-btn:hover {
+  color: #0F172A;
+}
+
+.prof-insta-tab-btn.active {
+  color: #7C3AED;
+}
+
+.prof-insta-tab-btn.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 12px;
+  right: 12px;
+  height: 2.5px;
+  background: #7C3AED;
+  border-radius: 3px 3px 0 0;
+}
+
+.prof-insta-tab-count {
+  font-size: 12px;
+  font-weight: 500;
+  color: #94A3B8;
+}
+
+.prof-insta-tab-btn.active .prof-insta-tab-count {
+  color: #7C3AED;
+}
+
+.prof-insta-modal-close-btn {
+  background: #F1F5F9;
+  border: none;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  color: #475569;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.prof-insta-modal-close-btn:hover {
+  background: #E2E8F0;
+  color: #0F172A;
+}
+
+.prof-insta-search-wrap {
+  padding: 10px 14px;
+  border-bottom: 1px solid #F1F5F9;
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.prof-insta-search-wrap svg {
+  position: absolute;
+  left: 24px;
+  pointer-events: none;
+}
+
+.prof-insta-search-input {
+  width: 100%;
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 8px;
+  padding: 8px 32px 8px 36px;
+  font-size: 13.5px;
+  color: #0F172A;
+  outline: none;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.prof-insta-search-input:focus {
+  border-color: #7C3AED;
+  background: #FFFFFF;
+}
+
+.prof-insta-search-clear {
+  position: absolute;
+  right: 24px;
+  background: none;
+  border: none;
+  color: #94A3B8;
+  font-size: 12px;
+  cursor: pointer;
+  padding: 4px;
+}
+
+.prof-insta-list-body {
+  flex: 1;
+  overflow-y: auto;
+  max-height: calc(85vh - 120px);
+  padding: 6px 12px 14px;
+}
+
+.prof-insta-user-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 6px;
+  border-radius: 10px;
+  transition: background-color 0.12s ease;
+}
+
+.prof-insta-user-item:hover {
+  background-color: #F8FAFC;
+}
+
+.prof-insta-user-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+  cursor: pointer;
+}
+
+.prof-insta-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1.5px solid #E2E8F0;
+  flex-shrink: 0;
+}
+
+.prof-insta-user-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.prof-insta-username {
+  font-size: 14px;
+  font-weight: 600;
+  color: #0F172A;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.prof-insta-subtext {
+  font-size: 12px;
+  color: #64748B;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.prof-insta-item-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.prof-insta-btn-view {
+  background: #F1F5F9;
+  color: #0F172A;
+  border: 1px solid #E2E8F0;
+  border-radius: 7px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.prof-insta-btn-view:hover {
+  background: #E2E8F0;
+}
+
+.prof-insta-btn-msg {
+  background: #7C3AED;
+  color: #FFFFFF;
+  border: none;
+  border-radius: 7px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.prof-insta-btn-msg:hover {
+  background: #6D28D9;
+}
+
+.prof-insta-btn-unfollow {
+  background: #F1F5F9;
+  color: #334155;
+  border: 1px solid #CBD5E1;
+  border-radius: 7px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.prof-insta-btn-unfollow:hover {
+  background: #FEE2E2;
+  color: #DC2626;
+  border-color: #FCA5A5;
+}
+
+.prof-insta-empty-state {
+  text-align: center;
+  padding: 36px 16px;
+  color: #64748B;
+}
+
+.prof-insta-empty-icon {
+  font-size: 38px;
+  margin-bottom: 8px;
+}
+
+.prof-insta-empty-state h4 {
+  font-size: 15px;
+  font-weight: 600;
+  color: #0F172A;
+  margin: 0 0 4px 0;
+}
+
+.prof-insta-empty-state p {
+  font-size: 12.5px;
+  color: #64748B;
+  margin: 0;
+}
+
+/* On mobile: bottom sheet presentation */
+@media (max-width: 640px) {
+  .prof-insta-modal-backdrop {
+    align-items: flex-end;
+    padding: 0;
+  }
+  .prof-insta-modal-card {
+    max-width: 100%;
+    border-radius: 20px 20px 0 0;
+    max-height: 80vh;
+  }
 }

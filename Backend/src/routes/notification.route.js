@@ -4,6 +4,7 @@ const {
   getUserNotifications,
   getUnreadCount,
   markAllAsRead,
+  markOneAsRead,
   deleteNotification,
 } = require('../controller/notification.controller');
 
@@ -15,6 +16,10 @@ router.get('/count/:userId', getUnreadCount);
 
 // Mark all as read
 router.post('/mark-read', markAllAsRead);
+
+// Mark single notification as read
+router.post('/:id/read', markOneAsRead);
+router.patch('/:id/read', markOneAsRead);
 
 // Delete notification
 router.delete('/:id', deleteNotification);

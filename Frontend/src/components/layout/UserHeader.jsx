@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { fetchUnreadCount } from '../../services/notification.service';
 import { fetchUnreadMessageCount } from '../../services/message.service';
+import { fetchCurrentUser } from '../../services/user.service';
 import { joinChat, getSocket } from '../../services/socket.service';
 import './UserNavigation.css';
 
@@ -50,23 +51,19 @@ export default function UserHeader({
       return;
     }
 
-    const email = user?.email || storedUser.email;
-    if (email) {
-      fetch(`/api/dashboard/overview?email=${encodeURIComponent(email)}`)
-        .then((res) => res.json())
-        .then((data) => {
-          if (data?.success && data?.user?.id) {
-            setResolvedUserId(data.user.id);
-            try {
-              const cur = JSON.parse(localStorage.getItem('fortaa_user') || '{}');
-              localStorage.setItem('fortaa_user', JSON.stringify({ ...cur, id: data.user.id, ...data.user }));
-              window.dispatchEvent(new CustomEvent('fortaa_user_synced', { detail: data.user }));
-            } catch {}
-          }
-        })
-        .catch((err) => console.log('[UserHeader] resolve user error:', err));
-    }
-  }, [user?.id, user?.email, storedUser.id, storedUser._id, storedUser.email]);
+    fetchCurrentUser()
+      .then((me) => {
+        if (me && me.id) {
+          setResolvedUserId(me.id);
+          try {
+            const cur = JSON.parse(localStorage.getItem('fortaa_user') || '{}');
+            localStorage.setItem('fortaa_user', JSON.stringify({ ...cur, ...me, id: me.id }));
+            window.dispatchEvent(new CustomEvent('fortaa_user_synced', { detail: me }));
+          } catch {}
+        }
+      })
+      .catch((err) => console.log('[UserHeader] resolve user error:', err));
+  }, [user?.id, storedUser.id, storedUser._id]);
 
   useEffect(() => {
     const handleUserSynced = (e) => {
@@ -101,7 +98,7 @@ export default function UserHeader({
     }
   };
 
-  // Query leaders for live user autocomplete
+  // Query leaders for live user autocomplete (excluding current logged-in user)
   useEffect(() => {
     const q = (effectiveSearchText || '').trim().toLowerCase();
     if (!q) {
@@ -111,12 +108,24 @@ export default function UserHeader({
     }
 
     let isMounted = true;
-    fetch('/api/dashboard/leaders')
+    const token = localStorage.getItem('fortaa_token') || '';
+    const myId = currentUserId || resolvedUserId || storedUser.id || storedUser._id;
+    const url = myId ? `/api/dashboard/leaders?userId=${myId}` : '/api/dashboard/leaders';
+
+    fetch(url, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    })
       .then((res) => res.json())
       .then((data) => {
         if (!isMounted) return;
         const list = data?.leaders || [];
         const matches = list.filter((u) => {
+          // Exclude self from search results
+          const isSelf =
+            (myId && (String(u.id) === String(myId) || String(u._id) === String(myId))) ||
+            (storedUser?.email && u.email && storedUser.email.toLowerCase() === u.email.toLowerCase());
+          if (isSelf) return false;
+
           const matchName = (u.name || '').toLowerCase().includes(q);
           const matchRole = (u.role || u.designation || '').toLowerCase().includes(q);
           const matchCompany = (u.company_brand || '').toLowerCase().includes(q);
@@ -131,7 +140,7 @@ export default function UserHeader({
     return () => {
       isMounted = false;
     };
-  }, [effectiveSearchText]);
+  }, [effectiveSearchText, currentUserId, resolvedUserId, storedUser.id, storedUser._id, storedUser.email]);
 
   // Close search dropdown on click outside
   useEffect(() => {
@@ -156,6 +165,15 @@ export default function UserHeader({
   // Handle clicking a searched leader
   const handleSelectLeader = (leader) => {
     setSearchDropdownOpen(false);
+    const myId = currentUserId || resolvedUserId || storedUser.id || storedUser._id;
+    const isSelf =
+      (myId && (String(leader.id) === String(myId) || String(leader._id) === String(myId))) ||
+      (storedUser?.email && leader.email && storedUser.email.toLowerCase() === leader.email.toLowerCase());
+
+    if (isSelf) {
+      navigate('/profile');
+      return;
+    }
     navigate(`/leaders/${leader.id}`, { state: { leader } });
   };
 

@@ -8,6 +8,8 @@ import {
   fetchStoryViewers,
   toggleStoryLike,
 } from '../../services/story.service';
+import { fetchConversations, sendChatMessageHttp } from '../../services/message.service';
+import { emitSendMessage } from '../../services/socket.service';
 import userAvatarImg from '../../assets/dashboard/user_avatar_rahul.png';
 import './StoryViewerModal.css';
 
@@ -28,10 +30,22 @@ export default function StoryViewerModal({
   const [storyIndex, setStoryIndex] = useState(0);
   const [progress, setProgress] = useState(0); // 0 to 100
   const [isPaused, setIsPaused] = useState(false);
-  const [isMuted, setIsMuted] = useState(true);
 
   // Likes state: { [storyId]: boolean }
   const [likesState, setLikesState] = useState({});
+  const [showHeartBurst, setShowHeartBurst] = useState(false);
+
+  // Reply states
+  const [replyText, setReplyText] = useState('');
+  const [isSendingReply, setIsSendingReply] = useState(false);
+  const [replyFeedback, setReplyFeedback] = useState('');
+
+  // Share Sheet modal states
+  const [showShareSheet, setShowShareSheet] = useState(false);
+  const [shareContacts, setShareContacts] = useState([]);
+  const [loadingContacts, setLoadingContacts] = useState(false);
+  const [sharedStatus, setSharedStatus] = useState({});
+  const [copiedLink, setCopiedLink] = useState(false);
 
   // Three dots menu state
   const [showMenu, setShowMenu] = useState(false);
@@ -44,9 +58,9 @@ export default function StoryViewerModal({
   // Optimistic poll voting state: { [storyId]: { optionId, pollData } }
   const [pollStates, setPollStates] = useState({});
 
-  const timerRef = useRef(null);
-  const startTimeRef = useRef(null);
   const videoRef = useRef(null);
+  const pressTimerRef = useRef(null);
+  const isLongPressRef = useRef(false);
 
   // Sync initial group index when opened
   useEffect(() => {
@@ -57,12 +71,28 @@ export default function StoryViewerModal({
       setIsPaused(false);
       setShowMenu(false);
       setShowViewersSheet(false);
+      setShowShareSheet(false);
+      setShowHeartBurst(false);
+      setReplyText('');
+      setReplyFeedback('');
+      setSharedStatus({});
+      setCopiedLink(false);
     }
   }, [isOpen, initialGroupIndex]);
 
   const currentGroup = storyGroups[groupIndex] || null;
   const storiesList = currentGroup?.stories || [];
   const currentStory = storiesList[storyIndex] || null;
+
+  // Live refs to guarantee callbacks and timers never run with stale state
+  const groupIndexRef = useRef(groupIndex);
+  groupIndexRef.current = groupIndex;
+  const storyIndexRef = useRef(storyIndex);
+  storyIndexRef.current = storyIndex;
+  const storyGroupsRef = useRef(storyGroups);
+  storyGroupsRef.current = storyGroups;
+  const storiesListRef = useRef(storiesList);
+  storiesListRef.current = storiesList;
 
   // Record view whenever currentStory changes (Only when viewer is NOT the owner)
   useEffect(() => {
@@ -73,55 +103,63 @@ export default function StoryViewerModal({
 
   // Navigate to Next Story / Next User
   const handleNext = useCallback(() => {
-    if (!currentGroup) return;
-
     setShowMenu(false);
     setShowViewersSheet(false);
+    setProgress(0);
 
-    if (storyIndex < storiesList.length - 1) {
-      setStoryIndex((prev) => prev + 1);
-      setProgress(0);
-    } else if (groupIndex < storyGroups.length - 1) {
-      setGroupIndex((prev) => prev + 1);
+    const sIdx = storyIndexRef.current;
+    const gIdx = groupIndexRef.current;
+    const gList = storyGroupsRef.current;
+    const cGroup = gList[gIdx];
+    const sList = cGroup?.stories || [];
+
+    if (sIdx < sList.length - 1) {
+      setStoryIndex(sIdx + 1);
+    } else if (gIdx < gList.length - 1) {
+      setGroupIndex(gIdx + 1);
       setStoryIndex(0);
-      setProgress(0);
     } else {
       onClose?.();
     }
-  }, [currentGroup, storyIndex, storiesList.length, groupIndex, storyGroups.length, onClose]);
+  }, [onClose]);
 
   // Navigate to Previous Story / Previous User
   const handlePrev = useCallback(() => {
     setShowMenu(false);
     setShowViewersSheet(false);
+    setProgress(0);
 
-    if (storyIndex > 0) {
-      setStoryIndex((prev) => prev - 1);
-      setProgress(0);
-    } else if (groupIndex > 0) {
-      const prevGroup = storyGroups[groupIndex - 1];
-      setGroupIndex((prev) => prev - 1);
-      setStoryIndex(Math.max(0, (prevGroup?.stories?.length || 1) - 1));
-      setProgress(0);
+    const sIdx = storyIndexRef.current;
+    const gIdx = groupIndexRef.current;
+    const gList = storyGroupsRef.current;
+
+    if (sIdx > 0) {
+      setStoryIndex(sIdx - 1);
+    } else if (gIdx > 0) {
+      const prevGroup = gList[gIdx - 1];
+      const prevStoriesCount = prevGroup?.stories?.length || 1;
+      setGroupIndex(gIdx - 1);
+      setStoryIndex(Math.max(0, prevStoriesCount - 1));
     } else {
       setProgress(0);
     }
-  }, [storyIndex, groupIndex, storyGroups]);
+  }, []);
 
-  // Timer loop for auto-progressing slides
+  // Timer loop for auto-progressing slides (White line progresses to 100% -> auto next story/user)
   useEffect(() => {
-    if (!isOpen || !currentStory || isPaused || showViewersSheet || showMenu) {
-      if (timerRef.current) cancelAnimationFrame(timerRef.current);
+    if (!isOpen || !currentStory || isPaused || showViewersSheet || showShareSheet || showMenu || replyText.trim().length > 0) {
       return;
     }
 
     // Video duration drive
-    if (currentStory.media_type === 'video' && videoRef.current) {
+    if (currentStory.media_type === 'video') {
       const vid = videoRef.current;
+      if (!vid) return;
+
       const onTimeUpdate = () => {
-        if (vid.duration) {
+        if (vid.duration && !isNaN(vid.duration)) {
           const p = (vid.currentTime / vid.duration) * 100;
-          setProgress(p);
+          setProgress(Math.min(100, p));
         }
       };
       const onEnded = () => {
@@ -130,35 +168,39 @@ export default function StoryViewerModal({
 
       vid.addEventListener('timeupdate', onTimeUpdate);
       vid.addEventListener('ended', onEnded);
+
+      // Attempt to play video
+      vid.play().catch(() => {
+        vid.muted = true;
+        vid.play().catch(() => {});
+      });
+
       return () => {
         vid.removeEventListener('timeupdate', onTimeUpdate);
         vid.removeEventListener('ended', onEnded);
       };
     }
 
-    // 5s timer for Photo, Text, Poll
-    let animationFrameId;
-    startTimeRef.current = performance.now() - (progress / 100) * SLIDE_DURATION_MS;
+    // 5-second auto-advance timer for Photo, Text, Poll
+    const stepInterval = 30; // 30ms step for ultra-smooth progress
+    const stepIncrement = (stepInterval / SLIDE_DURATION_MS) * 100;
 
-    const tick = (now) => {
-      const elapsed = now - startTimeRef.current;
-      const newProgress = Math.min(100, (elapsed / SLIDE_DURATION_MS) * 100);
-      setProgress(newProgress);
-
-      if (newProgress >= 100) {
-        handleNext();
-      } else {
-        animationFrameId = requestAnimationFrame(tick);
-      }
-    };
-
-    animationFrameId = requestAnimationFrame(tick);
-    timerRef.current = animationFrameId;
+    const intervalId = setInterval(() => {
+      setProgress((prev) => {
+        const next = prev + stepIncrement;
+        if (next >= 100) {
+          clearInterval(intervalId);
+          handleNext();
+          return 100;
+        }
+        return next;
+      });
+    }, stepInterval);
 
     return () => {
-      if (animationFrameId) cancelAnimationFrame(animationFrameId);
+      clearInterval(intervalId);
     };
-  }, [isOpen, currentStory, isPaused, showViewersSheet, showMenu, handleNext, progress]);
+  }, [isOpen, currentStory?.id, currentStory?.media_type, isPaused, showViewersSheet, showShareSheet, showMenu, replyText, handleNext]);
 
   if (!isOpen || !currentStory) return null;
 
@@ -197,7 +239,8 @@ export default function StoryViewerModal({
     setLikesState((prev) => ({ ...prev, [currentStory.id]: nextLiked }));
 
     if (nextLiked) {
-      toast('Liked story! ❤️', { icon: '❤️' });
+      setShowHeartBurst(true);
+      setTimeout(() => setShowHeartBurst(false), 900);
     }
 
     try {
@@ -207,18 +250,134 @@ export default function StoryViewerModal({
     }
   };
 
-  // Share Story
-  const handleShareStory = (e) => {
+  // Send Story Reply Message via Chat & Socket
+  const handleSendReply = async (e) => {
+    if (e) e.stopPropagation();
+    const textToSend = replyText.trim();
+    if (!textToSend || !currentUserId || isSendingReply) return;
+
+    setIsSendingReply(true);
+    const targetUserId = currentGroup.userId;
+    const authorName = currentGroup.userName || 'Leader';
+
+    try {
+      const msgText = `Replied to story: "${textToSend}"`;
+      const attachment = {
+        type: 'story_reply',
+        storyId: currentStory.id,
+        mediaType: currentStory.media_type,
+        mediaUrl: currentStory.media_url,
+        textContent: currentStory.text_content,
+      };
+
+      await sendChatMessageHttp({
+        senderId: currentUserId,
+        receiverId: targetUserId,
+        text: msgText,
+        attachment,
+      });
+
+      emitSendMessage({
+        senderId: currentUserId,
+        receiverId: targetUserId,
+        text: msgText,
+        attachment,
+      });
+
+      setReplyText('');
+      setReplyFeedback(`Sent to ${authorName}! 💬`);
+      setTimeout(() => {
+        setReplyFeedback('');
+        setIsPaused(false);
+      }, 2200);
+    } catch (err) {
+      console.error('Failed to send story reply:', err);
+      toast.error('Failed to send reply');
+    } finally {
+      setIsSendingReply(false);
+    }
+  };
+
+  // Open Share Sheet
+  const handleOpenShare = async (e) => {
     e.stopPropagation();
-    const shareUrl = window.location.origin + `/dashboard`;
+    setIsPaused(true);
+    setShowShareSheet(true);
+    setCopiedLink(false);
+    setLoadingContacts(true);
+
+    try {
+      const convs = await fetchConversations(currentUserId);
+      setShareContacts(Array.isArray(convs) ? convs.slice(0, 10) : []);
+    } catch (err) {
+      console.error('Failed to load contacts for share:', err);
+    } finally {
+      setLoadingContacts(false);
+    }
+  };
+
+  // Copy Story Link
+  const handleCopyStoryLink = (e) => {
+    e.stopPropagation();
+    const shareUrl = `${window.location.origin}/dashboard`;
+    navigator.clipboard.writeText(shareUrl);
+    setCopiedLink(true);
+    setTimeout(() => setCopiedLink(false), 2500);
+  };
+
+  // Native / App Share
+  const handleNativeShare = (e) => {
+    e.stopPropagation();
+    const shareUrl = `${window.location.origin}/dashboard`;
     if (navigator.share) {
       navigator.share({
         title: `${currentGroup.userName}'s Story on Fortaa`,
+        text: `Watch ${currentGroup.userName}'s story on Fortaa:`,
         url: shareUrl,
       }).catch(() => {});
     } else {
-      navigator.clipboard.writeText(shareUrl);
-      toast.success('Story link copied to clipboard! 🔗');
+      window.open(
+        `https://api.whatsapp.com/send?text=${encodeURIComponent(
+          `Check out ${currentGroup.userName}'s story on Fortaa: ${shareUrl}`
+        )}`,
+        '_blank'
+      );
+    }
+  };
+
+  // Share Story directly to a Contact in Chat
+  const handleShareToContact = async (contact) => {
+    const contactId = contact.user_id;
+    if (!contactId || sharedStatus[contactId]) return;
+
+    try {
+      const msgText = `Shared ${currentGroup.userName}'s story with you! 🌟`;
+      const attachment = {
+        type: 'story_share',
+        storyId: currentStory.id,
+        mediaType: currentStory.media_type,
+        mediaUrl: currentStory.media_url,
+        authorName: currentGroup.userName,
+        authorAvatar: currentGroup.userAvatar,
+      };
+
+      await sendChatMessageHttp({
+        senderId: currentUserId,
+        receiverId: contactId,
+        text: msgText,
+        attachment,
+      });
+
+      emitSendMessage({
+        senderId: currentUserId,
+        receiverId: contactId,
+        text: msgText,
+        attachment,
+      });
+
+      setSharedStatus((prev) => ({ ...prev, [contactId]: true }));
+    } catch (err) {
+      console.error('Failed to share story to contact:', err);
     }
   };
 
@@ -254,7 +413,7 @@ export default function StoryViewerModal({
     try {
       const res = await voteStoryPoll(storyId, optionId, currentUserId);
       if (res?.success) {
-        toast.success('Vote submitted! 📊');
+        // toast.success('Vote submitted! 📊');
         onPollVoted?.(storyId, res.pollData, optionId);
       }
     } catch (err) {
@@ -288,7 +447,7 @@ export default function StoryViewerModal({
     try {
       const res = await deleteStory(currentStory.id, currentUserId);
       if (res?.success) {
-        toast.success('Story deleted');
+        // toast.success('Story deleted');
         onStoryDeleted?.(currentStory.id, currentGroup.userId);
         if (storiesList.length > 1) {
           handleNext();
@@ -302,20 +461,34 @@ export default function StoryViewerModal({
     }
   };
 
-  // Screen click handler: left 30% goes back, right 70% advances
-  const handleScreenClick = (e) => {
-    if (e.target.closest('.svm-interactive') || e.target.closest('button') || e.target.closest('input')) {
+  // Long-press hold-to-pause logic
+  const handlePointerDown = (e) => {
+    // If clicking buttons, inputs, dropdown, or interactive sheet, don't pause
+    if (
+      e.target.closest('button') ||
+      e.target.closest('input') ||
+      e.target.closest('.svm-poll-opt-btn') ||
+      e.target.closest('.svm-dropdown-menu') ||
+      e.target.closest('.svm-viewers-sheet')
+    ) {
       return;
     }
 
-    const rect = e.currentTarget.getBoundingClientRect();
-    const clickX = e.clientX - rect.left;
-    const width = rect.width;
+    isLongPressRef.current = false;
+    pressTimerRef.current = setTimeout(() => {
+      isLongPressRef.current = true;
+      setIsPaused(true);
+    }, 220); // 220ms is the standard threshold for hold-to-pause
+  };
 
-    if (clickX < width * 0.3) {
-      handlePrev();
-    } else {
-      handleNext();
+  const handlePointerUp = () => {
+    if (pressTimerRef.current) {
+      clearTimeout(pressTimerRef.current);
+      pressTimerRef.current = null;
+    }
+    if (isLongPressRef.current) {
+      isLongPressRef.current = false;
+      setIsPaused(false);
     }
   };
 
@@ -333,11 +506,9 @@ export default function StoryViewerModal({
       {/* Main 9:16 Story Frame */}
       <div
         className="svm-story-frame"
-        onClick={handleScreenClick}
-        onMouseDown={() => setIsPaused(true)}
-        onMouseUp={() => setIsPaused(false)}
-        onTouchStart={() => setIsPaused(true)}
-        onTouchEnd={() => setIsPaused(false)}
+        onPointerDown={handlePointerDown}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerUp}
         style={{
           background:
             currentStory.media_type === 'photo' || currentStory.media_type === 'video'
@@ -345,6 +516,46 @@ export default function StoryViewerModal({
               : currentStory.background_style || 'linear-gradient(135deg, #6366F1, #9333EA)',
         }}
       >
+        {/* Floating Heart Burst on Like */}
+        {showHeartBurst && (
+          <div className="svm-floating-heart-burst">
+            <svg width="84" height="84" viewBox="0 0 24 24" fill="#EF4444">
+              <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+            </svg>
+          </div>
+        )}
+
+        {/* In-Story Reply Feedback Toast */}
+        {replyFeedback && (
+          <div className="svm-in-story-toast">
+            <span>✓ {replyFeedback}</span>
+          </div>
+        )}
+
+        {/* Left Screen Tap Area -> Previous Story (covers left 35%) */}
+        <div
+          className="svm-tap-area svm-tap-left"
+          onClick={(e) => {
+            e.stopPropagation();
+            if (!isLongPressRef.current) {
+              handlePrev();
+            }
+          }}
+          aria-label="Previous story"
+        />
+
+        {/* Right Screen Tap Area -> Next Story (covers right 65%) */}
+        <div
+          className="svm-tap-area svm-tap-right"
+          onClick={(e) => {
+            e.stopPropagation();
+            if (!isLongPressRef.current) {
+              handleNext();
+            }
+          }}
+          aria-label="Next story"
+        />
+
         {/* Top Progress Bars (Segmented) */}
         <div className="svm-progress-bar-wrap">
           {storiesList.map((st, idx) => {
@@ -389,22 +600,6 @@ export default function StoryViewerModal({
           </div>
 
           <div className="svm-header-right">
-            {/* Sound toggle for video */}
-            {currentStory.media_type === 'video' && (
-              <button
-                type="button"
-                className="svm-icon-btn"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setIsMuted(!isMuted);
-                  if (videoRef.current) videoRef.current.muted = !isMuted;
-                }}
-                title={isMuted ? 'Unmute' : 'Mute'}
-              >
-                {isMuted ? '🔇' : '🔊'}
-              </button>
-            )}
-
             {/* Three dots menu for Story Owner -> Contains Delete */}
             {isOwner && (
               <div className="svm-menu-wrapper" style={{ position: 'relative' }}>
@@ -478,7 +673,6 @@ export default function StoryViewerModal({
                 src={currentStory.media_url}
                 autoPlay
                 playsInline
-                muted={isMuted}
                 className="svm-media-video"
               />
             </div>
@@ -576,17 +770,45 @@ export default function StoryViewerModal({
           ) : (
             /* Viewer View: Reply input pill + Heart SVG Like Button + Share Paper Plane Icon */
             <div className="svm-reply-bar">
-              <input
-                type="text"
-                placeholder={`Reply to ${currentGroup.userName}...`}
-                className="svm-reply-input"
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && e.target.value.trim()) {
-                    toast.success('Reply sent via chat! 💬');
-                    e.target.value = '';
-                  }
-                }}
-              />
+              <div className="svm-reply-input-wrap">
+                <input
+                  type="text"
+                  value={replyText}
+                  onChange={(e) => setReplyText(e.target.value)}
+                  onFocus={() => setIsPaused(true)}
+                  onBlur={() => {
+                    if (!replyText.trim() && !showShareSheet && !showViewersSheet) {
+                      setIsPaused(false);
+                    }
+                  }}
+                  placeholder={`Reply to ${currentGroup.userName}...`}
+                  className="svm-reply-input"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleSendReply();
+                    }
+                  }}
+                />
+                {replyText.trim().length > 0 && (
+                  <button
+                    type="button"
+                    className="svm-reply-send-btn"
+                    onClick={handleSendReply}
+                    disabled={isSendingReply}
+                    title="Send Reply"
+                  >
+                    {isSendingReply ? (
+                      <span className="svm-send-spinner" />
+                    ) : (
+                      <svg width="17" height="17" viewBox="0 0 24 24" fill="#7C3AED" stroke="#7C3AED" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                        <line x1="22" y1="2" x2="11" y2="13" />
+                        <polygon points="22 2 15 22 11 13 2 9 22 2" />
+                      </svg>
+                    )}
+                  </button>
+                )}
+              </div>
 
               {/* Heart Like SVG Button */}
               <button
@@ -614,7 +836,7 @@ export default function StoryViewerModal({
               <button
                 type="button"
                 className="svm-action-btn svm-share-btn"
-                onClick={handleShareStory}
+                onClick={handleOpenShare}
                 title="Share story"
               >
                 <svg
@@ -694,6 +916,103 @@ export default function StoryViewerModal({
                     </div>
                   ))}
                 </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ── Story Share Bottom Sheet Modal ── */}
+        {showShareSheet && (
+          <div className="svm-share-sheet svm-interactive" onClick={(e) => e.stopPropagation()}>
+            <div className="svm-share-header">
+              <div className="svm-share-title">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                  <line x1="22" y1="2" x2="11" y2="13" />
+                  <polygon points="22 2 15 22 11 13 2 9 22 2" />
+                </svg>
+                <h4>Share Story</h4>
+              </div>
+              <button
+                type="button"
+                className="svm-share-close"
+                onClick={() => {
+                  setShowShareSheet(false);
+                  setIsPaused(false);
+                }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Quick Actions: Copy Link & External Apps */}
+            <div className="svm-share-quick-row">
+              <button
+                type="button"
+                className={`svm-share-quick-btn ${copiedLink ? 'copied' : ''}`}
+                onClick={handleCopyStoryLink}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                </svg>
+                <span>{copiedLink ? 'Link Copied! ✓' : 'Copy Link'}</span>
+              </button>
+
+              <button
+                type="button"
+                className="svm-share-quick-btn svm-share-app-btn"
+                onClick={handleNativeShare}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="18" cy="5" r="3" />
+                  <circle cx="6" cy="12" r="3" />
+                  <circle cx="18" cy="19" r="3" />
+                  <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
+                  <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+                </svg>
+                <span>Share via Apps</span>
+              </button>
+            </div>
+
+            {/* Send Directly in Chat to Leaders */}
+            <div className="svm-share-leaders-heading">
+              <span>Send in Chat</span>
+            </div>
+
+            <div className="svm-share-contacts-list">
+              {loadingContacts ? (
+                <div className="svm-share-empty">Loading leaders...</div>
+              ) : shareContacts.length === 0 ? (
+                <div className="svm-share-empty">Use Copy Link to share with anyone!</div>
+              ) : (
+                shareContacts.map((contact) => {
+                  const isSent = Boolean(sharedStatus[contact.user_id]);
+                  return (
+                    <div key={contact.user_id} className="svm-share-contact-item">
+                      <img
+                        src={contact.avatar || userAvatarImg}
+                        alt={contact.name}
+                        className="svm-share-contact-avatar"
+                        onError={(e) => {
+                          e.currentTarget.onerror = null;
+                          e.currentTarget.src = userAvatarImg;
+                        }}
+                      />
+                      <div className="svm-share-contact-info">
+                        <span className="svm-share-contact-name">{contact.name}</span>
+                        <span className="svm-share-contact-sub">{contact.role || contact.company || 'Leader'}</span>
+                      </div>
+                      <button
+                        type="button"
+                        className={`svm-share-send-btn ${isSent ? 'sent' : ''}`}
+                        onClick={() => !isSent && handleShareToContact(contact)}
+                        disabled={isSent}
+                      >
+                        {isSent ? 'Sent ✓' : 'Send'}
+                      </button>
+                    </div>
+                  );
+                })
               )}
             </div>
           </div>

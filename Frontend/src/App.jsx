@@ -69,6 +69,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <ScrollToTop />
+      {/* Toast popups temporarily commented out for smooth Instagram/LinkedIn style experience
       <Toaster
         position="top-right"
         toastOptions={{
@@ -136,6 +137,7 @@ export default function App() {
           </ToastBar>
         )}
       </Toaster>
+      */}
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<LoginPage />} />

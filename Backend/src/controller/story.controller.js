@@ -1,4 +1,5 @@
 const db = require('../db/db');
+const { getIO } = require('../socket/chat.socket');
 
 /**
  * Get all active stories grouped by user (within 24 hours)
@@ -388,6 +389,41 @@ async function toggleStoryLike(req, res) {
         [storyId, userId]
       );
       isLiked = true;
+
+      // Trigger notification for story author if someone else liked
+      try {
+        const storyOwnerRes = await db.query(
+          `SELECT s.user_id as owner_id, u.name as liker_name, u.avatar_url as liker_avatar
+           FROM stories s
+           JOIN users u ON u.id = $2
+           WHERE s.id = $1`,
+          [storyId, userId]
+        );
+        if (storyOwnerRes.rows.length > 0) {
+          const { owner_id, liker_name, liker_avatar } = storyOwnerRes.rows[0];
+          if (parseInt(owner_id, 10) !== userId) {
+            await db.query(
+              `INSERT INTO notifications (user_id, actor_id, actor_name, actor_avatar, type, message, ref_id)
+               VALUES ($1, $2, $3, $4, 'story_like', 'liked your story', $5)`,
+              [owner_id, userId, liker_name, liker_avatar, storyId]
+            );
+
+            const io = req.app?.get('io') || getIO();
+            if (io) {
+              io.to(`room_${owner_id}`).emit('new_notification', {
+                type: 'story_like',
+                actorId: userId,
+                actorName: liker_name,
+                actorAvatar: liker_avatar,
+                message: 'liked your story',
+                refId: storyId,
+              });
+            }
+          }
+        }
+      } catch (notifErr) {
+        console.warn('Story like notification error (non-fatal):', notifErr.message);
+      }
     }
 
     const countResult = await db.query(

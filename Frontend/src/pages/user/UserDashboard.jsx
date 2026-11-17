@@ -21,6 +21,7 @@ import StoriesBar from '../../components/stories/StoriesBar';
 
 // Upload & Dashboard APIs
 import { uploadSingleImage, uploadSingleVideo } from '../../services/upload.service';
+import { fetchCurrentUser } from '../../services/user.service';
 import {
   fetchDashboardOverview,
   fetchPosts,
@@ -203,7 +204,9 @@ export function renderInstagramLikes(post, profile, onOpenLikes) {
 
   const hasLiked = Boolean(post.has_liked);
   const myName = profile?.name || 'you';
-  const otherName = post.latest_liker_name || (post.author_name !== myName ? post.author_name : 'a leader');
+  const otherName =
+    post.latest_liker_name ||
+    (hasLiked ? 'you' : post.author_name !== myName ? post.author_name : 'a leader');
   const avatar = post.latest_liker_avatar || userAvatarImg;
 
   let content = null;
@@ -239,15 +242,26 @@ export function renderInstagramLikes(post, profile, onOpenLikes) {
   return (
     <div
       className="ud-insta-likes-bar"
-      style={{ cursor: 'pointer' }}
       onClick={(e) => {
         e.stopPropagation();
         if (onOpenLikes) onOpenLikes(post.id);
       }}
       title="View who liked this post"
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.stopPropagation();
+          if (onOpenLikes) onOpenLikes(post.id);
+        }
+      }}
     >
       <div className="ud-insta-likes-left">
-        <span className="ud-insta-likes-heart">❤️</span>
+        <span className="ud-insta-likes-heart" title="Likes">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="#EF4444" style={{ display: 'block' }}>
+            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+          </svg>
+        </span>
         {avatar && (
           <img
             src={avatar}
@@ -308,10 +322,27 @@ function InFeedSuggestedPeople({
     }
   }, [isTrainers, trainers, leaders]);
 
-  const visibleItems = items.filter((p) => !dismissedKeys.includes(p.key));
+  const storedUser = React.useMemo(() => {
+    try {
+      return JSON.parse(localStorage.getItem('fortaa_user') || '{}');
+    } catch {
+      return {};
+    }
+  }, []);
+  const myId = storedUser.id || storedUser._id;
+
+  const visibleItems = items.filter((p) => {
+    if (dismissedKeys.includes(p.key)) return false;
+    if (myId && (String(p.id) === String(myId) || String(p._id) === String(myId))) return false;
+    return true;
+  });
 
   const handleOpenProfile = (person) => {
     if (!person) return;
+    if (myId && (String(person.id) === String(myId) || String(person._id) === String(myId))) {
+      if (navigate) navigate('/profile');
+      return;
+    }
     const targetId = person.id || (person.name ? person.name.toLowerCase().replace(/\s+/g, '') : 'default');
     if (navigate) {
       navigate(`/leader/${targetId}`, {
@@ -432,7 +463,7 @@ function InFeedSuggestedPeople({
                   if (person.id) {
                     onToggleFollow(person.id, person.name);
                   } else {
-                    toast.success(`Followed ${person.name}!`);
+                    // toast.success(`Followed ${person.name}!`);
                   }
                 }}
               >
@@ -876,23 +907,37 @@ export default function UserDashboard() {
   // Load live data from Backend APIs on Mount
   useEffect(() => {
     async function loadDashboardData() {
+      // 0. Verify authenticated user identity from token
+      let currentId = storedUser.id;
+      try {
+        const me = await fetchCurrentUser();
+        if (me && me.id) {
+          currentId = me.id;
+          const cur = JSON.parse(localStorage.getItem('fortaa_user') || '{}');
+          localStorage.setItem('fortaa_user', JSON.stringify({ ...cur, ...me, id: me.id }));
+        }
+      } catch (err) {
+        console.warn('Verify current user error in dashboard:', err);
+      }
+      if (!currentId) currentId = storedUser.id || 1;
+
       // 1. Overview & stats
       const overview = await fetchDashboardOverview(storedUser.email || '');
-      let currentId = storedUser.id || 13;
-      if (overview?.success) {
-        if (overview.user) {
-          currentId = overview.user.id || currentId;
+      if (overview?.success && overview.user) {
+        // Prevent profile leak: only adopt if overview matches current authenticated user
+        if (!currentId || overview.user.id === currentId) {
+          currentId = overview.user.id;
           const freshAvatar = overview.user.avatar_url || storedUser.avatarUrl || null;
           setProfile({
             id: currentId,
-            name: overview.user.name || storedUser.name || 'Kapil Dhakad',
-            role: overview.user.designation || 'Gold Leader',
+            name: overview.user.name || storedUser.name || 'User',
+            role: overview.user.designation || 'Leader',
             memberId: overview.user.member_id || storedUser.memberId || 'NS381517',
             company: overview.user.company_brand || overview.user.business_name || 'Index Technology',
             avatarUrl: freshAvatar,
           });
 
-          // Sync localStorage so id and profile info are always accurately persisted
+          // Sync localStorage so id and profile info are accurately persisted
           try {
             const cur = JSON.parse(localStorage.getItem('fortaa_user') || '{}');
             localStorage.setItem(
@@ -902,9 +947,9 @@ export default function UserDashboard() {
             window.dispatchEvent(new CustomEvent('fortaa_user_synced', { detail: overview.user }));
           } catch {}
         }
-        if (overview.stats) {
-          setStats(overview.stats);
-        }
+      }
+      if (overview?.stats) {
+        setStats(overview.stats);
       }
 
       // 2. Fetch following & pending IDs for this user
@@ -954,7 +999,7 @@ export default function UserDashboard() {
         setPendingIds((prev) => prev.filter((id) => Number(id) !== numId));
         setFollowingIds((prev) => [...new Set([...prev, numId])]);
         setStats((prev) => ({ ...prev, following: (Number(prev.following) || 0) + 1 }));
-        toast.success(`${targetName || 'User'} accepted your follow request! 🎉`);
+        // toast.success(`${targetName || 'User'} accepted your follow request! 🎉`);
       },
       onFollowUpdated: () => {
         fetchFollowingIds(myId).then((fData) => {
@@ -1094,13 +1139,13 @@ export default function UserDashboard() {
         ...prev,
         totalPosts: (Number(prev.totalPosts) || 0) + 1,
       }));
-      toast.success(
+      /* toast.success(
         pollPayload
           ? 'Poll published successfully! 📊'
           : uploadedVideoUrl
           ? 'Video post published successfully! 🚀'
           : 'Post published successfully! 🚀'
-      );
+      ); */
     } catch (err) {
       toast.error(err.message || 'Failed to publish post');
     } finally {
@@ -1154,12 +1199,12 @@ export default function UserDashboard() {
   // Handle Follow / Request / Unfollow
   const handleToggleFollow = async (targetUserId, targetName) => {
     if (!targetUserId) {
-      toast('Followed demo leader!');
+      // toast('Followed demo leader!');
       return;
     }
     const numId = Number(targetUserId);
     if (numId === Number(profile.id)) {
-      toast.error('You cannot follow yourself');
+      // toast.error('You cannot follow yourself');
       return;
     }
 
@@ -1169,7 +1214,7 @@ export default function UserDashboard() {
     if (isPending) {
       // Cancel request
       setPendingIds((prev) => prev.filter((id) => Number(id) !== numId));
-      toast('Follow request cancelled', { icon: 'ℹ️' });
+      // toast('Follow request cancelled', { icon: 'ℹ️' });
       try {
         await cancelFollowRequest(numId, profile.id);
       } catch (err) {
@@ -1179,7 +1224,7 @@ export default function UserDashboard() {
       // Unfollow
       setFollowingIds((prev) => prev.filter((id) => Number(id) !== numId));
       setStats((prev) => ({ ...prev, following: Math.max(0, (Number(prev.following) || 0) - 1) }));
-      toast(`Unfollowed ${targetName}`);
+      // toast(`Unfollowed ${targetName}`);
       try {
         await unfollowUser(numId, profile.id);
       } catch (err) {
@@ -1194,9 +1239,9 @@ export default function UserDashboard() {
           setPendingIds((prev) => prev.filter((id) => Number(id) !== numId));
           setFollowingIds((prev) => [...prev, numId]);
           setStats((prev) => ({ ...prev, following: (Number(prev.following) || 0) + 1 }));
-          toast.success(`You are now following ${targetName}!`);
+          // toast.success(`You are now following ${targetName}!`);
         } else {
-          toast.success(`Follow request sent to ${targetName}!`);
+          // toast.success(`Follow request sent to ${targetName}!`);
         }
       } catch (err) {
         console.warn('Send follow request note:', err?.message || err);

@@ -30,7 +30,7 @@ async function handleUploadResponse(response, defaultErrorMsg = 'Upload failed')
 export async function uploadSingleImage(file, folder = 'images') {
   if (!file) return null;
 
-  const toastId = toast.loading('Uploading image...');
+  // const toastId = toast.loading('Uploading image...');
   try {
     const formData = new FormData();
     formData.append('file', file);
@@ -42,10 +42,10 @@ export async function uploadSingleImage(file, folder = 'images') {
 
     const data = await handleUploadResponse(response, 'Image upload failed');
 
-    toast.success('Image uploaded successfully!', { id: toastId });
+    // toast.success('Image uploaded successfully!', { id: toastId });
     return data.url;
   } catch (error) {
-    toast.error(error.message || 'Failed to upload image', { id: toastId });
+    // toast.error(error.message || 'Failed to upload image', { id: toastId });
     return null;
   }
 }
@@ -59,7 +59,7 @@ export async function uploadSingleImage(file, folder = 'images') {
 export async function uploadSingleVideo(file, folder = 'videos') {
   if (!file) return null;
 
-  const toastId = toast.loading('Uploading video (this may take a few moments)...');
+  // const toastId = toast.loading('Uploading video (this may take a few moments)...');
   try {
     const formData = new FormData();
     formData.append('file', file);
@@ -71,10 +71,10 @@ export async function uploadSingleVideo(file, folder = 'videos') {
 
     const data = await handleUploadResponse(response, 'Video upload failed');
 
-    toast.success('Video uploaded successfully! 🎬', { id: toastId });
+    // toast.success('Video uploaded successfully! 🎬', { id: toastId });
     return data.url;
   } catch (error) {
-    toast.error(error.message || 'Failed to upload video', { id: toastId });
+    // toast.error(error.message || 'Failed to upload video', { id: toastId });
     return null;
   }
 }
@@ -88,7 +88,7 @@ export async function uploadSingleVideo(file, folder = 'videos') {
 export async function uploadMultipleImages(files, folder = 'gallery') {
   if (!files || files.length === 0) return null;
 
-  const toastId = toast.loading(`Uploading ${files.length} images...`);
+  // const toastId = toast.loading(`Uploading ${files.length} images...`);
   try {
     const formData = new FormData();
     for (let i = 0; i < files.length; i++) {
@@ -102,10 +102,10 @@ export async function uploadMultipleImages(files, folder = 'gallery') {
 
     const data = await handleUploadResponse(response, 'Multiple upload failed');
 
-    toast.success(`${data.files.length} images uploaded!`, { id: toastId });
+    // toast.success(`${data.files.length} images uploaded!`, { id: toastId });
     return data.files;
   } catch (error) {
-    toast.error(error.message || 'Failed to upload images', { id: toastId });
+    // toast.error(error.message || 'Failed to upload images', { id: toastId });
     return null;
   }
 }
@@ -119,7 +119,7 @@ export async function uploadMultipleImages(files, folder = 'gallery') {
 export async function uploadDocument(file, folder = 'documents') {
   if (!file) return null;
 
-  const toastId = toast.loading('Uploading document...');
+  // const toastId = toast.loading('Uploading document...');
   try {
     const formData = new FormData();
     formData.append('file', file);
@@ -131,10 +131,10 @@ export async function uploadDocument(file, folder = 'documents') {
 
     const data = await handleUploadResponse(response, 'Document upload failed');
 
-    toast.success('Document uploaded successfully!', { id: toastId });
+    // toast.success('Document uploaded successfully!', { id: toastId });
     return data.url;
   } catch (error) {
-    toast.error(error.message || 'Failed to upload document', { id: toastId });
+    // toast.error(error.message || 'Failed to upload document', { id: toastId });
     return null;
   }
 }

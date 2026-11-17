@@ -153,7 +153,7 @@ export default function CreateStoryModal({
 
       const res = await createStory(payload);
       if (res?.success) {
-        toast.success('Your story was published! 🌟');
+        // toast.success('Your story was published! 🌟');
         onStoryCreated?.(res.story);
         handleClose();
       } else {

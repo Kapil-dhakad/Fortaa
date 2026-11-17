@@ -144,6 +144,7 @@ async function registerUser(req, res) {
         experience: user.experience,
         govtIdUrl: user.govt_id_url,
         avatarUrl: user.avatar_url || user.avatarUrl || null,
+        coverUrl: user.cover_url || user.coverUrl || null,
       },
     });
   } catch (error) {
@@ -217,6 +218,7 @@ async function loginUser(req, res) {
         company: user.company_brand,
         designation: user.designation,
         avatarUrl: user.avatar_url || user.avatarUrl || null,
+        coverUrl: user.cover_url || user.coverUrl || null,
       },
     });
   } catch (error) {
@@ -245,21 +247,30 @@ async function getMe(req, res) {
     return res.status(200).json({
       success: true,
       user: {
-        id: user._id,
+        id: user.id || user._id,
+        _id: user.id || user._id,
         memberId: user.member_id,
         accountType: user.account_type,
         name: user.name,
+        username: user.username || (user.email ? user.email.split('@')[0] : 'user'),
         email: user.email,
         mobileNumber: user.mobile_number,
+        whatsappNumber: user.whatsapp_number,
         dob: user.dob,
         gender: user.gender,
+        location: user.location,
+        skills: user.skills,
+        bio: user.bio,
         businessName: user.business_name,
         companyBrand: user.company_brand,
         businessCategory: user.business_category,
         designation: user.designation,
         experience: user.experience,
+        websiteSocial: user.website_social,
+        profileVisibility: user.profile_visibility || 'public',
         govtIdUrl: user.govt_id_url,
         avatarUrl: user.avatar_url || user.avatarUrl || null,
+        coverUrl: user.cover_url || user.coverUrl || null,
       },
     });
   } catch (error) {
@@ -423,7 +434,7 @@ async function getUserProfile(req, res) {
     if (db.isDBConnected()) {
       const result = await db.query(
         `SELECT id, member_id, account_type, name, username, email, mobile_number, dob, gender,
-                location, skills, experience, bio, designation, company_brand, business_name, avatar_url,
+                location, skills, experience, bio, designation, company_brand, business_name, avatar_url, cover_url,
                 website_social, COALESCE(profile_visibility, 'public') as profile_visibility, created_at
          FROM users WHERE id = $1`,
         [userId]
@@ -482,6 +493,8 @@ async function updateUserProfile(req, res) {
       bio,
       mobileNumber,
       avatarUrl,
+      coverUrl,
+      cover_url,
       businessName,
       companyBrand,
       businessCategory,
@@ -495,6 +508,23 @@ async function updateUserProfile(req, res) {
 
     const visibilityVal = profileVisibility || profile_visibility || null;
 
+    let cleanMobile = null;
+    if (mobileNumber) {
+      cleanMobile = String(mobileNumber).trim().replace(/\D/g, '').slice(-10);
+      if (cleanMobile.length === 10 && db.isDBConnected()) {
+        const dupCheck = await db.query(
+          'SELECT id FROM users WHERE mobile_number = $1 AND id != $2 LIMIT 1',
+          [cleanMobile, userId]
+        );
+        if (dupCheck.rows.length > 0) {
+          return res.status(400).json({
+            success: false,
+            message: 'This mobile number is already registered with another account.',
+          });
+        }
+      }
+    }
+
     if (db.isDBConnected()) {
       const updateRes = await db.query(
         `UPDATE users 
@@ -507,6 +537,7 @@ async function updateUserProfile(req, res) {
              experience = COALESCE($7, experience),
              bio = COALESCE($8, bio),
              mobile_number = COALESCE($9, mobile_number),
+             mobile_verified = CASE WHEN $9 IS NOT NULL AND $9 != '' THEN TRUE ELSE mobile_verified END,
              avatar_url = COALESCE($10, avatar_url),
              business_name = COALESCE($11, business_name),
              company_brand = COALESCE($12, company_brand),
@@ -515,11 +546,12 @@ async function updateUserProfile(req, res) {
              whatsapp_number = COALESCE($15, whatsapp_number),
              referral_id = COALESCE($16, referral_id),
              govt_id_url = COALESCE($17, govt_id_url),
-             profile_visibility = COALESCE($18, profile_visibility)
-         WHERE id = $19
+             profile_visibility = COALESCE($18, profile_visibility),
+             cover_url = COALESCE($19, cover_url)
+         WHERE id = $20
          RETURNING id, member_id, account_type, name, username, email, mobile_number, whatsapp_number, dob, gender,
                    location, skills, experience, bio, designation, company_brand, business_name, business_category,
-                   referral_id, govt_id_url, avatar_url, COALESCE(profile_visibility, 'public') as profile_visibility`,
+                   referral_id, govt_id_url, avatar_url, cover_url, COALESCE(profile_visibility, 'public') as profile_visibility`,
         [
           name || null,
           username || null,
@@ -529,7 +561,7 @@ async function updateUserProfile(req, res) {
           skills || null,
           experience || null,
           bio || null,
-          mobileNumber || null,
+          cleanMobile || mobileNumber || null,
           avatarUrl || null,
           businessName || null,
           companyBrand || null,
@@ -539,6 +571,7 @@ async function updateUserProfile(req, res) {
           referralId || null,
           govtIdUrl || null,
           visibilityVal,
+          coverUrl || cover_url || null,
           userId,
         ]
       );

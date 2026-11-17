@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import UserHeader from '../../components/layout/UserHeader';
 import UserSidebar from '../../components/layout/UserSidebar';
@@ -94,8 +94,15 @@ const POPULAR_EMOJIS = [
 
 export default function MessagesPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams] = useSearchParams();
-  const preselectUserId = searchParams.get('userId') || (searchParams.get('groupId') ? `group_${searchParams.get('groupId')}` : null);
+  const preselectUserId =
+    searchParams.get('userId') ||
+    searchParams.get('user') ||
+    (searchParams.get('groupId') ? `group_${searchParams.get('groupId')}` : null);
+  const preselectName = searchParams.get('name') || location.state?.contact?.name || '';
+  const preselectRole = searchParams.get('role') || location.state?.contact?.role || '';
+  const preselectAvatar = searchParams.get('avatar') || location.state?.contact?.avatar_url || '';
 
   const [currentUser] = useState(() => {
     try {
@@ -108,7 +115,23 @@ export default function MessagesPage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('All');
   const [conversations, setConversations] = useState([]);
-  const [selectedContact, setSelectedContact] = useState(null);
+  const [selectedContact, setSelectedContact] = useState(() => {
+    if (preselectUserId) {
+      return {
+        user_id: preselectUserId,
+        name: preselectName || 'Leader',
+        role: preselectRole || 'Business Leader',
+        category: String(preselectUserId).startsWith('group_') ? 'Groups' : 'Direct',
+        last_message_text: 'Start conversation',
+        time: '',
+        unread_count: 0,
+        avatar_url: preselectAvatar || userAvatarRahul,
+        is_new_contact: true,
+        isRealDb: true,
+      };
+    }
+    return null;
+  });
   const [messages, setMessages] = useState([]);
   const [loadingContacts, setLoadingContacts] = useState(true);
   const [loadingMessages, setLoadingMessages] = useState(false);
@@ -150,6 +173,40 @@ export default function MessagesPage() {
     () => (preselectUserId ? 'chat' : 'list')
   );
   const [mobileAttachmentOpen, setMobileAttachmentOpen] = useState(false);
+
+  // Handle direct message navigation param (e.g. from Leader cards or Leader profile)
+  useEffect(() => {
+    if (preselectUserId) {
+      setMobileActiveScreen('chat');
+      const found = conversations.find((c) => String(c.user_id) === String(preselectUserId));
+      if (found) {
+        setSelectedContact(found);
+      } else {
+        const sug = (suggestions || []).find((s) => String(s.user_id) === String(preselectUserId));
+        const targetName = preselectName || sug?.name || 'Leader';
+        const targetRole = preselectRole || sug?.designation || 'Business Leader';
+        const targetAvatar = preselectAvatar || sug?.avatar_url || userAvatarRahul;
+        const newContact = {
+          user_id: preselectUserId,
+          name: targetName,
+          role: targetRole,
+          category: String(preselectUserId).startsWith('group_') ? 'Groups' : 'Direct',
+          last_message_text: 'Start conversation',
+          time: '',
+          unread_count: 0,
+          avatar_url: targetAvatar,
+          company_brand: sug?.company_brand || '',
+          is_new_contact: true,
+          isRealDb: true,
+        };
+        setSelectedContact(newContact);
+        setConversations((prev) => {
+          if (prev.some((c) => String(c.user_id) === String(preselectUserId))) return prev;
+          return [newContact, ...prev];
+        });
+      }
+    }
+  }, [preselectUserId, preselectName, preselectRole, preselectAvatar]);
 
   // WhatsApp Message Action Dropdown & Reactions state
   const [activeMenuMsgId, setActiveMenuMsgId] = useState(null);
@@ -560,32 +617,34 @@ export default function MessagesPage() {
               const found = realList.find((c) => String(c.user_id) === String(preselectUserId));
               if (found) {
                 setSelectedContact(found);
+                setMobileActiveScreen('chat');
               } else {
                 const sug = (dbData.suggestions || []).find((s) => String(s.user_id) === String(preselectUserId));
-                if (sug) {
-                  const newContact = {
-                    user_id: sug.user_id,
-                    name: sug.name,
-                    role: sug.designation || 'Member',
-                    category: 'Direct',
-                    last_message_text: 'Start conversation',
-                    time: '',
-                    unread_count: 0,
-                    avatar_url: sug.avatar_url,
-                    company_brand: sug.company_brand,
-                    is_new_contact: true,
-                    isRealDb: true,
-                  };
-                  setSelectedContact(newContact);
-                } else if (realList.length > 0) {
-                  setSelectedContact(realList[0]);
-                }
+                const targetName = preselectName || sug?.name || 'Leader';
+                const targetRole = preselectRole || sug?.designation || 'Business Leader';
+                const targetAvatar = preselectAvatar || sug?.avatar_url || userAvatarRahul;
+                const newContact = {
+                  user_id: preselectUserId,
+                  name: targetName,
+                  role: targetRole,
+                  category: String(preselectUserId).startsWith('group_') ? 'Groups' : 'Direct',
+                  last_message_text: 'Start conversation',
+                  time: '',
+                  unread_count: 0,
+                  avatar_url: targetAvatar,
+                  company_brand: sug?.company_brand || '',
+                  is_new_contact: true,
+                  isRealDb: true,
+                };
+                setSelectedContact(newContact);
+                setConversations((prev) => [newContact, ...prev.filter((c) => String(c.user_id) !== String(newContact.user_id))]);
+                setMobileActiveScreen('chat');
               }
             } else {
               setSelectedContact((prev) => {
-                if (!prev) return realList[0] || null;
+                if (!prev) return null;
                 const stillExists = realList.find((c) => String(c.user_id) === String(prev.user_id));
-                return stillExists || realList[0] || null;
+                return stillExists || null;
               });
             }
           }
@@ -2382,9 +2441,24 @@ export default function MessagesPage() {
           </>
         ) : (
           <div className="msg-no-contact-selected">
-            <FiMessageSquare className="msg-no-contact-icon" />
-            <h3>Your Messages</h3>
-            <p>Select a contact from the left to view your conversation or start a new message.</p>
+            <div className="msg-insta-empty-circle">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="22" y1="2" x2="11" y2="13" />
+                <polygon points="22 2 15 22 11 13 2 9 22 2" />
+              </svg>
+            </div>
+            <h3 className="msg-insta-empty-title">Your messages</h3>
+            <p className="msg-insta-empty-sub">Send a message to start a chat.</p>
+            <button
+              type="button"
+              className="msg-insta-empty-btn"
+              onClick={() => {
+                const input = document.querySelector('.msg-search-input');
+                if (input) input.focus();
+              }}
+            >
+              Send message
+            </button>
           </div>
         )}
 

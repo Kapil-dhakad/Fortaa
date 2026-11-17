@@ -181,17 +181,12 @@ export default function CompleteProfilePage() {
     }
 
     if (!formData.mobileNumber.trim()) {
-      newErrors.mobileNumber = 'Mobile number is required';
-    } else if (!/^[6-9]\d{9}$/.test(formData.mobileNumber.trim().replace(/\D/g, '').slice(-10))) {
-      newErrors.mobileNumber = 'Enter a valid 10-digit Indian mobile number';
-    }
-
-    if (!formData.dob) {
-      newErrors.dob = 'Date of birth is required';
-    }
-
-    if (!formData.gender) {
-      newErrors.gender = 'Gender is required';
+      newErrors.mobileNumber = 'Mobile number is required to save your profile';
+    } else {
+      const cleanMob = formData.mobileNumber.trim().replace(/\D/g, '').slice(-10);
+      if (!/^[6-9]\d{9}$/.test(cleanMob)) {
+        newErrors.mobileNumber = 'Enter a valid 10-digit Indian mobile number';
+      }
     }
 
     if (formData.companyBrand === 'Other' && !formData.customCompany.trim()) {
@@ -206,7 +201,11 @@ export default function CompleteProfilePage() {
     e.preventDefault();
 
     if (!validate()) {
-      toast.error('Please fill in all required fields.');
+      if (!formData.mobileNumber.trim()) {
+        toast.error('Mobile number dalna zaroori hai tabhi data save hoga!');
+      } else {
+        toast.error('Please fill in all required fields.');
+      }
       return;
     }
 
@@ -264,25 +263,34 @@ export default function CompleteProfilePage() {
       navigate('/dashboard');
     } catch (err) {
       console.error('[CompleteProfile Error]:', err);
-      // Fallback update in localStorage to prevent blocking user
-      const updatedUser = {
-        ...currentUser,
-        ...payload,
-        isProfileCompleted: true,
-      };
-      localStorage.setItem('fortaa_user', JSON.stringify(updatedUser));
-      toast.success('Profile details saved! Redirecting to Dashboard...');
-      navigate('/dashboard');
+      toast.error(err.message || 'Failed to save profile. Please check your details and try again.');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSkip = () => {
-    toast('You can complete your business details anytime from your Profile page.', {
-      icon: 'ℹ️',
-    });
-    navigate('/dashboard');
+  const handleSkip = (e) => {
+    if (e) e.preventDefault();
+    if (!formData.mobileNumber.trim()) {
+      setErrors((prev) => ({
+        ...prev,
+        mobileNumber: 'Mobile number dalna mandatory hai tabhi profile save hogi',
+      }));
+      toast.error('Mobile number dalna mandatory hai tabhi data save hoga!');
+      document.querySelector('.cp-phone-input')?.focus();
+      return;
+    }
+    const cleanMob = formData.mobileNumber.trim().replace(/\D/g, '').slice(-10);
+    if (!/^[6-9]\d{9}$/.test(cleanMob)) {
+      setErrors((prev) => ({
+        ...prev,
+        mobileNumber: 'Kripya valid 10-digit Indian mobile number dalein',
+      }));
+      toast.error('Kripya valid 10-digit Indian mobile number dalein');
+      document.querySelector('.cp-phone-input')?.focus();
+      return;
+    }
+    handleSubmit(new Event('submit'));
   };
 
   return (
@@ -341,8 +349,24 @@ export default function CompleteProfilePage() {
               </div>
               <h2 className="cp-welcome-title">Welcome, {currentUser?.name || 'Partner'}!</h2>
               <p className="cp-welcome-sub">
-                Complete your direct selling profile to unlock verified leader access, networking tools, and your dashboard feed.
+                Complete your profile to unlock verified leader access, networking tools, and your dashboard feed.
               </p>
+              <div style={{
+                marginTop: '12px',
+                padding: '10px 14px',
+                background: '#FEF2F2',
+                border: '1px solid #FECACA',
+                borderRadius: '8px',
+                fontSize: '13px',
+                color: '#991B1B',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                fontWeight: 600,
+              }}>
+                <span>📱</span>
+                <span>Mobile Number dalna mandatory hai — Iske bina data save nahi hoga.</span>
+              </div>
             </div>
           </div>
         </div>
@@ -405,7 +429,7 @@ export default function CompleteProfilePage() {
               {/* Mobile Number */}
               <div className="cp-form-group">
                 <label className="cp-label">
-                  Mobile Number <span className="cp-required">*</span>
+                  Mobile Number <span className="cp-required">* (Mandatory)</span>
                 </label>
                 <div className="cp-phone-wrap">
                   <span className="cp-phone-prefix">+91</span>

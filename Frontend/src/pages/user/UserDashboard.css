@@ -1685,40 +1685,57 @@
 
 /* Instagram-style Likes Bar */
 .ud-insta-likes-bar {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 6px;
   user-select: none;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 6px;
+  transition: all 0.15s ease;
+}
+
+.ud-insta-likes-bar:hover {
+  background-color: #F1F5F9;
 }
 
 .ud-insta-likes-left {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
   font-family: 'Inter', sans-serif;
   font-size: 13px;
   color: #334155;
+  line-height: 1;
 }
 
 .ud-insta-likes-heart {
-  font-size: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
   line-height: 1;
 }
 
 .ud-insta-liker-thumb {
-  width: 18px;
-  height: 18px;
+  width: 19px;
+  height: 19px;
   border-radius: 50%;
   object-fit: cover;
   border: 1.5px solid #FFFFFF;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
   display: inline-block;
+  flex-shrink: 0;
+  margin-left: 1px;
 }
 
 .ud-insta-likes-label {
-  font-size: 12.5px;
+  font-size: 13px;
   color: #334155;
   line-height: 1.3;
+  margin-left: 2px;
+  white-space: nowrap;
 }
 
 .ud-insta-likes-label strong {

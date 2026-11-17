@@ -186,7 +186,7 @@ export default function InstagramPostModal({
       });
 
       if (res && res.success) {
-        toast.success('Comment posted!');
+        // toast.success('Comment posted!');
         if (res.comment) {
           setComments((prev) =>
             prev.map((c) => (c.id === tempComment.id ? res.comment : c))
@@ -195,7 +195,7 @@ export default function InstagramPostModal({
       }
     } catch (err) {
       console.error('Error posting comment:', err);
-      toast.error('Failed to post comment');
+      // toast.error('Failed to post comment');
     } finally {
       setSubmittingComment(false);
     }
@@ -235,7 +235,7 @@ export default function InstagramPostModal({
   // Delete single comment
   const handleDeleteComment = async (commentId) => {
     setComments((prev) => prev.filter((c) => c.id !== commentId));
-    toast.success('Comment deleted');
+    // toast.success('Comment deleted');
     try {
       if (typeof commentId === 'number') {
         await deletePostCommentApi(commentId);

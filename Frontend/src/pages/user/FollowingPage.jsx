@@ -10,6 +10,7 @@ import {
   unfollowUser,
 } from '../../services/follow.service';
 import { joinChat, subscribeToFollowEvents } from '../../services/socket.service';
+import { fetchCurrentUser } from '../../services/user.service';
 import './FollowingPage.css';
 
 // Default initial leader dataset matching user's Figma reference screenshot
@@ -48,22 +49,19 @@ export default function FollowingPage() {
       setResolvedUserId(storedUser.id || storedUser._id);
       return;
     }
-    if (storedUser.email) {
-      fetch(`/api/dashboard/overview?email=${encodeURIComponent(storedUser.email)}`)
-        .then((r) => r.json())
-        .then((data) => {
-          if (data?.success && data?.user?.id) {
-            setResolvedUserId(data.user.id);
-            try {
-              const cur = JSON.parse(localStorage.getItem('fortaa_user') || '{}');
-              localStorage.setItem('fortaa_user', JSON.stringify({ ...cur, id: data.user.id, ...data.user }));
-              window.dispatchEvent(new CustomEvent('fortaa_user_synced', { detail: data.user }));
-            } catch {}
-          }
-        })
-        .catch(() => {});
-    }
-  }, [storedUser.id, storedUser._id, storedUser.email]);
+    fetchCurrentUser()
+      .then((me) => {
+        if (me?.id) {
+          setResolvedUserId(me.id);
+          try {
+            const cur = JSON.parse(localStorage.getItem('fortaa_user') || '{}');
+            localStorage.setItem('fortaa_user', JSON.stringify({ ...cur, ...me, id: me.id }));
+            window.dispatchEvent(new CustomEvent('fortaa_user_synced', { detail: me }));
+          } catch {}
+        }
+      })
+      .catch(() => {});
+  }, [storedUser.id, storedUser._id]);
 
   // Load Following data from DB & connect live events
   useEffect(() => {

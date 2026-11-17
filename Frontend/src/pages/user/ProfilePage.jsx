@@ -10,10 +10,10 @@ import PostComments from '../../components/posts/PostComments';
 import ShareModal from '../../components/posts/ShareModal';
 import { FaRegThumbsUp, FaThumbsUp, FaRegComment } from 'react-icons/fa';
 import { RiShareForwardLine } from 'react-icons/ri';
-import { FiEdit3, FiTrash2, FiUsers, FiFolderPlus, FiCompass } from 'react-icons/fi';
+import { FiEdit3, FiTrash2, FiUsers, FiFolderPlus, FiCompass, FiUpload } from 'react-icons/fi';
 
 // User, Follow & Dashboard Services
-import { fetchUserProfile, updateUserProfile as apiUpdateUserProfile } from '../../services/user.service';
+import { fetchCurrentUser, fetchUserProfile, updateUserProfile as apiUpdateUserProfile } from '../../services/user.service';
 import { uploadSingleImage } from '../../services/upload.service';
 import { fetchPosts, fetchDashboardOverview, likePostApi, updatePostApi, deletePostApi, votePollApi } from '../../services/dashboard.service';
 import {
@@ -79,7 +79,14 @@ export default function ProfilePage() {
 
   // Stored user profile state
   const storedUser = JSON.parse(localStorage.getItem('fortaa_user') || '{}');
-  const currentUserId = storedUser.id || 13;
+  const [currentUserId, setCurrentUserId] = useState(() => {
+    try {
+      const u = JSON.parse(localStorage.getItem('fortaa_user') || '{}');
+      return u.id || u._id || null;
+    } catch {
+      return null;
+    }
+  });
 
   const [userProfile, setUserProfile] = useState(() => {
     return {
@@ -105,7 +112,7 @@ export default function ProfilePage() {
       company: storedUser.companyBrand || storedUser.businessName || 'Index Technology',
       userRole: storedUser.designation || storedUser.role || 'Senior Leader',
       avatarImg: storedUser.avatarUrl || userAvatarImg,
-      coverImg: profileCoverPurple,
+      coverImg: storedUser.coverUrl || storedUser.cover_url || profileCoverPurple,
     };
   });
 
@@ -113,6 +120,12 @@ export default function ProfilePage() {
   const [profilePhotoFile, setProfilePhotoFile] = useState(null);
   const [profilePhotoPreview, setProfilePhotoPreview] = useState(null);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
+
+  // Cover photo upload states
+  const [coverPhotoFile, setCoverPhotoFile] = useState(null);
+  const [coverPhotoPreview, setCoverPhotoPreview] = useState(null);
+  const [uploadingCover, setUploadingCover] = useState(false);
+  const coverPhotoInputRef = useRef(null);
 
   // Presets for Profile Photo Modal
   const avatarPresets = [
@@ -159,6 +172,26 @@ export default function ProfilePage() {
   const [joinedGroups, setJoinedGroups] = useState([]);
   const [createdGroups, setCreatedGroups] = useState([]);
   const [likesModalPostId, setLikesModalPostId] = useState(null);
+
+  // Instagram-style Social List Popup (Followers / Following / Network)
+  const [socialListModal, setSocialListModal] = useState({ isOpen: false, type: 'Followers' });
+  const [socialSearchQuery, setSocialSearchQuery] = useState('');
+
+  const handleStatCardClick = (type) => {
+    if (type === 'Post') {
+      setActiveTab('All posts');
+      setTimeout(() => {
+        const tabsEl = document.querySelector('.prof-tabs-bar');
+        if (tabsEl) {
+          tabsEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 50);
+    } else {
+      setActiveTab(type);
+      setSocialListModal({ isOpen: true, type });
+      setSocialSearchQuery('');
+    }
+  };
 
   // Post 3-dots Menu & Edit/Delete State
   const [activePostMenuId, setActivePostMenuId] = useState(null);
@@ -239,10 +272,29 @@ export default function ProfilePage() {
 
   // Load real profile counts, posts, followers & following from PostgreSQL
   useEffect(() => {
+    let isMounted = true;
     async function loadProfileSocialData() {
-      // 0. Live user profile from PostgreSQL
-      const dbProfile = await fetchUserProfile(currentUserId);
-      if (dbProfile) {
+      // 0. Verify and sync true authenticated user from JWT token
+      let activeUserId = currentUserId;
+      try {
+        const me = await fetchCurrentUser();
+        if (me && me.id) {
+          activeUserId = me.id;
+          if (isMounted) setCurrentUserId(me.id);
+          try {
+            const cur = JSON.parse(localStorage.getItem('fortaa_user') || '{}');
+            localStorage.setItem('fortaa_user', JSON.stringify({ ...cur, ...me, id: me.id }));
+          } catch {}
+        }
+      } catch (err) {
+        console.warn('Verify current user error:', err);
+      }
+
+      if (!activeUserId) return;
+
+      // 1. Live user profile from PostgreSQL
+      const dbProfile = await fetchUserProfile(activeUserId);
+      if (isMounted && dbProfile) {
         const loadedProfile = {
           name: dbProfile.name || storedUser.name || 'User',
           username: dbProfile.username || dbProfile.email?.split('@')[0] || 'user',
@@ -252,7 +304,7 @@ export default function ProfilePage() {
           email: dbProfile.email || storedUser.email || '',
           mobile: dbProfile.mobile_number || storedUser.mobileNumber || '',
           altMobile: storedUser.altMobile || '',
-          whatsapp: storedUser.whatsappNumber || '',
+          whatsapp: dbProfile.whatsapp_number || storedUser.whatsappNumber || '',
           website: dbProfile.website_social || storedUser.websiteSocial || '',
           skills: dbProfile.skills
             ? (typeof dbProfile.skills === 'string' ? dbProfile.skills.split(',').map((s) => s.trim()) : dbProfile.skills)
@@ -265,18 +317,18 @@ export default function ProfilePage() {
           },
           experience: dbProfile.experience || storedUser.experience || '',
           bio: dbProfile.bio || storedUser.bio || '',
-          company: dbProfile.company_brand || dbProfile.business_name || storedUser.companyBrand || 'Forever Living',
+          company: dbProfile.company_brand || dbProfile.business_name || storedUser.companyBrand || 'Index Technology',
           userRole: dbProfile.designation || storedUser.designation || 'Senior Leader',
           avatarImg: dbProfile.avatar_url || storedUser.avatarUrl || userAvatarImg,
-          coverImg: profileCoverPurple,
+          coverImg: dbProfile.cover_url || storedUser.coverUrl || storedUser.cover_url || profileCoverPurple,
         };
         setUserProfile(loadedProfile);
         setFormData(loadedProfile);
       }
 
-      // 1. Live counts
-      const counts = await fetchUserSocialCounts(currentUserId);
-      if (counts?.success) {
+      // 2. Live counts
+      const counts = await fetchUserSocialCounts(activeUserId);
+      if (isMounted && counts?.success) {
         setSocialCounts({
           networkCount: counts.networkCount || 0,
           followersCount: counts.followersCount,
@@ -285,27 +337,29 @@ export default function ProfilePage() {
         });
       }
 
-      // 2. My own posts
-      const posts = await fetchPosts(currentUserId, 'mine');
-      setMyPosts(posts);
+      // 3. My own posts
+      const posts = await fetchPosts(activeUserId, 'mine', activeUserId);
+      if (isMounted) setMyPosts(posts);
 
-      // 3. Followers & Following & Network Team lists
+      // 4. Followers & Following & Network Team lists
       const [fFollowers, fFollowing, groupsData] = await Promise.all([
-        fetchFollowers(currentUserId),
-        fetchFollowing(currentUserId),
-        fetchUserGroups(currentUserId),
+        fetchFollowers(activeUserId),
+        fetchFollowing(activeUserId),
+        fetchUserGroups(activeUserId),
       ]);
-      setFollowersList(fFollowers);
-      setFollowingList(fFollowing);
-      if (groupsData) {
-        setJoinedGroups(groupsData.joinedGroups || []);
-        setCreatedGroups(groupsData.createdGroups || []);
+      if (isMounted) {
+        setFollowersList(fFollowers);
+        setFollowingList(fFollowing);
+        if (groupsData) {
+          setJoinedGroups(groupsData.joinedGroups || []);
+          setCreatedGroups(groupsData.createdGroups || []);
+        }
       }
 
       try {
-        const teamRes = await fetch(`/api/users/team/${currentUserId}`);
+        const teamRes = await fetch(`/api/users/team/${activeUserId}`);
         const teamData = await teamRes.json();
-        if (teamData?.success && Array.isArray(teamData.team)) {
+        if (isMounted && teamData?.success && Array.isArray(teamData.team)) {
           setNetworkTeamList(teamData.team);
           setSocialCounts((prev) => ({
             ...prev,
@@ -318,6 +372,9 @@ export default function ProfilePage() {
     }
 
     loadProfileSocialData();
+    return () => {
+      isMounted = false;
+    };
   }, [currentUserId]);
 
   const handleViewFollowerProfile = (follower) => {
@@ -471,6 +528,7 @@ export default function ProfilePage() {
         skills: Array.isArray(formData.skills) ? formData.skills.join(', ') : formData.skills,
         experience: formData.experience,
         bio: formData.bio,
+        coverUrl: formData.coverImg,
       });
 
       const stored = JSON.parse(localStorage.getItem('fortaa_user') || '{}');
@@ -485,6 +543,7 @@ export default function ProfilePage() {
         skills: Array.isArray(formData.skills) ? formData.skills.join(', ') : formData.skills,
         experience: formData.experience,
         bio: formData.bio,
+        coverUrl: formData.coverImg,
       }));
       toast.success('Profile updated in database successfully!');
     } catch (err) {
@@ -534,6 +593,59 @@ export default function ProfilePage() {
       toast.error(err.message || 'Failed to update photo');
     } finally {
       setUploadingPhoto(false);
+    }
+  };
+
+  // Select Cover Photo from PC / Mobile gallery
+  const handleCoverPhotoSelect = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setCoverPhotoFile(file);
+    setCoverPhotoPreview(URL.createObjectURL(file));
+  };
+
+  const handleDiscardCover = () => {
+    setCoverPhotoFile(null);
+    setCoverPhotoPreview(null);
+    setSelectedCoverId(1);
+    if (coverPhotoInputRef.current) {
+      coverPhotoInputRef.current.value = '';
+    }
+  };
+
+  // Upload Cover Photo to AWS S3 & Save to DB
+  const handleSaveCoverPhoto = async () => {
+    setUploadingCover(true);
+    try {
+      let finalCoverUrl = null;
+      if (coverPhotoFile) {
+        finalCoverUrl = await uploadSingleImage(coverPhotoFile, 'covers');
+        if (!finalCoverUrl) {
+          throw new Error('Failed to upload cover photo image.');
+        }
+      } else {
+        const chosen = coverPresets.find((c) => c.id === selectedCoverId);
+        finalCoverUrl = chosen?.img || profileCoverPurple;
+      }
+
+      if (finalCoverUrl) {
+        setUserProfile((prev) => ({ ...prev, coverImg: finalCoverUrl }));
+        setFormData((prev) => ({ ...prev, coverImg: finalCoverUrl }));
+        await apiUpdateUserProfile(currentUserId, { coverUrl: finalCoverUrl });
+
+        const stored = JSON.parse(localStorage.getItem('fortaa_user') || '{}');
+        localStorage.setItem('fortaa_user', JSON.stringify({ ...stored, coverUrl: finalCoverUrl }));
+        toast.success('Cover photo updated and saved to database! 🖼️');
+      }
+
+      setIsCoverModalOpen(false);
+      setCoverPhotoFile(null);
+      setCoverPhotoPreview(null);
+    } catch (err) {
+      console.error('[SaveCoverPhoto Error]:', err);
+      toast.error(err.message || 'Failed to update cover photo');
+    } finally {
+      setUploadingCover(false);
     }
   };
 
@@ -1271,7 +1383,7 @@ export default function ProfilePage() {
               <div className="prof-stats-grid">
                 <div
                   className="prof-stat-card prof-stat-card--network"
-                  onClick={() => setActiveTab('Network')}
+                  onClick={() => handleStatCardClick('Network')}
                   title="View Network"
                   role="button"
                   tabIndex={0}
@@ -1292,7 +1404,7 @@ export default function ProfilePage() {
 
                 <div
                   className="prof-stat-card prof-stat-card--followers"
-                  onClick={() => setActiveTab('Followers')}
+                  onClick={() => handleStatCardClick('Followers')}
                   title="View Followers"
                   role="button"
                   tabIndex={0}
@@ -1314,7 +1426,7 @@ export default function ProfilePage() {
 
                 <div
                   className="prof-stat-card prof-stat-card--following"
-                  onClick={() => setActiveTab('Following')}
+                  onClick={() => handleStatCardClick('Following')}
                   title="View Following"
                   role="button"
                   tabIndex={0}
@@ -1333,7 +1445,7 @@ export default function ProfilePage() {
 
                 <div
                   className="prof-stat-card prof-stat-card--post"
-                  onClick={() => setActiveTab('All posts')}
+                  onClick={() => handleStatCardClick('Post')}
                   title="View All Posts"
                   role="button"
                   tabIndex={0}
@@ -2156,24 +2268,39 @@ export default function ProfilePage() {
             {/* Cover Banner Preview */}
             <div className="prof-cover-preview-box">
               <img
-                src={coverPresets.find(c => c.id === selectedCoverId)?.img || profileCoverPurple}
+                src={
+                  coverPhotoPreview ||
+                  coverPresets.find((c) => c.id === selectedCoverId)?.img ||
+                  userProfile.coverImg ||
+                  profileCoverPurple
+                }
                 alt="Cover Preview"
                 className="prof-cover-preview-img"
               />
             </div>
 
+            {/* Hidden file input for PC folder / mobile gallery */}
+            <input
+              ref={coverPhotoInputRef}
+              type="file"
+              accept="image/*"
+              style={{ display: 'none' }}
+              onChange={handleCoverPhotoSelect}
+            />
+
             <div className="prof-cover-action-btns">
               <button
                 type="button"
                 className="prof-btn-purple-sm"
-                onClick={() => toast.success('Select from thumbnails below or upload file!')}
+                onClick={() => coverPhotoInputRef.current?.click()}
               >
-                Change Profile
+                <FiUpload size={14} style={{ marginRight: '6px', verticalAlign: '-2px' }} />
+                {coverPhotoFile ? 'Change Selected File' : 'Upload from Device'}
               </button>
               <button
                 type="button"
                 className="prof-btn-white-sm"
-                onClick={() => setSelectedCoverId(1)}
+                onClick={handleDiscardCover}
               >
                 Discard
               </button>
@@ -2186,8 +2313,12 @@ export default function ProfilePage() {
                 <button
                   key={cov.id}
                   type="button"
-                  className={`prof-cover-thumb-btn ${selectedCoverId === cov.id ? 'selected' : ''}`}
-                  onClick={() => setSelectedCoverId(cov.id)}
+                  className={`prof-cover-thumb-btn ${!coverPhotoFile && selectedCoverId === cov.id ? 'selected' : ''}`}
+                  onClick={() => {
+                    setSelectedCoverId(cov.id);
+                    setCoverPhotoFile(null);
+                    setCoverPhotoPreview(null);
+                  }}
                 >
                   <img src={cov.img} alt={`Preset ${cov.id}`} className="prof-cover-thumb-img" />
                 </button>
@@ -2203,23 +2334,20 @@ export default function ProfilePage() {
               <button
                 type="button"
                 className="prof-btn-cancel"
-                onClick={() => setIsCoverModalOpen(false)}
+                onClick={() => {
+                  handleDiscardCover();
+                  setIsCoverModalOpen(false);
+                }}
               >
-                Cancle
+                Cancel
               </button>
               <button
                 type="button"
                 className="prof-btn-save"
-                onClick={() => {
-                  const chosen = coverPresets.find(c => c.id === selectedCoverId);
-                  if (chosen) {
-                    setUserProfile(prev => ({ ...prev, coverImg: chosen.img }));
-                  }
-                  toast.success('Cover photo updated!');
-                  setIsCoverModalOpen(false);
-                }}
+                disabled={uploadingCover}
+                onClick={handleSaveCoverPhoto}
               >
-                Save
+                {uploadingCover ? 'Saving...' : 'Save'}
               </button>
             </div>
           </div>
@@ -2316,6 +2444,284 @@ export default function ProfilePage() {
         followingIds={followingList.map((u) => u.id)}
         onUserClick={(userId) => navigate(`/leader/${userId}`)}
       />
+
+      {/* ───────────────── INSTAGRAM-STYLE SOCIAL LIST POPUP (Followers / Following / Network) ───────────────── */}
+      {socialListModal.isOpen && (
+        <div className="prof-insta-modal-backdrop" onClick={() => setSocialListModal({ isOpen: false, type: 'Followers' })}>
+          <div className="prof-insta-modal-card" onClick={(e) => e.stopPropagation()}>
+            {/* Header with Switcher Tabs and Close button */}
+            <div className="prof-insta-modal-header">
+              <div className="prof-insta-modal-tabs">
+                <button
+                  type="button"
+                  className={`prof-insta-tab-btn ${socialListModal.type === 'Followers' ? 'active' : ''}`}
+                  onClick={() => {
+                    setSocialListModal((prev) => ({ ...prev, type: 'Followers' }));
+                    setSocialSearchQuery('');
+                  }}
+                >
+                  Followers <span className="prof-insta-tab-count">({socialCounts.followersCount})</span>
+                </button>
+                <button
+                  type="button"
+                  className={`prof-insta-tab-btn ${socialListModal.type === 'Following' ? 'active' : ''}`}
+                  onClick={() => {
+                    setSocialListModal((prev) => ({ ...prev, type: 'Following' }));
+                    setSocialSearchQuery('');
+                  }}
+                >
+                  Following <span className="prof-insta-tab-count">({socialCounts.followingCount})</span>
+                </button>
+                <button
+                  type="button"
+                  className={`prof-insta-tab-btn ${socialListModal.type === 'Network' ? 'active' : ''}`}
+                  onClick={() => {
+                    setSocialListModal((prev) => ({ ...prev, type: 'Network' }));
+                    setSocialSearchQuery('');
+                  }}
+                >
+                  Network <span className="prof-insta-tab-count">({socialCounts.networkCount})</span>
+                </button>
+              </div>
+              <button
+                type="button"
+                className="prof-insta-modal-close-btn"
+                onClick={() => setSocialListModal({ isOpen: false, type: 'Followers' })}
+                aria-label="Close"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Live Search Filter */}
+            <div className="prof-insta-search-wrap">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+              </svg>
+              <input
+                type="text"
+                className="prof-insta-search-input"
+                placeholder={`Search in ${socialListModal.type.toLowerCase()}...`}
+                value={socialSearchQuery}
+                onChange={(e) => setSocialSearchQuery(e.target.value)}
+              />
+              {socialSearchQuery && (
+                <button
+                  type="button"
+                  className="prof-insta-search-clear"
+                  onClick={() => setSocialSearchQuery('')}
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+
+            {/* List Body */}
+            <div className="prof-insta-list-body">
+              {/* 1. Followers List */}
+              {socialListModal.type === 'Followers' && (
+                (() => {
+                  const filtered = followersList.filter((f) =>
+                    (f.name || '').toLowerCase().includes(socialSearchQuery.toLowerCase()) ||
+                    (f.username || '').toLowerCase().includes(socialSearchQuery.toLowerCase())
+                  );
+                  if (filtered.length === 0) {
+                    return (
+                      <div className="prof-insta-empty-state">
+                        <div className="prof-insta-empty-icon">👥</div>
+                        <h4>No followers {socialSearchQuery ? 'found' : 'yet'}</h4>
+                        <p>{socialSearchQuery ? 'Try another search term' : 'When other leaders follow your profile, they will appear here.'}</p>
+                      </div>
+                    );
+                  }
+                  return filtered.map((follower) => (
+                    <div key={follower.id} className="prof-insta-user-item">
+                      <div
+                        className="prof-insta-user-info"
+                        onClick={() => {
+                          setSocialListModal({ isOpen: false, type: 'Followers' });
+                          handleViewFollowerProfile(follower);
+                        }}
+                      >
+                        <img
+                          src={follower.avatar_url || userAvatarImg}
+                          alt={follower.name}
+                          className="prof-insta-avatar"
+                          onError={(e) => {
+                            e.currentTarget.onerror = null;
+                            e.currentTarget.src = userAvatarImg;
+                          }}
+                        />
+                        <div className="prof-insta-user-text">
+                          <span className="prof-insta-username">{follower.name}</span>
+                          <span className="prof-insta-subtext">
+                            {follower.designation || 'Leader'} • {follower.company_brand || 'Fortaa'}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="prof-insta-item-actions">
+                        <button
+                          type="button"
+                          className="prof-insta-btn-view"
+                          onClick={() => {
+                            setSocialListModal({ isOpen: false, type: 'Followers' });
+                            handleViewFollowerProfile(follower);
+                          }}
+                        >
+                          View
+                        </button>
+                        <button
+                          type="button"
+                          className="prof-insta-btn-msg"
+                          onClick={() => {
+                            setSocialListModal({ isOpen: false, type: 'Followers' });
+                            navigate(`/messages?userId=${follower.id}`);
+                          }}
+                        >
+                          Message
+                        </button>
+                      </div>
+                    </div>
+                  ));
+                })()
+              )}
+
+              {/* 2. Following List */}
+              {socialListModal.type === 'Following' && (
+                (() => {
+                  const filtered = followingList.filter((f) =>
+                    (f.name || '').toLowerCase().includes(socialSearchQuery.toLowerCase()) ||
+                    (f.username || '').toLowerCase().includes(socialSearchQuery.toLowerCase())
+                  );
+                  if (filtered.length === 0) {
+                    return (
+                      <div className="prof-insta-empty-state">
+                        <div className="prof-insta-empty-icon">🔗</div>
+                        <h4>No following {socialSearchQuery ? 'found' : 'yet'}</h4>
+                        <p>{socialSearchQuery ? 'Try another search term' : 'Profiles you follow will be listed here.'}</p>
+                      </div>
+                    );
+                  }
+                  return filtered.map((user) => (
+                    <div key={user.id} className="prof-insta-user-item">
+                      <div
+                        className="prof-insta-user-info"
+                        onClick={() => {
+                          setSocialListModal({ isOpen: false, type: 'Following' });
+                          handleViewFollowerProfile(user);
+                        }}
+                      >
+                        <img
+                          src={user.avatar_url || userAvatarImg}
+                          alt={user.name}
+                          className="prof-insta-avatar"
+                          onError={(e) => {
+                            e.currentTarget.onerror = null;
+                            e.currentTarget.src = userAvatarImg;
+                          }}
+                        />
+                        <div className="prof-insta-user-text">
+                          <span className="prof-insta-username">{user.name}</span>
+                          <span className="prof-insta-subtext">{user.designation || 'Business Leader'}</span>
+                        </div>
+                      </div>
+                      <div className="prof-insta-item-actions">
+                        <button
+                          type="button"
+                          className="prof-insta-btn-unfollow"
+                          onClick={() => handleUnfollowFromProfile(user.id, user.name)}
+                          title="Click to unfollow"
+                        >
+                          Following
+                        </button>
+                        <button
+                          type="button"
+                          className="prof-insta-btn-msg"
+                          onClick={() => {
+                            setSocialListModal({ isOpen: false, type: 'Following' });
+                            navigate(`/messages?userId=${user.id}`);
+                          }}
+                        >
+                          Message
+                        </button>
+                      </div>
+                    </div>
+                  ));
+                })()
+              )}
+
+              {/* 3. Network Team List */}
+              {socialListModal.type === 'Network' && (
+                (() => {
+                  const filtered = networkTeamList.filter((m) =>
+                    (m.name || '').toLowerCase().includes(socialSearchQuery.toLowerCase()) ||
+                    (String(m.member_id || m.id)).toLowerCase().includes(socialSearchQuery.toLowerCase())
+                  );
+                  if (filtered.length === 0) {
+                    return (
+                      <div className="prof-insta-empty-state">
+                        <div className="prof-insta-empty-icon">👥</div>
+                        <h4>No team members {socialSearchQuery ? 'found' : 'yet'}</h4>
+                        <p>{socialSearchQuery ? 'Try another search term' : 'Members who register using your referral ID will appear here.'}</p>
+                      </div>
+                    );
+                  }
+                  return filtered.map((member, mIdx) => (
+                    <div key={member.id || mIdx} className="prof-insta-user-item">
+                      <div
+                        className="prof-insta-user-info"
+                        onClick={() => {
+                          setSocialListModal({ isOpen: false, type: 'Network' });
+                          navigate(`/leader/${member.id}`);
+                        }}
+                      >
+                        <img
+                          src={member.avatar_url || userAvatarImg}
+                          alt={member.name}
+                          className="prof-insta-avatar"
+                          onError={(e) => {
+                            e.currentTarget.onerror = null;
+                            e.currentTarget.src = userAvatarImg;
+                          }}
+                        />
+                        <div className="prof-insta-user-text">
+                          <span className="prof-insta-username">{member.name}</span>
+                          <span className="prof-insta-subtext">
+                            {member.designation || 'Leader'} • ID: {member.member_id || member.id}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="prof-insta-item-actions">
+                        <button
+                          type="button"
+                          className="prof-insta-btn-view"
+                          onClick={() => {
+                            setSocialListModal({ isOpen: false, type: 'Network' });
+                            navigate(`/leader/${member.id}`);
+                          }}
+                        >
+                          View
+                        </button>
+                        <button
+                          type="button"
+                          className="prof-insta-btn-msg"
+                          onClick={() => {
+                            setSocialListModal({ isOpen: false, type: 'Network' });
+                            navigate(`/messages?userId=${member.id}`);
+                          }}
+                        >
+                          Message
+                        </button>
+                      </div>
+                    </div>
+                  ));
+                })()
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
