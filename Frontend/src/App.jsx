@@ -4,6 +4,7 @@ import toast, { Toaster, ToastBar } from 'react-hot-toast';
 import './index.css';
 import LandingPage from './pages/landing/LandingPage';
 import LoginPage from './pages/user/LoginPage';
+import ForgotPasswordPage from './pages/user/ForgotPasswordPage';
 import SignUpPage from './pages/user/SignUpPage';
 import UserDashboard from './pages/user/UserDashboard';
 import ProfilePage from './pages/user/ProfilePage';
@@ -141,6 +142,7 @@ export default function App() {
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/signup" element={<SignUpPage />} />
         <Route path="/complete-profile" element={<ProtectedRoute><CompleteProfilePage /></ProtectedRoute>} />
         <Route path="/all-posts" element={<AllPostsPage />} />

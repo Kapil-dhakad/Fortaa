@@ -467,7 +467,7 @@ function InFeedSuggestedPeople({
                   }
                 }}
               >
-                {isFollowed ? 'Following ✓' : isPending ? 'Request Pending' : person.isTrainer ? 'Follow' : 'Connect'}
+                {isFollowed ? 'Following ✓' : isPending ? 'Pending' : person.isTrainer ? 'Follow' : 'Connect'}
               </button>
             </div>
           );

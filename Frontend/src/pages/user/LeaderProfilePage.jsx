@@ -488,7 +488,7 @@ export default function LeaderProfilePage() {
       return (
         <>
           <HiOutlineClock className="lp-btn-icon spin-subtle" />
-          <span>{isMobileAction ? 'Request Pending' : 'Pending ⏳'}</span>
+          <span>Pending</span>
         </>
       );
     }

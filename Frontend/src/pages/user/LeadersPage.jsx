@@ -675,12 +675,7 @@ export default function LeadersPage() {
                             <span className="lead-pin-icon">📍</span>
                             <span className="lead-card-location-text">{leader.location}</span>
                           </div>
-                        ) : (
-                          <div className="lead-card-location-row" style={{ visibility: 'hidden' }}>
-                            <span className="lead-pin-icon">📍</span>
-                            <span className="lead-card-location-text">&nbsp;</span>
-                          </div>
-                        )}
+                        ) : null}
 
                         {/* Stats Row */}
                         <div className="lead-card-stats-row">
@@ -701,9 +696,7 @@ export default function LeadersPage() {
                         {/* Quote / Bio (Only real bio, no static dummy quotes) */}
                         {leader.bio ? (
                           <p className="lead-card-quote">“{leader.bio}”</p>
-                        ) : (
-                          <p className="lead-card-quote" style={{ visibility: 'hidden' }}>&nbsp;</p>
-                        )}
+                        ) : null}
 
                         {/* Skills / Tags Row (Only real skills, no static dummy tags) */}
                         {leader.tags && leader.tags.length > 0 ? (
@@ -717,11 +710,7 @@ export default function LeadersPage() {
                               </span>
                             ))}
                           </div>
-                        ) : (
-                          <div className="lead-card-tags-row" style={{ visibility: 'hidden' }}>
-                            <span className="lead-tag-pill">&nbsp;</span>
-                          </div>
-                        )}
+                        ) : null}
 
                         {/* Action Buttons: Follow & Message */}
                         <div className="lead-card-actions-row">
@@ -734,7 +723,7 @@ export default function LeadersPage() {
                             }}
                             title={status === 'pending' ? 'Click to cancel request' : ''}
                           >
-                            {status === 'accepted' ? 'Following ✓' : status === 'pending' ? 'Request Pending' : 'Follow'}
+                            {status === 'accepted' ? 'Following ✓' : status === 'pending' ? 'Pending' : 'Follow'}
                           </button>
                           <button
                             type="button"
@@ -938,7 +927,7 @@ export default function LeadersPage() {
                           handleFollowClick(topLdr.id, topLdr.name);
                         }}
                       >
-                        {status === 'accepted' ? 'Following' : status === 'pending' ? 'Request Pending' : 'Follow'}
+                        {status === 'accepted' ? 'Following' : status === 'pending' ? 'Pending' : 'Follow'}
                       </button>
                     </div>
                   );

@@ -296,6 +296,24 @@ const userModel = {
       totalCompanies: 342,
     };
   },
+
+  /**
+   * Update password for a user
+   */
+  async updatePassword(userId, hashedPassword) {
+    const numericId = parseInt(userId, 10);
+    if (db.isConnected()) {
+      await db.query('UPDATE users SET password = $1 WHERE id = $2', [hashedPassword, numericId]);
+      return true;
+    } else {
+      const u = memoryUsers.find((user) => user.id === numericId);
+      if (u) {
+        u.password = hashedPassword;
+        return true;
+      }
+      return false;
+    }
+  },
 };
 
 module.exports = userModel;

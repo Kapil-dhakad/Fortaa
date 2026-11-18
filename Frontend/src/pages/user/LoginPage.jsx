@@ -193,16 +193,9 @@ export default function LoginPage() {
               />
               <span>Remember me</span>
             </label>
-            <a
-              href="#forgot-password"
-              className="desk-forgot-link"
-              onClick={(e) => {
-                e.preventDefault();
-                toast.success('Password reset link will be sent to your email.');
-              }}
-            >
+            <Link to="/forgot-password" className="desk-forgot-link">
               Forget Password?
-            </a>
+            </Link>
           </div>
 
           {/* Frame 64: Primary Login Button */}
@@ -357,16 +350,9 @@ export default function LoginPage() {
 
           {/* Forgot Password Link */}
           <div className="form-forgot-row">
-            <a
-              href="#forgot-password"
-              className="forgot-pass-link"
-              onClick={(e) => {
-                e.preventDefault();
-                toast.success('Password reset link will be sent to your email.');
-              }}
-            >
+            <Link to="/forgot-password" className="forgot-pass-link">
               Forget Password?
-            </a>
+            </Link>
           </div>
 
           {/* Social Buttons Stack: Google (blue) + LinkedIn */}

@@ -1,9 +1,10 @@
 const userModel = require('../model/user.model');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 const db = require('../db/db');
-const { sendWelcomeEmail, handleProfileViewNotification } = require('../services/email.service');
-const { sendWhatsAppWelcomeMessage } = require('../services/whatsapp.service');
+const { sendOtpEmail, sendWelcomeEmail, handleProfileViewNotification } = require('../services/email.service');
+const { sendWhatsAppOtp: sendWhatsAppOtpMessage, sendWhatsAppWelcomeMessage, formatPhoneNumber } = require('../services/whatsapp.service');
 
 /**
  * Register User with 4-step onboarding data
@@ -641,6 +642,285 @@ async function getUserTeam(req, res) {
   }
 }
 
+// In-memory store for password reset sessions: identifierKey -> { userId, identifier, isMobile, otp, expiresAt, attempts, resetToken, createdAt }
+const passwordResetStore = new Map();
+
+// Periodic cleanup every 15 minutes
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, item] of passwordResetStore.entries()) {
+    if (item.expiresAt < now) {
+      passwordResetStore.delete(key);
+    }
+  }
+}, 15 * 60 * 1000);
+
+function normalizeResetIdentifier(raw) {
+  const clean = (raw || '').trim();
+  if (clean.includes('@')) {
+    return { isEmail: true, key: clean.toLowerCase(), original: clean };
+  }
+  const digits = clean.replace(/\D/g, '');
+  const key = digits.length >= 10 ? digits.slice(-10) : digits;
+  return { isEmail: false, key, original: clean, digits };
+}
+
+/**
+ * POST /api/users/forgot-password
+ * Body: { identifier } (email or mobile number)
+ */
+async function forgotPassword(req, res) {
+  try {
+    const rawIdentifier = req.body.identifier || req.body.emailOrMobile || req.body.email || req.body.mobile || '';
+    if (!rawIdentifier.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please enter your registered email or mobile number.',
+      });
+    }
+
+    const { isEmail, key, original } = normalizeResetIdentifier(rawIdentifier);
+    if (!key) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid email or mobile number provided.',
+      });
+    }
+
+    // Lookup user by email or mobile
+    let user = null;
+    if (isEmail) {
+      user = await userModel.findOne({ email: key });
+    } else {
+      if (db.isConnected()) {
+        const queryRes = await db.query(
+          `SELECT * FROM users 
+           WHERE mobile_number = $1 
+              OR whatsapp_number = $1 
+              OR RIGHT(REGEXP_REPLACE(COALESCE(mobile_number, ''), '\\D', '', 'g'), 10) = $2
+              OR RIGHT(REGEXP_REPLACE(COALESCE(whatsapp_number, ''), '\\D', '', 'g'), 10) = $2
+           LIMIT 1`,
+          [original, key]
+        );
+        if (queryRes.rows.length > 0) {
+          user = queryRes.rows[0];
+        }
+      }
+      if (!user) {
+        user = await userModel.findOne({ mobileNumber: key });
+      }
+      if (!user && original !== key) {
+        user = await userModel.findOne({ mobileNumber: original });
+      }
+    }
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: isEmail
+          ? 'No account found with this email address. Please check and try again.'
+          : 'No account found with this mobile number. Please check and try again.',
+      });
+    }
+
+    // Rate-limiting check: 30 seconds
+    const existing = passwordResetStore.get(key);
+    if (existing && existing.createdAt && Date.now() - existing.createdAt < 30 * 1000) {
+      const waitSeconds = Math.ceil((30 * 1000 - (Date.now() - existing.createdAt)) / 1000);
+      return res.status(429).json({
+        success: false,
+        message: `Please wait ${waitSeconds} seconds before requesting a new code.`,
+      });
+    }
+
+    // Generate 6-digit OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+    // Store in memory
+    passwordResetStore.set(key, {
+      userId: user.id || user._id,
+      identifier: isEmail ? user.email : key,
+      isMobile: !isEmail,
+      otp,
+      expiresAt: Date.now() + 10 * 60 * 1000,
+      createdAt: Date.now(),
+      attempts: 0,
+      resetToken: null,
+    });
+
+    let maskedTarget = '';
+    let simulated = false;
+
+    if (isEmail) {
+      const email = user.email || key;
+      const [uPart, dPart] = email.split('@');
+      maskedTarget = uPart.length > 2 ? `${uPart.slice(0, 2)}***@${dPart}` : `${uPart}***@${dPart}`;
+      const emailRes = await sendOtpEmail(email, otp);
+      simulated = emailRes?.simulated || false;
+    } else {
+      const rawPhone = user.mobile_number || user.whatsapp_number || key;
+      const cleanDigits = rawPhone.toString().replace(/\D/g, '');
+      const clean10 = cleanDigits.slice(-10);
+      maskedTarget = `+91 ${clean10}`;
+      const formattedPhone = formatPhoneNumber ? formatPhoneNumber(rawPhone) : `+91 ${clean10}`;
+      const waRes = await sendWhatsAppOtpMessage(formattedPhone, otp);
+      simulated = waRes?.simulated || false;
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: isEmail
+        ? 'We have sent a 6-digit verification code to your email.'
+        : 'We have sent a 6-digit code to your WhatsApp / mobile number.',
+      isMobile: !isEmail,
+      maskedTarget,
+      identifier: key,
+      simulated,
+    });
+  } catch (err) {
+    console.error('[forgotPassword Error]:', err);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to process request. Please try again later.',
+      error: err.message,
+    });
+  }
+}
+
+/**
+ * POST /api/users/verify-reset-otp
+ * Body: { identifier, otp }
+ */
+async function verifyResetOtp(req, res) {
+  try {
+    const rawIdentifier = req.body.identifier || req.body.email || req.body.mobile || '';
+    const rawOtp = (req.body.otp || '').toString().trim();
+
+    if (!rawIdentifier || !rawOtp) {
+      return res.status(400).json({
+        success: false,
+        message: 'Identifier and 6-digit OTP code are required.',
+      });
+    }
+
+    const { key } = normalizeResetIdentifier(rawIdentifier);
+    const record = passwordResetStore.get(key);
+
+    if (!record) {
+      return res.status(400).json({
+        success: false,
+        message: 'No active reset session found or the session has expired. Please request a new OTP.',
+      });
+    }
+
+    if (Date.now() > record.expiresAt) {
+      passwordResetStore.delete(key);
+      return res.status(400).json({
+        success: false,
+        message: 'Verification code has expired. Please request a new one.',
+      });
+    }
+
+    if (record.attempts >= 5) {
+      passwordResetStore.delete(key);
+      return res.status(429).json({
+        success: false,
+        message: 'Too many incorrect attempts. Please request a new code.',
+      });
+    }
+
+    if (record.otp !== rawOtp) {
+      record.attempts += 1;
+      const remaining = 5 - record.attempts;
+      return res.status(400).json({
+        success: false,
+        message: `Incorrect code. ${remaining} attempt(s) remaining.`,
+      });
+    }
+
+    // Generate resetToken valid for 15 minutes
+    const resetToken = crypto.randomBytes(24).toString('hex');
+    record.resetToken = resetToken;
+    record.tokenExpiresAt = Date.now() + 15 * 60 * 1000;
+
+    return res.status(200).json({
+      success: true,
+      message: 'OTP verified successfully.',
+      resetToken,
+    });
+  } catch (err) {
+    console.error('[verifyResetOtp Error]:', err);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to verify code. Please try again.',
+      error: err.message,
+    });
+  }
+}
+
+/**
+ * POST /api/users/reset-password
+ * Body: { identifier, resetToken, newPassword }
+ */
+async function resetPassword(req, res) {
+  try {
+    const rawIdentifier = req.body.identifier || req.body.email || req.body.mobile || '';
+    const resetToken = (req.body.resetToken || '').trim();
+    const newPassword = (req.body.newPassword || '').trim();
+
+    if (!rawIdentifier || !resetToken || !newPassword) {
+      return res.status(400).json({
+        success: false,
+        message: 'Reset token and new password are required.',
+      });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: 'Password must be at least 6 characters long.',
+      });
+    }
+
+    const { key } = normalizeResetIdentifier(rawIdentifier);
+    const record = passwordResetStore.get(key);
+
+    if (!record || record.resetToken !== resetToken) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid or expired password reset session. Please restart the forgot password process.',
+      });
+    }
+
+    if (record.tokenExpiresAt && Date.now() > record.tokenExpiresAt) {
+      passwordResetStore.delete(key);
+      return res.status(400).json({
+        success: false,
+        message: 'Reset session expired. Please start over.',
+      });
+    }
+
+    // Hash the new password
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    await userModel.updatePassword(record.userId, hashedPassword);
+
+    // Clean up reset session
+    passwordResetStore.delete(key);
+
+    return res.status(200).json({
+      success: true,
+      message: 'Your password has been reset successfully! You can now log in with your new password.',
+    });
+  } catch (err) {
+    console.error('[resetPassword Error]:', err);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to reset password. Please try again.',
+      error: err.message,
+    });
+  }
+}
+
 module.exports = {
   registerUser,
   loginUser,
@@ -653,4 +933,7 @@ module.exports = {
   getUserProfile,
   updateUserProfile,
   getUserTeam,
+  forgotPassword,
+  verifyResetOtp,
+  resetPassword,
 };

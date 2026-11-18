@@ -12,6 +12,9 @@ const {
   getUserProfile,
   updateUserProfile,
   getUserTeam,
+  forgotPassword,
+  verifyResetOtp,
+  resetPassword,
 } = require('../controller/user.controller');
 const { handleGoogleAuth } = require('../controller/googleAuth.controller');
 const {
@@ -33,6 +36,9 @@ router.post('/send-email-otp', sendEmailOtp);
 router.post('/verify-email-otp', verifyEmailOtp);
 router.post('/send-whatsapp-otp', sendWhatsAppOtp);
 router.post('/verify-whatsapp-otp', verifyWhatsAppOtp);
+router.post('/forgot-password', forgotPassword);
+router.post('/verify-reset-otp', verifyResetOtp);
+router.post('/reset-password', resetPassword);
 router.get('/me', authMiddleware, getMe);
 router.post('/logout', logoutUser);
 
