@@ -90,7 +90,9 @@ export async function fetchStoryViewers(storyId) {
   try {
     const res = await fetch(`${BASE_URL}/${storyId}/viewers`);
     const data = await res.json();
-    return data?.viewers || [];
+    const viewers = data?.viewers || [];
+    viewers.likesCount = data?.likesCount || 0;
+    return viewers;
   } catch (err) {
     console.error('fetchStoryViewers error:', err);
     return [];
@@ -111,5 +113,22 @@ export async function toggleStoryLike(storyId, userId) {
   } catch (err) {
     console.error('toggleStoryLike error:', err);
     return { success: false };
+  }
+}
+
+/**
+ * Reply to a story
+ */
+export async function replyStory(storyId, senderId, text) {
+  try {
+    const res = await fetch(`${BASE_URL}/${storyId}/reply`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ senderId, text }),
+    });
+    return await res.json();
+  } catch (err) {
+    console.error('replyStory error:', err);
+    return { success: false, message: err.message };
   }
 }

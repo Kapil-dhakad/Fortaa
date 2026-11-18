@@ -7,6 +7,7 @@ import {
   deleteStory,
   fetchStoryViewers,
   toggleStoryLike,
+  replyStory,
 } from '../../services/story.service';
 import { fetchConversations, sendChatMessageHttp } from '../../services/message.service';
 import { emitSendMessage } from '../../services/socket.service';
@@ -53,6 +54,7 @@ export default function StoryViewerModal({
   // Viewers sheet modal state
   const [showViewersSheet, setShowViewersSheet] = useState(false);
   const [viewersList, setViewersList] = useState([]);
+  const [viewersLikesCount, setViewersLikesCount] = useState(0);
   const [loadingViewers, setLoadingViewers] = useState(false);
 
   // Optimistic poll voting state: { [storyId]: { optionId, pollData } }
@@ -278,46 +280,32 @@ export default function StoryViewerModal({
     }
   };
 
-  // Send Story Reply Message via Chat & Socket
+  // Send Story Reply Message via Backend + Socket
   const handleSendReply = async (e) => {
-    if (e) e.stopPropagation();
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
     const textToSend = replyText.trim();
-    if (!textToSend || !currentUserId || isSendingReply) return;
+    const targetUserId = currentStory?.user_id || currentGroup?.userId;
+    if (!textToSend || !currentUserId || !targetUserId || isSendingReply) return;
 
     setIsSendingReply(true);
-    const targetUserId = currentGroup.userId;
-    const authorName = currentGroup.userName || 'Leader';
+    const authorName = currentGroup?.userName || 'Leader';
 
     try {
-      const msgText = `Replied to story: "${textToSend}"`;
-      const attachment = {
-        type: 'story_reply',
-        storyId: currentStory.id,
-        mediaType: currentStory.media_type,
-        mediaUrl: currentStory.media_url,
-        textContent: currentStory.text_content,
-      };
-
-      await sendChatMessageHttp({
-        senderId: currentUserId,
-        receiverId: targetUserId,
-        text: msgText,
-        attachment,
-      });
-
-      emitSendMessage({
-        senderId: currentUserId,
-        receiverId: targetUserId,
-        text: msgText,
-        attachment,
-      });
-
-      setReplyText('');
-      setReplyFeedback(`Sent to ${authorName}! 💬`);
-      setTimeout(() => {
-        setReplyFeedback('');
-        setIsPaused(false);
-      }, 2200);
+      const res = await replyStory(currentStory.id, currentUserId, textToSend);
+      if (res?.success) {
+        setReplyText('');
+        setReplyFeedback(`Sent to ${authorName}! 💬`);
+        toast.success(`Sent to ${authorName}! 💬`);
+        setTimeout(() => {
+          setReplyFeedback('');
+          setIsPaused(false);
+        }, 2200);
+      } else {
+        toast.error(res?.message || 'Failed to send reply');
+      }
     } catch (err) {
       console.error('Failed to send story reply:', err);
       toast.error('Failed to send reply');
@@ -459,6 +447,7 @@ export default function StoryViewerModal({
     try {
       const viewers = await fetchStoryViewers(currentStory.id);
       setViewersList(viewers);
+      setViewersLikesCount(viewers.likesCount || viewers.filter((v) => v.has_liked).length || 0);
     } catch (err) {
       console.error('Failed to load viewers:', err);
     } finally {
@@ -497,7 +486,8 @@ export default function StoryViewerModal({
       e.target.closest('input') ||
       e.target.closest('.svm-poll-opt-btn') ||
       e.target.closest('.svm-dropdown-menu') ||
-      e.target.closest('.svm-viewers-sheet')
+      e.target.closest('.svm-viewers-sheet') ||
+      e.target.closest('.svm-footer-bar')
     ) {
       return;
     }
@@ -534,6 +524,7 @@ export default function StoryViewerModal({
       {/* Main 9:16 Story Frame */}
       <div
         className="svm-story-frame"
+        onClick={(e) => e.stopPropagation()}
         onPointerDown={handlePointerDown}
         onPointerUp={handlePointerUp}
         onPointerCancel={handlePointerUp}
@@ -769,7 +760,7 @@ export default function StoryViewerModal({
         </div>
 
         {/* Bottom Views / Actions Footer */}
-        <div className="svm-footer-bar svm-interactive">
+        <div className="svm-footer-bar svm-interactive" onClick={(e) => e.stopPropagation()}>
           {isOwner ? (
             /* Author View: Views indicator on LEFT with SVG Eye Icon, clickable to see viewers */
             <div className="svm-footer-owner-row">
@@ -797,11 +788,13 @@ export default function StoryViewerModal({
             </div>
           ) : (
             /* Viewer View: Reply input pill + Heart SVG Like Button + Share Paper Plane Icon */
-            <div className="svm-reply-bar">
+            <div className="svm-reply-bar" onClick={(e) => e.stopPropagation()}>
               <div className="svm-reply-input-wrap">
                 <input
                   type="text"
                   value={replyText}
+                  onClick={(e) => e.stopPropagation()}
+                  onPointerDown={(e) => e.stopPropagation()}
                   onChange={(e) => setReplyText(e.target.value)}
                   onFocus={() => setIsPaused(true)}
                   onBlur={() => {
@@ -809,12 +802,12 @@ export default function StoryViewerModal({
                       setIsPaused(false);
                     }
                   }}
-                  placeholder={`Reply to ${currentGroup.userName}...`}
+                  placeholder={`Reply to ${currentGroup?.userName || 'Leader'}...`}
                   className="svm-reply-input"
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
                       e.preventDefault();
-                      handleSendReply();
+                      handleSendReply(e);
                     }
                   }}
                 />
@@ -822,6 +815,7 @@ export default function StoryViewerModal({
                   <button
                     type="button"
                     className="svm-reply-send-btn"
+                    onMouseDown={(e) => e.preventDefault()}
                     onClick={handleSendReply}
                     disabled={isSendingReply}
                     title="Send Reply"
@@ -894,7 +888,7 @@ export default function StoryViewerModal({
                   <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
                   <circle cx="12" cy="12" r="3" />
                 </svg>
-                <h4>Story Views ({viewersList.length})</h4>
+                <h4>Story Views</h4>
               </div>
               <button
                 type="button"
@@ -921,26 +915,50 @@ export default function StoryViewerModal({
                   {viewersList.map((viewer) => (
                     <div
                       key={viewer.id}
-                      className="svm-viewer-item"
+                      className={`svm-viewer-item ${viewer.has_liked ? 'has-liked' : ''}`}
                       onClick={() => {
                         onClose?.();
                         navigate(`/leader/${viewer.id}`);
                       }}
                     >
-                      <img
-                        src={viewer.avatar_url || userAvatarImg}
-                        alt={viewer.name}
-                        className="svm-viewer-avatar"
-                        onError={(e) => {
-                          e.currentTarget.onerror = null;
-                          e.currentTarget.src = userAvatarImg;
-                        }}
-                      />
+                      <div className="svm-viewer-avatar-wrap">
+                        <img
+                          src={viewer.avatar_url || userAvatarImg}
+                          alt={viewer.name}
+                          className="svm-viewer-avatar"
+                          onError={(e) => {
+                            e.currentTarget.onerror = null;
+                            e.currentTarget.src = userAvatarImg;
+                          }}
+                        />
+                        {viewer.has_liked && (
+                          <span className="svm-viewer-avatar-heart" title="Liked this story">
+                            ❤️
+                          </span>
+                        )}
+                      </div>
                       <div className="svm-viewer-info">
-                        <span className="svm-viewer-name">{viewer.name}</span>
+                        <div className="svm-viewer-name-row">
+                          <span className="svm-viewer-name">{viewer.name}</span>
+                          {viewer.has_liked && (
+                            <span className="svm-viewer-liked-badge">
+                              <svg width="11" height="11" viewBox="0 0 24 24" fill="#EF4444" stroke="#EF4444">
+                                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                              </svg>
+                              Liked
+                            </span>
+                          )}
+                        </div>
                         <span className="svm-viewer-role">{viewer.designation || 'Business Leader'}</span>
                       </div>
-                      <span className="svm-viewer-time">{formatTimeAgo(viewer.viewed_at)}</span>
+                      <div className="svm-viewer-meta">
+                        {viewer.has_liked && (
+                          <svg className="svm-viewer-like-icon" width="16" height="16" viewBox="0 0 24 24" fill="#EF4444" stroke="#EF4444" strokeWidth="2">
+                            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                          </svg>
+                        )}
+                        <span className="svm-viewer-time">{formatTimeAgo(viewer.viewed_at)}</span>
+                      </div>
                     </div>
                   ))}
                 </div>

@@ -192,12 +192,15 @@ CREATE TABLE IF NOT EXISTS notifications (
   type VARCHAR(50) NOT NULL,
   message TEXT,
   is_read BOOLEAN DEFAULT FALSE,
+  is_seen BOOLEAN DEFAULT FALSE,
   ref_id INTEGER,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
+ALTER TABLE notifications ADD COLUMN IF NOT EXISTS is_seen BOOLEAN DEFAULT FALSE;
 CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON notifications(user_id);
 CREATE INDEX IF NOT EXISTS idx_notifications_is_read ON notifications(is_read);
+CREATE INDEX IF NOT EXISTS idx_notifications_is_seen ON notifications(is_seen);
 
 -- Post Likes Table (Tracks which user liked which post)
 CREATE TABLE IF NOT EXISTS post_likes (

@@ -32,6 +32,12 @@ async function getUserNotifications(req, res) {
 
     const unreadCount = result.rows.filter((n) => !n.is_read).length;
 
+    // Mark current notifications as seen so bell red badge is removed, while keeping is_read intact for item highlighting
+    db.query(
+      'UPDATE notifications SET is_seen = true WHERE user_id = $1 AND is_seen = false',
+      [userId]
+    ).catch((err) => console.error('Auto mark seen error:', err));
+
     return res.status(200).json({
       success: true,
       notifications: result.rows,
@@ -58,7 +64,7 @@ async function getUnreadCount(req, res) {
     }
 
     const result = await db.query(
-      'SELECT COUNT(*) FROM notifications WHERE user_id = $1 AND is_read = false',
+      'SELECT COUNT(*) FROM notifications WHERE user_id = $1 AND is_seen = false',
       [userId]
     );
 
@@ -161,10 +167,37 @@ async function deleteNotification(req, res) {
   }
 }
 
+async function markAllAsSeen(req, res) {
+  try {
+    const userId = parseInt(req.body.userId || req.params.userId || req.userId, 10);
+    if (!userId || isNaN(userId)) {
+      return res.status(400).json({ success: false, message: 'Invalid user ID' });
+    }
+
+    if (!db.isDBConnected()) {
+      return res.status(200).json({ success: true, message: 'Marked seen (offline)' });
+    }
+
+    await db.query(
+      'UPDATE notifications SET is_seen = true WHERE user_id = $1 AND is_seen = false',
+      [userId]
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: 'All notifications marked as seen',
+    });
+  } catch (error) {
+    console.error('markAllAsSeen error:', error);
+    return res.status(500).json({ success: false, message: 'Failed to update notifications' });
+  }
+}
+
 module.exports = {
   getUserNotifications,
   getUnreadCount,
   markAllAsRead,
+  markAllAsSeen,
   markOneAsRead,
   deleteNotification,
 };

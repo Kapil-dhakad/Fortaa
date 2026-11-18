@@ -332,7 +332,7 @@ async function deleteStory(req, res) {
 }
 
 /**
- * Get viewers list for a story (excludes author self-views)
+ * Get viewers list for a story (excludes author self-views, includes likers)
  */
 async function getStoryViewers(req, res) {
   try {
@@ -342,19 +342,36 @@ async function getStoryViewers(req, res) {
     }
 
     const result = await db.query(
-      `SELECT u.id, u.name, u.avatar_url, COALESCE(u.designation, 'Business Leader') as designation, sv.viewed_at
-       FROM story_views sv
-       JOIN stories s ON sv.story_id = s.id
-       JOIN users u ON sv.viewer_id = u.id
-       WHERE sv.story_id = $1 AND sv.viewer_id != s.user_id
-       ORDER BY sv.viewed_at DESC`,
+      `SELECT DISTINCT ON (u.id)
+              u.id,
+              u.name,
+              u.avatar_url,
+              COALESCE(u.designation, 'Business Leader') as designation,
+              COALESCE(sv.viewed_at, sl.created_at) as viewed_at,
+              (sl.id IS NOT NULL) as has_liked
+       FROM users u
+       LEFT JOIN story_views sv ON (sv.viewer_id = u.id AND sv.story_id = $1)
+       LEFT JOIN story_likes sl ON (sl.user_id = u.id AND sl.story_id = $1)
+       JOIN stories s ON s.id = $1
+       WHERE (sv.id IS NOT NULL OR sl.id IS NOT NULL) AND u.id != s.user_id
+       ORDER BY u.id, (sl.id IS NOT NULL) DESC, viewed_at DESC`,
       [storyId]
     );
 
+    const viewers = (result.rows || []).sort((a, b) => {
+      if (b.has_liked !== a.has_liked) {
+        return b.has_liked ? 1 : -1;
+      }
+      return new Date(b.viewed_at) - new Date(a.viewed_at);
+    });
+
+    const likesCount = viewers.filter((v) => v.has_liked).length;
+
     return res.status(200).json({
       success: true,
-      viewers: result.rows || [],
-      count: result.rows.length,
+      viewers,
+      count: viewers.length,
+      likesCount,
     });
   } catch (error) {
     console.error('getStoryViewers error:', error);
@@ -363,7 +380,7 @@ async function getStoryViewers(req, res) {
 }
 
 /**
- * Toggle like on a story
+ * Toggle like on a story (deduplicates notifications and handles unlike cleanup)
  */
 async function toggleStoryLike(req, res) {
   try {
@@ -381,16 +398,38 @@ async function toggleStoryLike(req, res) {
 
     let isLiked = false;
     if (check.rows.length > 0) {
+      // 1. Unlike story
       await db.query(`DELETE FROM story_likes WHERE story_id = $1 AND user_id = $2`, [storyId, userId]);
       isLiked = false;
+
+      // 2. Remove like notification to prevent spam
+      try {
+        await db.query(
+          `DELETE FROM notifications
+           WHERE user_id = (SELECT user_id FROM stories WHERE id = $1)
+             AND actor_id = $2 AND type = 'story_like' AND ref_id = $1`,
+          [storyId, userId]
+        );
+      } catch (delNotifErr) {
+        console.warn('Delete like notification error (non-fatal):', delNotifErr.message);
+      }
     } else {
+      // 1. Like story
       await db.query(
         `INSERT INTO story_likes (story_id, user_id, created_at) VALUES ($1, $2, NOW())`,
         [storyId, userId]
       );
       isLiked = true;
 
-      // Trigger notification for story author if someone else liked
+      // 2. Automatically record in story_views
+      await db.query(
+        `INSERT INTO story_views (story_id, viewer_id, viewed_at)
+         VALUES ($1, $2, CURRENT_TIMESTAMP)
+         ON CONFLICT (story_id, viewer_id) DO NOTHING`,
+        [storyId, userId]
+      ).catch(() => {});
+
+      // 3. Trigger or update notification for story author if someone else liked
       try {
         const storyOwnerRes = await db.query(
           `SELECT s.user_id as owner_id, u.name as liker_name, u.avatar_url as liker_avatar
@@ -402,11 +441,28 @@ async function toggleStoryLike(req, res) {
         if (storyOwnerRes.rows.length > 0) {
           const { owner_id, liker_name, liker_avatar } = storyOwnerRes.rows[0];
           if (parseInt(owner_id, 10) !== userId) {
-            await db.query(
-              `INSERT INTO notifications (user_id, actor_id, actor_name, actor_avatar, type, message, ref_id)
-               VALUES ($1, $2, $3, $4, 'story_like', 'liked your story', $5)`,
-              [owner_id, userId, liker_name, liker_avatar, storyId]
+            // Check if notification already exists to prevent duplicate rows
+            const existingNotif = await db.query(
+              `SELECT id FROM notifications
+               WHERE user_id = $1 AND actor_id = $2 AND type = 'story_like' AND ref_id = $3
+               ORDER BY id DESC LIMIT 1`,
+              [owner_id, userId, storyId]
             );
+
+            if (existingNotif.rows.length > 0) {
+              await db.query(
+                `UPDATE notifications
+                 SET is_read = false, is_seen = false, created_at = NOW()
+                 WHERE id = $1`,
+                [existingNotif.rows[0].id]
+              );
+            } else {
+              await db.query(
+                `INSERT INTO notifications (user_id, actor_id, actor_name, actor_avatar, type, message, ref_id, is_read, is_seen)
+                 VALUES ($1, $2, $3, $4, 'story_like', 'liked your story', $5, false, false)`,
+                [owner_id, userId, liker_name, liker_avatar, storyId]
+              );
+            }
 
             const io = req.app?.get('io') || getIO();
             if (io) {
@@ -443,6 +499,108 @@ async function toggleStoryLike(req, res) {
   }
 }
 
+/**
+ * Reply to a story (sends direct chat message + story context + notification)
+ */
+async function replyToStory(req, res) {
+  try {
+    const storyId = parseInt(req.params.id, 10);
+    const senderId = parseInt(req.body.senderId, 10);
+    const text = (req.body.text || '').trim();
+
+    if (!storyId || !senderId || !text) {
+      return res.status(400).json({ success: false, message: 'storyId, senderId, and text are required' });
+    }
+
+    const storyRes = await db.query(
+      `SELECT s.id, s.user_id as author_id, s.media_type, s.media_url, s.text_content,
+              author.name as author_name,
+              u.name as sender_name, u.avatar_url as sender_avatar
+       FROM stories s
+       JOIN users author ON author.id = s.user_id
+       JOIN users u ON u.id = $2
+       WHERE s.id = $1`,
+      [storyId, senderId]
+    );
+
+    if (storyRes.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Story not found' });
+    }
+
+    const { author_id, author_name, media_type, media_url, text_content, sender_name, sender_avatar } = storyRes.rows[0];
+
+    if (parseInt(author_id, 10) === senderId) {
+      return res.status(400).json({ success: false, message: 'Cannot reply to your own story' });
+    }
+
+    const attachment = {
+      type: 'story_reply',
+      storyId,
+      authorName: author_name || 'Leader',
+      mediaType: media_type,
+      mediaUrl: media_url,
+      textContent: text_content,
+    };
+    const payloadToSave = JSON.stringify({ text, attachment });
+
+    // 1. Insert into messages table
+    const msgInsert = await db.query(
+      `INSERT INTO messages (sender_id, receiver_id, text, is_read)
+       VALUES ($1, $2, $3, FALSE)
+       RETURNING id, sender_id, receiver_id, text, is_read, created_at`,
+      [senderId, author_id, payloadToSave]
+    );
+
+    const formattedMsg = {
+      ...msgInsert.rows[0],
+      text: text,
+      attachment,
+      sender_name,
+      sender_avatar,
+      status: 'sent',
+    };
+
+    // 2. Ensure viewer is recorded in story_views
+    await db.query(
+      `INSERT INTO story_views (story_id, viewer_id, viewed_at)
+       VALUES ($1, $2, CURRENT_TIMESTAMP)
+       ON CONFLICT (story_id, viewer_id) DO NOTHING`,
+      [storyId, senderId]
+    ).catch(() => {});
+
+    // 3. Insert notification for story author
+    const notifMsg = `replied to your story: "${text.length > 40 ? text.slice(0, 37) + '...' : text}"`;
+    await db.query(
+      `INSERT INTO notifications (user_id, actor_id, actor_name, actor_avatar, type, message, ref_id, is_read, is_seen)
+       VALUES ($1, $2, $3, $4, 'story_reply', $5, $6, false, false)`,
+      [author_id, senderId, sender_name, sender_avatar, notifMsg, storyId]
+    );
+
+    // 4. Dispatch real-time socket events
+    const io = req.app?.get('io') || getIO();
+    if (io) {
+      io.to(`room_${author_id}`).emit('new_message', formattedMsg);
+      io.to(`room_${author_id}`).emit('new_notification', {
+        type: 'story_reply',
+        actorId: senderId,
+        actorName: sender_name,
+        actorAvatar: sender_avatar,
+        message: notifMsg,
+        refId: storyId,
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'Reply sent successfully',
+      chatMessage: formattedMsg,
+    });
+  } catch (error) {
+    console.error('replyToStory error:', error);
+    return res.status(500).json({ success: false, message: 'Failed to reply to story' });
+  }
+}
+
 module.exports = {
   getActiveStories,
   createStory,
@@ -451,4 +609,5 @@ module.exports = {
   deleteStory,
   getStoryViewers,
   toggleStoryLike,
+  replyToStory,
 };

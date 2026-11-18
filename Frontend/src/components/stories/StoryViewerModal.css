@@ -40,11 +40,11 @@
   box-sizing: border-box;
 }
 
-/* Tap Navigation Areas (Instagram style: left 35% prev, right 65% next) */
+/* Tap Navigation Areas (Instagram style: left 35% prev, right 65% next, safe zone top/bottom) */
 .svm-tap-area {
   position: absolute;
-  top: 0;
-  bottom: 0;
+  top: 70px;
+  bottom: 80px;
   z-index: 15;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
@@ -631,6 +631,19 @@
   gap: 10px;
 }
 
+.svm-viewers-likes-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #FEE2E2;
+  color: #DC2626;
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 12px;
+  margin-left: 8px;
+}
+
 .svm-viewer-item {
   display: flex;
   align-items: center;
@@ -645,6 +658,21 @@
   background: #F8FAFC;
 }
 
+.svm-viewer-item.has-liked {
+  background: rgba(254, 242, 242, 0.45);
+}
+
+.svm-viewer-item.has-liked:hover {
+  background: #FEE2E2;
+}
+
+.svm-viewer-avatar-wrap {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+}
+
 .svm-viewer-avatar {
   width: 40px;
   height: 40px;
@@ -652,11 +680,30 @@
   object-fit: cover;
 }
 
+.svm-viewer-avatar-heart {
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+  font-size: 12px;
+  line-height: 1;
+  background: #FFFFFF;
+  border-radius: 50%;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+  padding: 1px;
+}
+
 .svm-viewer-info {
   flex: 1;
   display: flex;
   flex-direction: column;
   gap: 2px;
+  min-width: 0;
+}
+
+.svm-viewer-name-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .svm-viewer-name {
@@ -664,11 +711,46 @@
   font-weight: 700;
   color: #0F172A;
   text-transform: capitalize;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.svm-viewer-liked-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 10px;
+  font-weight: 700;
+  color: #DC2626;
+  background: #FEE2E2;
+  padding: 1px 6px;
+  border-radius: 10px;
+  flex-shrink: 0;
 }
 
 .svm-viewer-role {
   font-size: 11.5px;
   color: #64748B;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.svm-viewer-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.svm-viewer-like-icon {
+  animation: svmHeartPulse 1.8s infinite ease-in-out;
+}
+
+@keyframes svmHeartPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.15); }
 }
 
 .svm-viewer-time {

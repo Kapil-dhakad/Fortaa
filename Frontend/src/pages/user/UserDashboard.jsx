@@ -849,7 +849,21 @@ export default function UserDashboard() {
     totalPosts: 0,
   });
 
-  const [posts, setPosts] = useState([]);
+  const [posts, setPosts] = useState(() => {
+    try {
+      const cached = sessionStorage.getItem('fortaa_cached_feed');
+      return cached ? JSON.parse(cached) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [loadingPosts, setLoadingPosts] = useState(() => {
+    try {
+      return !sessionStorage.getItem('fortaa_cached_feed');
+    } catch {
+      return true;
+    }
+  });
   const [searchQuery, setSearchQuery] = useState('');
 
   const filteredPosts = React.useMemo(() => {
@@ -981,6 +995,25 @@ export default function UserDashboard() {
 
   // Load live data from Backend APIs on Mount
   useEffect(() => {
+    let isMounted = true;
+    const initialId = storedUser?.id || profile?.id || 1;
+
+    // 🚀 Instantly fetch posts in parallel (0 delay, does not wait for profile/overview)
+    fetchPosts(initialId)
+      .then((livePosts) => {
+        if (!isMounted) return;
+        const validPosts = Array.isArray(livePosts) ? livePosts : [];
+        setPosts(validPosts);
+        setLoadingPosts(false);
+        try {
+          sessionStorage.setItem('fortaa_cached_feed', JSON.stringify(validPosts));
+        } catch {}
+      })
+      .catch((err) => {
+        console.warn('fetchPosts error:', err);
+        if (isMounted) setLoadingPosts(false);
+      });
+
     async function loadDashboardData() {
       // 0. Verify authenticated user identity from token
       let currentId = storedUser.id;
@@ -996,72 +1029,71 @@ export default function UserDashboard() {
       }
       if (!currentId) currentId = storedUser.id || 1;
 
-      // 1. Overview & stats
-      const overview = await fetchDashboardOverview(storedUser.email || '');
-      if (overview?.success && overview.user) {
-        // Prevent profile leak: only adopt if overview matches current authenticated user
-        if (!currentId || overview.user.id === currentId) {
-          currentId = overview.user.id;
-          const freshAvatar = overview.user.avatar_url || storedUser.avatarUrl || null;
-          setProfile({
-            id: currentId,
-            name: overview.user.name || storedUser.name || 'User',
-            role: overview.user.designation || 'Leader',
-            memberId: overview.user.member_id || storedUser.memberId || 'NS381517',
-            company: overview.user.company_brand || overview.user.business_name || 'Index Technology',
-            avatarUrl: freshAvatar,
-            location: overview.user.location || '',
-            bio: overview.user.bio || '',
-            skills: overview.user.skills || '',
-          });
+      try {
+        // Parallel fetch overview, followingIds and all supporting widgets
+        const [overview, fData, tData, lData, sData, eData, gData, oData] = await Promise.all([
+          fetchDashboardOverview(storedUser.email || ''),
+          fetchFollowingIds(currentId),
+          fetchTrainers(),
+          fetchLeaders(currentId),
+          fetchServices(),
+          fetchEvents(),
+          fetchGroups(),
+          fetchOpportunities(),
+        ]);
 
-          // Sync localStorage so id and profile info are accurately persisted
-          try {
-            const cur = JSON.parse(localStorage.getItem('fortaa_user') || '{}');
-            localStorage.setItem(
-              'fortaa_user',
-              JSON.stringify({ ...cur, id: currentId, ...overview.user })
-            );
-            window.dispatchEvent(new CustomEvent('fortaa_user_synced', { detail: overview.user }));
-          } catch {}
+        if (!isMounted) return;
+
+        // 1. Overview & stats
+        if (overview?.success && overview.user) {
+          if (!currentId || overview.user.id === currentId) {
+            currentId = overview.user.id;
+            const freshAvatar = overview.user.avatar_url || storedUser.avatarUrl || null;
+            setProfile({
+              id: currentId,
+              name: overview.user.name || storedUser.name || 'User',
+              role: overview.user.designation || 'Leader',
+              memberId: overview.user.member_id || storedUser.memberId || 'NS381517',
+              company: overview.user.company_brand || overview.user.business_name || 'Index Technology',
+              avatarUrl: freshAvatar,
+              location: overview.user.location || '',
+              bio: overview.user.bio || '',
+              skills: overview.user.skills || '',
+            });
+
+            try {
+              const cur = JSON.parse(localStorage.getItem('fortaa_user') || '{}');
+              localStorage.setItem(
+                'fortaa_user',
+                JSON.stringify({ ...cur, id: currentId, ...overview.user })
+              );
+              window.dispatchEvent(new CustomEvent('fortaa_user_synced', { detail: overview.user }));
+            } catch {}
+          }
         }
+        if (overview?.stats) {
+          setStats(overview.stats);
+        }
+
+        // 2. Following & pending IDs
+        setFollowingIds(fData?.followingIds || []);
+        setPendingIds(fData?.pendingIds || []);
+
+        // 3. Supporting widgets
+        if (tData?.length) setTrainersList(tData);
+        const rawLeaders = Array.isArray(lData) ? lData : [];
+        const visibleLeaders = rawLeaders.filter(
+          (lead) => Number(lead.id) !== Number(currentId)
+        );
+        setLeadersList(visibleLeaders);
+
+        if (sData?.length) setServicesList(sData);
+        if (eData?.length) setEventsList(eData);
+        if (gData?.length) setGroupsList(gData);
+        if (oData?.length) setOpportunitiesList(oData);
+      } catch (err) {
+        console.warn('Dashboard parallel load error:', err);
       }
-      if (overview?.stats) {
-        setStats(overview.stats);
-      }
-
-      // 2. Fetch following & pending IDs for this user
-      const fData = await fetchFollowingIds(currentId);
-      setFollowingIds(fData?.followingIds || []);
-      setPendingIds(fData?.pendingIds || []);
-
-      // 3. Fetch Posts (Personalized feed for this user)
-      const livePosts = await fetchPosts(currentId);
-      setPosts(Array.isArray(livePosts) ? livePosts : []);
-
-      // 4. Supporting widgets
-      const [tData, lData, sData, eData, gData, oData] = await Promise.all([
-        fetchTrainers(),
-        fetchLeaders(currentId),
-        fetchServices(),
-        fetchEvents(),
-        fetchGroups(),
-        fetchOpportunities(),
-      ]);
-
-      if (tData?.length) setTrainersList(tData);
-      
-      // Load real database users/leaders (excluding current user)
-      const rawLeaders = Array.isArray(lData) ? lData : [];
-      const visibleLeaders = rawLeaders.filter(
-        (lead) => Number(lead.id) !== Number(currentId)
-      );
-      setLeadersList(visibleLeaders);
-
-      if (sData?.length) setServicesList(sData);
-      if (eData?.length) setEventsList(eData);
-      if (gData?.length) setGroupsList(gData);
-      if (oData?.length) setOpportunitiesList(oData);
     }
 
     loadDashboardData();
@@ -1112,6 +1144,7 @@ export default function UserDashboard() {
     }, 4000);
 
     return () => {
+      isMounted = false;
       unsubFollow?.();
       clearInterval(pollInterval);
     };
@@ -2056,6 +2089,19 @@ export default function UserDashboard() {
                       Clear Search
                     </button>
                   </div>
+                ) : loadingPosts && posts.length === 0 ? (
+                  <div
+                    style={{
+                      padding: '40px 24px',
+                      textAlign: 'center',
+                      background: '#FFFFFF',
+                      borderRadius: '12px',
+                      margin: '16px 0',
+                    }}
+                  >
+                    <div className="np-spinner" style={{ margin: '0 auto 12px' }} />
+                    <p style={{ margin: 0, color: '#6B7280', fontSize: '13px' }}>Loading posts...</p>
+                  </div>
                 ) : (
                   <div
                     style={{
@@ -2706,6 +2752,19 @@ export default function UserDashboard() {
                 >
                   Clear Search
                 </button>
+              </div>
+            ) : loadingPosts && posts.length === 0 ? (
+              <div
+                style={{
+                  padding: '40px 16px',
+                  textAlign: 'center',
+                  background: '#FFFFFF',
+                  borderRadius: '12px',
+                  margin: '12px 16px',
+                }}
+              >
+                <div className="np-spinner" style={{ margin: '0 auto 12px' }} />
+                <p style={{ margin: 0, color: '#6B7280', fontSize: '13px' }}>Loading posts...</p>
               </div>
             ) : (
               <div

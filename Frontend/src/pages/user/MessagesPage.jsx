@@ -1929,11 +1929,16 @@ export default function MessagesPage() {
                 const isMe = msg.sender === 'me';
                 const status = msg.status || 'delivered';
                 const isPinned = pinnedMessageId === msg.id;
+                const isStoryReply = msg.attachment?.type === 'story_reply' || msg.attachment?.type === 'story_share';
+                let displayStoryText = msg.text;
+                if (isStoryReply && typeof displayStoryText === 'string') {
+                  displayStoryText = displayStoryText.replace(/^Replied to story:\s*"?/, '').replace(/"?$/, '');
+                }
 
                 return (
                   <div
                     key={msg.id || idx}
-                    className={`msg-bubble-row ${isMe ? 'msg-outgoing' : 'msg-incoming'}`}
+                    className={`msg-bubble-row ${isMe ? 'msg-outgoing' : 'msg-incoming'} ${isStoryReply ? 'msg-story-reply-row' : ''}`}
                   >
                     {!isMe && (
                       <img
@@ -1944,7 +1949,7 @@ export default function MessagesPage() {
                     )}
 
                     <div
-                      className="msg-bubble-content"
+                      className={`msg-bubble-content ${isStoryReply ? 'msg-bubble-story-reply' : ''}`}
                       onClick={(e) => handleBubbleClick(e, msg)}
                     >
                       {/* WhatsApp Pin Badge if message is pinned */}
@@ -1962,6 +1967,44 @@ export default function MessagesPage() {
                           <div className="wa-bubble-quote-info">
                             <span className="wa-bubble-quote-author">{msg.replyTo.name}</span>
                             <span className="wa-bubble-quote-snippet">{msg.replyTo.text}</span>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Instagram Style Story Reply Card (Image 2) */}
+                      {isStoryReply && (
+                        <div className="msg-story-reply-card-wrap">
+                          <div className="msg-story-reply-author-label">
+                            Replied to {isMe ? (msg.attachment.authorName ? `@${msg.attachment.authorName}'s` : `@${selectedContact?.name || 'user'}'s`) : 'your'} story
+                          </div>
+                          <div
+                            className="msg-story-reply-media-card"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (msg.attachment.mediaUrl) {
+                                window.open(msg.attachment.mediaUrl, '_blank');
+                              }
+                            }}
+                            title="Click to view story media"
+                          >
+                            {msg.attachment.mediaType === 'video' ? (
+                              <video
+                                src={msg.attachment.mediaUrl}
+                                className="msg-story-reply-thumb-media"
+                                muted
+                                playsInline
+                              />
+                            ) : msg.attachment.mediaUrl ? (
+                              <img
+                                src={msg.attachment.mediaUrl}
+                                alt="Story"
+                                className="msg-story-reply-thumb-media"
+                              />
+                            ) : (
+                              <div className="msg-story-reply-text-thumb">
+                                <span>{msg.attachment.textContent || 'Story'}</span>
+                              </div>
+                            )}
                           </div>
                         </div>
                       )}
@@ -2050,8 +2093,8 @@ export default function MessagesPage() {
                           <span className="msg-deleted-symbol">🚫</span> <em>{msg.text || 'This message was deleted'}</em>
                         </p>
                       ) : (
-                        msg.text && msg.text !== msg.attachment?.name && (
-                          <p className="msg-bubble-text">{msg.text}</p>
+                        displayStoryText && displayStoryText !== msg.attachment?.name && (
+                          <p className={`msg-bubble-text ${isStoryReply ? 'msg-story-reply-bubble-text' : ''}`}>{displayStoryText}</p>
                         )
                       )}
 
@@ -2092,7 +2135,7 @@ export default function MessagesPage() {
                         </div>
                       )}
 
-                      {/* WhatsApp Dropdown Trigger Arrow (Hover on Desktop / Tap on Mobile) */}
+                      {/* Three Dots Menu Trigger Button (Exact Match Image 2) */}
                       {!msg.is_deleted && (
                         <button
                           type="button"
@@ -2100,11 +2143,11 @@ export default function MessagesPage() {
                           title="Message options"
                           onClick={(e) => handleOpenMenu(e, msg.id)}
                         >
-                          <FiChevronDown />
+                          <BsThreeDotsVertical />
                         </button>
                       )}
 
-                      {/* WhatsApp Floating Dropdown Menu (Exact Match Image 2) */}
+                      {/* Floating Dropdown Menu (Exact Match Image 2 with Forward & Unsend) */}
                       {activeMenuMsgId === msg.id && !msg.is_deleted && (
                         <div
                           className={`wa-msg-dropdown-container ${isMe ? 'wa-dropdown-outgoing' : 'wa-dropdown-incoming'} ${menuOpenUpward ? 'open-upward' : 'open-downward'}`}
@@ -2165,15 +2208,15 @@ export default function MessagesPage() {
                             </div>
                           )}
 
-                          {/* 2. Actions List (Exact matching Image 1 + Delete, React omitted since emojis are above) */}
+                          {/* 2. Actions List with Forward and Unsend */}
                           <div className="wa-action-menu">
                             <button
                               type="button"
                               className="wa-action-item"
-                              onClick={() => handleMessageInfo(msg)}
+                              onClick={() => handleForwardMessage(msg)}
                             >
-                              <FiInfo className="wa-action-icon" />
-                              <span>Message info</span>
+                              <FiCornerUpRight className="wa-action-icon" />
+                              <span>Forward</span>
                             </button>
 
                             <button
@@ -2197,19 +2240,19 @@ export default function MessagesPage() {
                             <button
                               type="button"
                               className="wa-action-item"
-                              onClick={() => handleForwardMessage(msg)}
+                              onClick={() => handlePinMessage(msg)}
                             >
-                              <FiCornerUpRight className="wa-action-icon" />
-                              <span>Forward</span>
+                              <BsPinAngle className="wa-action-icon" />
+                              <span>{isPinned ? 'Unpin' : 'Pin'}</span>
                             </button>
 
                             <button
                               type="button"
                               className="wa-action-item"
-                              onClick={() => handlePinMessage(msg)}
+                              onClick={() => handleMessageInfo(msg)}
                             >
-                              <BsPinAngle className="wa-action-icon" />
-                              <span>{isPinned ? 'Unpin' : 'Pin'}</span>
+                              <FiInfo className="wa-action-icon" />
+                              <span>Message info</span>
                             </button>
 
                             <button
@@ -2681,7 +2724,7 @@ export default function MessagesPage() {
           </div>
         )}
 
-        {/* 🗑️ WhatsApp Delete Message Modal */}
+        {/* 🗑️ Delete Message Modal */}
         {deleteModalMsg && (
           <div className="wa-modal-overlay" onClick={() => setDeleteModalMsg(null)}>
             <div className="wa-delete-modal-card" onClick={(e) => e.stopPropagation()}>

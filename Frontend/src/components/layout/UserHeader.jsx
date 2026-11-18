@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { fetchUnreadCount } from '../../services/notification.service';
 import { fetchUnreadMessageCount } from '../../services/message.service';
@@ -28,6 +28,8 @@ export default function UserHeader({
   messageCount = null,
 }) {
   const navigate = useNavigate();
+  const location = useLocation();
+  const isNotificationsPage = location.pathname === '/notifications';
 
   // Fallback to local storage if user prop is missing or partial
   let storedUser = {};
@@ -214,6 +216,10 @@ export default function UserHeader({
     let isMounted = true;
 
     const refreshNotifCount = () => {
+      if (location.pathname === '/notifications') {
+        if (isMounted) setRealNotifCount(0);
+        return;
+      }
       fetchUnreadCount(currentUserId)
         .then((cnt) => {
           if (isMounted) setRealNotifCount(cnt || 0);
@@ -273,6 +279,7 @@ export default function UserHeader({
       refreshMsgCount();
     };
     window.addEventListener('messages_count_refresh', handleCountRefresh);
+    window.addEventListener('notifications_count_refresh', handleCountRefresh);
 
     // 3s background sync
     const interval = setInterval(() => {
@@ -288,6 +295,7 @@ export default function UserHeader({
       s.off('messages_read', refreshMsgCount);
       s.off('messages_marked_read', refreshMsgCount);
       window.removeEventListener('messages_count_refresh', handleCountRefresh);
+      window.removeEventListener('notifications_count_refresh', handleCountRefresh);
       clearInterval(interval);
     };
   }, [currentUserId]);
@@ -437,10 +445,13 @@ export default function UserHeader({
             type="button"
             className="ud-icon-circle-btn ud-notif-btn"
             title="Notifications"
-            onClick={() => navigate('/notifications')}
+            onClick={() => {
+              setRealNotifCount(0);
+              navigate('/notifications');
+            }}
           >
             <img src={bellIconImg} alt="Notifications" className="ud-header-action-icon" />
-            {realNotifCount > 0 && <span className="ud-badge-count">{realNotifCount}</span>}
+            {!isNotificationsPage && realNotifCount > 0 && <span className="ud-badge-count">{realNotifCount}</span>}
           </button>
 
           <button
@@ -577,11 +588,12 @@ export default function UserHeader({
               title="Notifications"
               onClick={(e) => {
                 e.stopPropagation();
+                setRealNotifCount(0);
                 navigate('/notifications');
               }}
             >
               <img src={bellIconImg} alt="Notifications" className="ud-mob-action-img" />
-              {realNotifCount > 0 && <span className="ud-mob-red-badge">{realNotifCount}</span>}
+              {!isNotificationsPage && realNotifCount > 0 && <span className="ud-mob-red-badge">{realNotifCount}</span>}
             </button>
 
             <button

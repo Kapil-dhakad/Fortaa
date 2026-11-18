@@ -8,6 +8,7 @@ const {
   deleteStory,
   getStoryViewers,
   toggleStoryLike,
+  replyToStory,
 } = require('../controller/story.controller');
 
 // Get all active stories grouped by user
@@ -24,6 +25,9 @@ router.get('/:id/viewers', getStoryViewers);
 
 // Toggle story like
 router.post('/:id/like', toggleStoryLike);
+
+// Reply to a story
+router.post('/:id/reply', replyToStory);
 
 // Vote on a story poll
 router.post('/:id/poll-vote', voteStoryPoll);

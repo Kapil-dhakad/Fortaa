@@ -3066,6 +3066,19 @@
   opacity: 0.9;
 }
 
+.np-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid #E2E8F0;
+  border-top-color: #5A2CE4;
+  border-radius: 50%;
+  animation: udSpin 0.7s linear infinite;
+}
+
+@keyframes udSpin {
+  to { transform: rotate(360deg); }
+}
+
 /* Responsive Breakpoints */
 @media (min-width: 1600px) {
   .ud-content-columns {

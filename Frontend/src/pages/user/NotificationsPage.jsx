@@ -60,6 +60,7 @@ export default function NotificationsPage() {
       const data = await fetchNotifications(currentUserId);
       const list = Array.isArray(data) ? data : [];
       setNotifications(list);
+      window.dispatchEvent(new CustomEvent('notifications_count_refresh'));
     } catch (err) {
       console.error('Failed to load notifications:', err);
     } finally {
@@ -312,19 +313,6 @@ export default function NotificationsPage() {
               </div>
 
               <div className="np-header-actions">
-                {unreadCount > 0 && (
-                  <button
-                    type="button"
-                    className="np-mark-read-btn"
-                    onClick={handleMarkAllRead}
-                    title="Mark all notifications as read"
-                  >
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                      <polyline points="20 6 9 17 4 12" />
-                    </svg>
-                    <span>Mark all read</span>
-                  </button>
-                )}
                 <button
                   type="button"
                   className="np-refresh-btn"

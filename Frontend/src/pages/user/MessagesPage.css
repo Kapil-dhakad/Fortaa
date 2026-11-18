@@ -3077,82 +3077,83 @@
   box-shadow: 0 4px 10px rgba(124, 58, 237, 0.35);
 }
 
-/* ── 3. WhatsApp Delete Message Modal Card (Exact Match Image 3) ── */
+/* ── 3. Fortaa Delete Message Modal Card (Matches Website Theme) ── */
 .wa-delete-modal-card {
-  background: #20272B; /* Dark charcoal/slate matching Image 3 */
-  border-radius: 24px;
+  background: #FFFFFF;
+  border-radius: 20px;
   width: 100%;
-  max-width: 320px;
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  padding: 26px 20px 18px;
+  max-width: 330px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.18);
+  border: 1px solid #E2E8F0;
+  padding: 24px 22px 20px;
   animation: waModalScale 0.18s ease-out;
 }
 
 .wa-delete-modal-title {
-  font-size: 21px;
-  font-weight: 500;
-  color: #FFFFFF;
+  font-size: 19px;
+  font-weight: 700;
+  color: #0F172A;
   text-align: center;
-  margin: 0 0 24px 0;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  margin: 0 0 20px 0;
   letter-spacing: -0.01em;
 }
 
 .wa-delete-modal-actions {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
   width: 100%;
 }
 
 .wa-delete-btn {
   width: 100%;
-  padding: 12px 20px;
-  border-radius: 30px;
-  font-size: 14.5px;
-  font-weight: 500;
+  padding: 11px 20px;
+  border-radius: 24px;
+  font-size: 14px;
+  font-weight: 600;
   cursor: pointer;
-  transition: all 0.14s ease;
+  transition: all 0.15s ease;
   text-align: center;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
-/* Outlined pill button with salmon-red text per Image 3 */
+/* Delete for everyone - Red primary button */
 .wa-delete-everyone-btn {
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  background: transparent;
-  color: #F87171;
+  border: 1px solid #EF4444;
+  background: #EF4444;
+  color: #FFFFFF;
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.25);
 }
 
 .wa-delete-everyone-btn:hover {
-  background: rgba(248, 113, 113, 0.12);
-  border-color: #F87171;
+  background: #DC2626;
+  border-color: #DC2626;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.35);
 }
 
-/* Outlined pill button with green text per Image 3 */
+/* Delete for me - Neutral light button */
 .wa-delete-me-btn {
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  background: transparent;
-  color: #22C55E;
+  border: 1px solid #E2E8F0;
+  background: #F8FAFC;
+  color: #334155;
 }
 
 .wa-delete-me-btn:hover {
-  background: rgba(34, 197, 94, 0.12);
-  border-color: #22C55E;
+  background: #F1F5F9;
+  border-color: #CBD5E1;
+  color: #0F172A;
 }
 
-/* Borderless text button with green text per Image 3 */
+/* Cancel button - Subtle text */
 .wa-delete-cancel-btn {
   border: none;
   background: transparent;
-  color: #22C55E;
-  margin-top: 4px;
+  color: #64748B;
+  margin-top: 2px;
 }
 
 .wa-delete-cancel-btn:hover {
-  color: #4ADE80;
-  text-decoration: underline;
+  color: #0F172A;
 }
 
 /* Mobile responsive adjustments for WhatsApp dropdown */
@@ -3265,6 +3266,110 @@
   accent-color: #6d28d9;
   cursor: pointer;
 }
+
+/* ═════════════════════════════════════════════════════════════════
+   Instagram-Style Story Reply in Chat (Matches Image 2)
+   ═════════════════════════════════════════════════════════════════ */
+.msg-story-reply-card-wrap {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 8px;
+  max-width: 190px;
+}
+
+.msg-story-reply-author-label {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.85);
+  margin-bottom: 6px;
+  text-align: right;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.msg-incoming .msg-story-reply-author-label {
+  color: #64748B;
+  text-align: left;
+}
+
+.msg-story-reply-media-card {
+  width: 160px;
+  height: 225px;
+  border-radius: 16px;
+  overflow: hidden;
+  position: relative;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  background: #090D16;
+  cursor: pointer;
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.msg-story-reply-media-card:hover {
+  transform: scale(1.02);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+}
+
+.msg-story-reply-thumb-media {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.msg-story-reply-text-thumb {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #FFFFFF;
+  text-align: center;
+  background: linear-gradient(135deg, #6366F1, #9333EA);
+  box-sizing: border-box;
+}
+
+.msg-bubble-story-reply {
+  padding: 10px 12px !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  border: none !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-end !important;
+}
+
+.msg-incoming .msg-bubble-story-reply {
+  align-items: flex-start !important;
+}
+
+.msg-story-reply-bubble-text {
+  font-size: 13.5px;
+  font-weight: 500;
+  margin: 0;
+  word-break: break-word;
+  background: #6B30FD; /* Fortaa vibrant brand purple */
+  color: #FFFFFF;
+  padding: 8px 16px;
+  border-radius: 18px;
+  box-shadow: 0 2px 8px rgba(107, 48, 253, 0.25);
+  display: inline-block;
+  max-width: 100%;
+}
+
+.msg-incoming .msg-story-reply-bubble-text {
+  background: #F1F5F9;
+  color: #0F172A;
+}
+
+.msg-bubble-story-reply .msg-bubble-meta-row {
+  margin-top: 4px;
+}
+
 
 
 

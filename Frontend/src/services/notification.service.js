@@ -48,6 +48,23 @@ export async function markNotificationsRead(userId) {
 }
 
 /**
+ * Mark all notifications as seen (clears top bar bell badge)
+ */
+export async function markNotificationsSeen(userId) {
+  try {
+    const res = await fetch(`${BASE_URL}/mark-seen`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId }),
+    });
+    return await res.json();
+  } catch (err) {
+    console.error('markNotificationsSeen error:', err);
+    return { success: false };
+  }
+}
+
+/**
  * Mark a single notification as read (or unread)
  */
 export async function markNotificationAsRead(notificationId, isRead = true) {
