@@ -1,6 +1,8 @@
 const multer = require('multer');
 const multerS3 = require('multer-s3');
 const path = require('path');
+const fs = require('fs');
+const os = require('os');
 const s3 = require('../config/s3');
 
 // S3 Storage setup for images
@@ -126,8 +128,30 @@ const uploadVideo = multer({
   fileFilter: videoFileFilter,
 });
 
+// Temporary disk storage for incoming videos so they can be compressed & faststart-optimized before S3
+const videoTempStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const tempDir = path.join(os.tmpdir(), 'fortaa-video-uploads');
+    if (!fs.existsSync(tempDir)) {
+      fs.mkdirSync(tempDir, { recursive: true });
+    }
+    cb(null, tempDir);
+  },
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase() || '.mp4';
+    cb(null, `raw-${Date.now()}-${Math.random().toString(36).substring(7)}${ext}`);
+  },
+});
+
+const uploadVideoTemp = multer({
+  storage: videoTempStorage,
+  limits: { fileSize: 100 * 1024 * 1024 }, // 100MB limit for videos
+  fileFilter: videoFileFilter,
+});
+
 module.exports = {
   uploadImage,
   uploadDocument,
   uploadVideo,
+  uploadVideoTemp,
 };

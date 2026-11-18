@@ -1002,3 +1002,28 @@
     padding: 18px 16px;
   }
 }
+
+/* Video Buffering Spinner */
+.svm-video-spinner-wrap {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 10;
+  pointer-events: none;
+}
+
+.svm-video-spinner {
+  width: 42px;
+  height: 42px;
+  border: 3.5px solid rgba(255, 255, 255, 0.35);
+  border-top-color: #FFFFFF;
+  border-radius: 50%;
+  animation: svmVidSpin 0.75s linear infinite;
+}
+
+@keyframes svmVidSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}

@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const { uploadImage, uploadDocument, uploadVideo } = require('../middleware/upload.middleware');
+const { uploadImage, uploadDocument, uploadVideo, uploadVideoTemp } = require('../middleware/upload.middleware');
+const { processAndUploadVideo } = require('../services/video.service');
 
 /**
  * @route   POST /api/upload/image
@@ -103,11 +104,11 @@ router.post('/document', (req, res) => {
 
 /**
  * @route   POST /api/upload/video
- * @desc    Upload video for post or reel
- * @query   ?folder=videos | posts
+ * @desc    Upload video for post, reel, or story (automatically compresses & adds faststart if FFmpeg is available)
+ * @query   ?folder=videos | posts | stories
  */
 router.post('/video', (req, res) => {
-  uploadVideo.single('file')(req, res, (err) => {
+  uploadVideoTemp.single('file')(req, res, async (err) => {
     if (err) {
       return res.status(400).json({
         success: false,
@@ -122,14 +123,29 @@ router.post('/video', (req, res) => {
       });
     }
 
-    return res.status(200).json({
-      success: true,
-      message: 'Video uploaded successfully',
-      url: req.file.location,
-      key: req.file.key,
-      size: req.file.size,
-      mimetype: req.file.mimetype,
-    });
+    try {
+      const folder = req.query.folder || 'videos';
+      const result = await processAndUploadVideo(req.file, folder);
+
+      return res.status(200).json({
+        success: true,
+        message: result.compressed
+          ? 'Video compressed & uploaded successfully'
+          : 'Video uploaded successfully',
+        url: result.url,
+        key: result.key,
+        size: result.size,
+        compressed: result.compressed,
+        mimetype: result.mimetype,
+      });
+    } catch (uploadErr) {
+      console.error('[Video Processing/Upload Error]:', uploadErr);
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to process and upload video',
+        error: uploadErr.message,
+      });
+    }
   });
 });
 

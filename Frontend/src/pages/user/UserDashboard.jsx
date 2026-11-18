@@ -503,6 +503,22 @@ function FeedVideo({ src, onDoubleTap, onSingleTap, isHeartActive, isMobile = fa
   const videoRef = useRef(null);
   const [isMuted, setIsMuted] = useState(globalFeedAudioMuted);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isBuffering, setIsBuffering] = useState(false);
+
+  const handleVideoError = () => {
+    const vid = videoRef.current;
+    if (!vid) return;
+    const curTime = vid.currentTime || 0;
+    setTimeout(() => {
+      if (vid) {
+        try {
+          vid.load();
+          vid.currentTime = curTime;
+          if (isPlaying) vid.play().catch(() => {});
+        } catch (_) {}
+      }
+    }, 600);
+  };
 
   const isModalOpen = () => {
     if (isModalMediaActive) return true;
@@ -711,9 +727,31 @@ function FeedVideo({ src, onDoubleTap, onSingleTap, isHeartActive, isMobile = fa
         muted={isMuted}
         preload="metadata"
         className={isMobile ? "ud-mob-post-banner-img ud-feed-video-el" : "ud-post-img ud-feed-video-el"}
-        onPlay={() => setIsPlaying(true)}
+        onPlay={() => { setIsPlaying(true); setIsBuffering(false); }}
         onPause={() => setIsPlaying(false)}
+        onWaiting={() => setIsBuffering(true)}
+        onPlaying={() => setIsBuffering(false)}
+        onCanPlay={() => setIsBuffering(false)}
+        onError={handleVideoError}
       />
+
+      {/* Buffering spinner when network is loading chunks */}
+      {isBuffering && (
+        <div style={{
+          position: 'absolute',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          width: '36px',
+          height: '36px',
+          border: '3px solid rgba(255, 255, 255, 0.35)',
+          borderTopColor: '#FFFFFF',
+          borderRadius: '50%',
+          animation: 'feedVidSpin 0.75s linear infinite',
+          pointerEvents: 'none',
+          zIndex: 4,
+        }} />
+      )}
 
       {/* Floating Instagram-style sound toggle icon button (icon only) */}
       <button

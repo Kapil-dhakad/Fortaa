@@ -59,6 +59,7 @@ export default function StoryViewerModal({
 
   // Optimistic poll voting state: { [storyId]: { optionId, pollData } }
   const [pollStates, setPollStates] = useState({});
+  const [isVideoBuffering, setIsVideoBuffering] = useState(false);
 
   const videoRef = useRef(null);
   const pressTimerRef = useRef(null);
@@ -692,8 +693,30 @@ export default function StoryViewerModal({
                 src={currentStory.media_url}
                 autoPlay
                 playsInline
+                preload="auto"
                 className="svm-media-video"
+                onWaiting={() => setIsVideoBuffering(true)}
+                onPlaying={() => setIsVideoBuffering(false)}
+                onCanPlay={() => setIsVideoBuffering(false)}
+                onError={() => {
+                  const vid = videoRef.current;
+                  if (vid) {
+                    const t = vid.currentTime || 0;
+                    setTimeout(() => {
+                      if (vid) {
+                        vid.load();
+                        vid.currentTime = t;
+                        vid.play().catch(() => {});
+                      }
+                    }, 500);
+                  }
+                }}
               />
+              {isVideoBuffering && (
+                <div className="svm-video-spinner-wrap">
+                  <div className="svm-video-spinner" />
+                </div>
+              )}
             </div>
           )}
 
