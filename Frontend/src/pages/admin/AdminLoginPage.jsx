@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { FiMail, FiLock, FiEye, FiEyeOff, FiAlertCircle } from 'react-icons/fi';
 import { loginAdmin } from '../../services/admin.service';
 import logoIconImg from '../../assets/figma/logo_icon_img.png';
 import './AdminLoginPage.css';
@@ -67,39 +68,36 @@ export default function AdminLoginPage() {
             <span className="adm-login-brand-title">FORTAA</span>
           </div>
           <h1 className="adm-login-title">Admin Console</h1>
-          <p className="adm-login-subtitle">
-            Enter your administrative credentials to access the console
-          </p>
         </div>
 
         {/* Error Banner */}
         {errorMsg && (
           <div className="adm-login-error-banner" role="alert">
-            <span className="adm-login-error-icon">⚠️</span>
+            <FiAlertCircle className="adm-login-error-icon" />
             <span className="adm-login-error-text">{errorMsg}</span>
           </div>
         )}
 
         {/* Form Card */}
-        <form className="adm-login-form" onSubmit={handleSubmit}>
+        <form className="adm-login-form" onSubmit={handleSubmit} autoComplete="off">
           {/* Email Field */}
           <div className="adm-form-group">
             <label className="adm-form-label" htmlFor="admin-email">
-              Admin Email
+              Email
             </label>
             <div className="adm-input-wrap">
-              <span className="adm-input-icon">✉️</span>
+              <FiMail className="adm-input-icon" />
               <input
                 id="admin-email"
                 type="email"
                 className="adm-form-input"
-                placeholder="admin@fortaa.com"
+                placeholder=""
                 value={email}
                 onChange={(e) => {
                   setEmail(e.target.value);
                   if (errorMsg) setErrorMsg('');
                 }}
-                autoComplete="email"
+                autoComplete="off"
                 required
               />
             </div>
@@ -111,18 +109,18 @@ export default function AdminLoginPage() {
               Password
             </label>
             <div className="adm-input-wrap">
-              <span className="adm-input-icon">🔒</span>
+              <FiLock className="adm-input-icon" />
               <input
                 id="admin-password"
                 type={showPassword ? 'text' : 'password'}
                 className="adm-form-input"
-                placeholder="••••••••••••"
+                placeholder=""
                 value={password}
                 onChange={(e) => {
                   setPassword(e.target.value);
                   if (errorMsg) setErrorMsg('');
                 }}
-                autoComplete="current-password"
+                autoComplete="new-password"
                 required
               />
               <button
@@ -131,12 +129,12 @@ export default function AdminLoginPage() {
                 onClick={() => setShowPassword(!showPassword)}
                 aria-label={showPassword ? 'Hide password' : 'Show password'}
               >
-                {showPassword ? '👁️' : '👁️‍🗨️'}
+                {showPassword ? <FiEyeOff size={15} /> : <FiEye size={15} />}
               </button>
             </div>
           </div>
 
-          {/* Remember me & Security Note */}
+          {/* Remember me */}
           <div className="adm-form-row">
             <label className="adm-checkbox-label">
               <input
@@ -146,7 +144,6 @@ export default function AdminLoginPage() {
               />
               <span>Keep me signed in</span>
             </label>
-            <span className="adm-sec-badge">🔒 256-bit Secure</span>
           </div>
 
           {/* Submit Button */}
@@ -170,9 +167,6 @@ export default function AdminLoginPage() {
           <Link to="/" className="adm-back-link">
             ← Return to Fortaa Public Website
           </Link>
-          <p className="adm-disclaimer">
-            Unauthorized access attempts are logged and monitored.
-          </p>
         </div>
       </div>
     </div>
