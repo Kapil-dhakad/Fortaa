@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import { FiHeadphones } from 'react-icons/fi';
 import './UserNavigation.css';
 
 // Brand & promo assets
@@ -41,6 +42,7 @@ const NAV_ITEMS = [
   { label: 'Groups', icon: navGroupsIcon, path: '/groups' },
   // { label: 'Resources', icon: navResourcesIcon },
   { label: 'Settings', icon: navSettingsIcon, path: '/settings' },
+  { label: 'Support', path: '/support', isSupport: true },
 ];
 
 export default function UserSidebar({
@@ -90,7 +92,11 @@ export default function UserSidebar({
               title={item.label}
             >
               <span className="ud-nav-icon">
-                <img src={item.icon} alt={item.label} className={`ud-nav-icon-img ${item.label === 'Services' ? 'ud-nav-icon-white' : ''}`} />
+                {item.isSupport ? (
+                  <FiHeadphones size={20} color={activeTab === item.label ? '#7E22CE' : '#FFFFFF'} />
+                ) : (
+                  <img src={item.icon} alt={item.label} className={`ud-nav-icon-img ${item.label === 'Services' ? 'ud-nav-icon-white' : ''}`} />
+                )}
               </span>
               <span className="ud-nav-label">{item.label}</span>
             </button>

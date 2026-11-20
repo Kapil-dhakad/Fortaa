@@ -12,6 +12,7 @@ const notificationRouter = require('./routes/notification.route');
 const groupRouter = require('./routes/group.route');
 const adminRouter = require('./routes/admin.route');
 const storyRouter = require('./routes/story.route');
+const supportRouter = require('./routes/support.route');
 
 const app = express();
 
@@ -36,6 +37,7 @@ app.use('/api/notifications', notificationRouter);
 app.use('/api/groups', groupRouter);
 app.use('/api/admin', adminRouter);
 app.use('/api/stories', storyRouter);
+app.use('/api/support', supportRouter);
 
 // 1.5 Serve local uploaded files (chat attachments, etc.)
 const uploadsDir = path.join(__dirname, '../uploads');

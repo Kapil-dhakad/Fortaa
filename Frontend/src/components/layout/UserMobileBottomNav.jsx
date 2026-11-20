@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import { FiHeadphones } from 'react-icons/fi';
 import './UserNavigation.css';
 
 // Sidebar Icons for Mobile Menu Grid
@@ -37,6 +38,7 @@ const MOBILE_MENU_ITEMS = [
   { label: 'Groups', icon: navGroupsIcon, path: '/groups' },
   // { label: 'Resources', icon: navResourcesIcon, path: '/resources' },
   { label: 'Settings', icon: navSettingsIcon, path: '/settings' },
+  { label: 'Support', path: '/support', isSupport: true },
 ];
 
 export default function UserMobileBottomNav({
@@ -203,7 +205,11 @@ export default function UserMobileBottomNav({
                   onClick={() => handleItemClick(item)}
                 >
                   <span className="ud-mob-menu-card-icon-wrap">
-                    <img src={item.icon} alt={item.label} className="ud-mob-menu-card-icon" />
+                    {item.isSupport ? (
+                      <FiHeadphones size={22} color="#7E22CE" />
+                    ) : (
+                      <img src={item.icon} alt={item.label} className="ud-mob-menu-card-icon" />
+                    )}
                   </span>
                   <span className="ud-mob-menu-card-title">{item.label}</span>
                 </button>

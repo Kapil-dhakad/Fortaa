@@ -325,6 +325,24 @@ CREATE TABLE IF NOT EXISTS story_likes (
 
 CREATE INDEX IF NOT EXISTS idx_story_likes_story ON story_likes(story_id);
 CREATE INDEX IF NOT EXISTS idx_story_likes_user ON story_likes(user_id);
+
+-- Support Queries Table (User inquiries & Helpdesk messages sent to Admin Chat)
+CREATE TABLE IF NOT EXISTS support_queries (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  name VARCHAR(150) NOT NULL,
+  email VARCHAR(255) NOT NULL,
+  phone VARCHAR(50),
+  subject VARCHAR(200) DEFAULT 'General Support',
+  message TEXT NOT NULL,
+  status VARCHAR(50) DEFAULT 'New',
+  admin_reply TEXT,
+  is_read BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_support_queries_created ON support_queries(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_support_queries_is_read ON support_queries(is_read);
 `;
 
 /**

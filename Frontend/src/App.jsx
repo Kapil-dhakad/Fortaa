@@ -21,6 +21,7 @@ import PromotionsPage from './pages/user/PromotionsPage';
 import SettingsPage from './pages/user/SettingsPage';
 import GroupsPage from './pages/user/GroupsPage';
 import NotificationsPage from './pages/user/NotificationsPage';
+import SupportChatPage from './pages/user/SupportChatPage';
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -156,6 +157,7 @@ export default function App() {
         <Route path="/notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />
         <Route path="/promotions" element={<ProtectedRoute><PromotionsPage /></ProtectedRoute>} />
         <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
+        <Route path="/support" element={<ProtectedRoute><SupportChatPage /></ProtectedRoute>} />
         <Route path="/groups" element={<GroupsPage />} />
         <Route path="/dashboard" element={<UserDashboard />} />
         <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />

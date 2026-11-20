@@ -10,120 +10,118 @@
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   color: #1A1A3A;
   display: flex;
+  flex-direction: column;
 }
 
-/* ───────────────── LEFT SIDEBAR (Figma #2E0362) ───────────────── */
+/* ───────────────── MAIN WRAPPER (PINNED SIDEBAR + SCROLLABLE CONTENT) ───────────────── */
+.adm-main-wrapper {
+  display: flex;
+  flex: 1;
+  min-height: calc(100vh - 56px);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Topbar Left width adjustment in Admin page to align with sidebar */
+.adm-page .ud-topbar-left {
+  width: 265px;
+  min-width: 265px;
+  max-width: 265px;
+}
+
+/* ───────────────── LEFT SIDEBAR (Width 265px, with generous comfortable spacing) ───────────────── */
 .adm-sidebar {
-  width: 175px;
+  width: 265px;
+  min-width: 265px;
+  max-width: 265px;
   background: #2E0362;
   color: #FFFFFF;
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
-  min-height: 100vh;
+  height: calc(100vh - 56px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
   box-sizing: border-box;
-  padding: 12px 8px;
+  padding: 14px 14px 24px;
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  position: sticky;
+  top: 56px;
+  z-index: 40;
 }
 
-.adm-sidebar-brand {
-  padding: 4px 2px 10px;
-  margin-bottom: 8px;
-}
-
-.adm-brand-link {
-  text-decoration: none;
-  display: block;
-}
-
-.adm-brand-logo-card {
-  background: #FFFFFF;
-  border-radius: 6px;
-  padding: 6px 10px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
-}
-
-.adm-brand-icon {
-  width: 24px;
-  height: 24px;
-  object-fit: contain;
-}
-
-.adm-brand-text-col {
-  display: flex;
-  flex-direction: column;
-}
-
-.adm-brand-logo-text {
-  font-size: 13px;
-  font-weight: 800;
-  letter-spacing: 0.5px;
-  color: #2E0362;
-  line-height: 1.1;
-}
-
-.adm-brand-badge {
-  font-size: 9px;
-  color: #64748B;
-  font-weight: 600;
-  line-height: 1;
+.adm-sidebar::-webkit-scrollbar {
+  display: none;
 }
 
 /* Sidebar Nav */
 .adm-nav {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 10px; /* Comfortable gap between each management section */
   flex: 1;
+  width: 100%;
 }
 
 .adm-nav-item {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   background: transparent;
   border: none;
   color: #FFFFFF;
-  font-size: 11.5px;
+  font-size: 14.5px;
+  font-family: 'Inter', sans-serif;
   font-weight: 500;
-  padding: 8px 10px;
-  border-radius: 5px;
+  letter-spacing: 0.02em;
+  padding: 0 14px;
+  width: 100%;
+  height: 38px;
+  min-height: 38px;
+  border-radius: 6px;
   cursor: pointer;
   text-align: left;
-  transition: all 0.15s ease;
-  width: 100%;
+  transition: all 0.18s ease;
+  margin-bottom: 4px;
+  box-sizing: border-box;
 }
 
 .adm-nav-item:hover {
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.12);
+  color: #FFFFFF;
 }
 
 .adm-nav-item.active {
   background: rgba(99, 38, 174, 0.71);
   color: #FFFFFF;
-  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(99, 38, 174, 0.35);
 }
 
 .adm-nav-icon {
-  font-size: 13px;
-  display: inline-flex;
+  font-size: 18px;
+  display: flex;
   align-items: center;
   justify-content: center;
+  color: #FFFFFF;
+  flex-shrink: 0;
 }
 
 .adm-nav-label {
   flex: 1;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  font-size: 13px;
+  letter-spacing: 0.01em;
+  overflow: visible;
 }
 
 /* Accordion Groups */
 .adm-nav-group {
   display: flex;
   flex-direction: column;
+  gap: 4px;
+  margin-bottom: 4px;
 }
 
 .adm-nav-group-header {
@@ -133,53 +131,73 @@
   background: transparent;
   border: none;
   color: #FFFFFF;
-  font-size: 11px;
-  font-weight: 600;
-  padding: 7px 8px;
-  border-radius: 5px;
+  font-size: 13px;
+  line-height: 16px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  padding: 8px 12px;
+  width: 100%;
+  min-height: 36px;
+  border-radius: 6px;
   cursor: pointer;
   text-align: left;
-  width: 100%;
-  transition: all 0.15s ease;
+  transition: all 0.18s ease;
+  box-sizing: border-box;
+  white-space: nowrap;
 }
 
 .adm-nav-group-header:hover {
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.1);
+  color: #FFFFFF;
 }
 
 .adm-nav-gh-left {
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: 10px;
   min-width: 0;
+  flex: 1;
+  white-space: nowrap;
 }
 
 .adm-chevron {
-  font-size: 9px;
-  color: rgba(255, 255, 255, 0.7);
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
   transition: transform 0.2s ease;
+  flex-shrink: 0;
+  margin-left: auto; /* Pushes dropdown arrow all the way to the right */
+  padding-left: 16px; /* Clear breathing room between text and arrow */
 }
 
 .adm-chevron.open {
-  transform: rotate(0deg);
+  transform: rotate(180deg);
 }
 
 .adm-nav-sublist {
   display: flex;
   flex-direction: column;
   padding-left: 20px;
-  margin: 2px 0 4px;
-  gap: 2px;
+  margin: 3px 0 6px;
+  gap: 5px;
 }
 
 .adm-nav-sublink {
-  font-size: 10px;
-  color: rgba(255, 255, 255, 0.8);
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+  font-size: 12.5px;
+  line-height: 16px;
+  color: #FFFFFF;
   text-decoration: none;
-  padding: 3px 6px;
-  border-radius: 4px;
+  padding: 5px 10px;
+  border-radius: 5px;
   transition: all 0.15s ease;
   white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .adm-nav-sublink:hover {
@@ -187,196 +205,89 @@
   background: rgba(255, 255, 255, 0.12);
 }
 
-/* Sidebar Footer Brand Box (Figma bottom logo card) */
-.adm-sidebar-footer {
-  margin-top: 14px;
-  padding-top: 8px;
+.adm-sub-dot {
+  width: 7px;
+  height: 7px;
+  min-width: 7px;
+  min-height: 7px;
+  background: #FFFFFF;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
 }
 
-.adm-footer-brand-box {
+.adm-sub-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: #FFFFFF;
+  font-size: 14px;
+}
+
+/* Bottom Sidebar Fortaa Card */
+.adm-sidebar-bottom-card {
+  width: 152px;
+  height: 42px;
+  min-height: 42px;
   background: #FFFFFF;
   border-radius: 5px;
-  padding: 6px 8px;
-  text-align: center;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-}
-
-.adm-fb-logo-row {
+  margin: auto auto 10px 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 5px;
+  padding: 0 8px;
+  box-sizing: border-box;
+  flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
 }
 
-.adm-fb-icon {
-  width: 16px;
-  height: 16px;
-  object-fit: contain;
-}
-
-.adm-fb-title {
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.5px;
-  color: #2E0362;
-}
-
-.adm-fb-sub {
-  display: block;
-  font-size: 8px;
-  color: #232356;
-  font-weight: 500;
-  margin-top: 2px;
-}
-
-/* ───────────────── MAIN WRAPPER ───────────────── */
-.adm-main-wrap {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-/* Topbar (Figma #2E0362) */
-.adm-topbar {
-  height: 52px;
-  background: #2E0362;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 18px;
-  position: sticky;
-  top: 0;
-  z-index: 50;
-}
-
-.adm-search-wrap {
-  flex: 1;
-  max-width: 500px;
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-
-.adm-search-icon {
-  position: absolute;
-  left: 12px;
-  font-size: 12px;
-  color: #8C8CA1;
-  pointer-events: none;
-}
-
-.adm-search-input {
-  width: 100%;
-  height: 34px;
-  background: #FFFFFF;
-  border: none;
-  border-radius: 50px;
-  padding: 0 14px 0 34px;
-  font-size: 11.5px;
-  color: #232356;
-  outline: none;
-  transition: all 0.2s ease;
-}
-
-.adm-search-input::placeholder {
-  color: #8C8CA1;
-  font-size: 11px;
-}
-
-.adm-topbar-right {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.adm-circle-btn {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  background: rgba(255, 255, 255, 0.12);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  position: relative;
-  font-size: 13px;
-  transition: all 0.15s ease;
-}
-
-.adm-circle-btn:hover {
-  background: rgba(255, 255, 255, 0.22);
-}
-
-.adm-wa-btn {
-  border-color: rgba(255, 255, 255, 0.2);
-}
-
-.adm-header-action-icon {
-  width: 18px;
-  height: 18px;
-  object-fit: contain;
-  display: block;
-}
-
-.adm-badge {
-  position: absolute;
-  top: -3px;
-  right: -3px;
-  background: #EF4444;
-  color: #FFFFFF;
-  font-size: 8.5px;
-  font-weight: 700;
-  border-radius: 50%;
-  width: 14px;
-  height: 14px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 1.5px solid #2E0362;
-}
-
-.adm-profile-pill {
+.adm-s-bottom-link {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 3px 12px 3px 4px;
-  background: rgba(255, 255, 255, 0.12);
-  color: #FFFFFF;
-  border-radius: 50px;
-  cursor: pointer;
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  text-decoration: none;
+  width: 100%;
 }
 
-.adm-profile-img {
+.adm-s-bottom-icon {
   width: 26px;
-  height: 26px;
-  border-radius: 50%;
-  object-fit: cover;
+  height: 24px;
+  object-fit: contain;
+  flex-shrink: 0;
 }
 
-.adm-profile-info {
+.adm-s-bottom-col {
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
-.adm-profile-name {
-  font-size: 11px;
-  font-weight: 700;
-  line-height: 1.1;
-  color: #FFFFFF;
+.adm-s-bottom-word {
+  width: 82px;
+  height: 15px;
+  object-fit: contain;
+  display: block;
 }
 
-.adm-profile-role {
+.adm-s-bottom-tagline {
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
   font-size: 8px;
-  color: rgba(255, 255, 255, 0.7);
+  line-height: 10px;
+  color: #232356;
+  white-space: nowrap;
+  display: block;
 }
 
 /* ───────────────── CONTENT BODY ───────────────── */
 .adm-content {
-  padding: 14px 18px 24px;
+  flex: 1;
+  min-width: 0;
+  height: calc(100vh - 56px);
+  overflow-y: auto;
+  padding: 16px 22px 32px;
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -460,35 +371,35 @@
   font-weight: 700;
 }
 
-/* Row 1: 4 Stat Cards */
+/* Row 1: 4 Stat Cards — Figma Frame 151 */
 .adm-stats-row {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 10px;
 }
 
+/* Figma Frame 151: 213×148, background #EFEDED, border-radius 5px */
 .adm-stat-card {
-  background: #FFFFFF;
-  border: 1px solid #E2E8F0;
-  border-radius: 10px;
-  padding: 10px 12px;
+  background: #EFEDED;
+  border: none;
+  border-radius: 5px;
+  padding: 14px 12px 14px 10px;
   display: flex;
-  flex-direction: column;
-  gap: 4px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
-}
-
-.adm-stat-top {
-  display: flex;
+  flex-direction: row;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
+  min-height: 110px;
+  box-shadow: none;
+  box-sizing: border-box;
 }
 
-.adm-stat-icon-wrap {
-  width: 32px;
-  height: 32px;
+/* Left: circular icon — Figma Frame 152: 68×68, background #D0B9FF, border-radius 50px */
+.adm-stat-icon-circle {
+  width: 60px;
+  height: 60px;
+  min-width: 60px;
   border-radius: 50%;
-  background: #F3E8FF;
+  background: #D0B9FF;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -496,38 +407,72 @@
 }
 
 .adm-stat-icon {
-  font-size: 14px;
+  font-size: 26px;
+  color: #2E0362;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
+/* Right: body col */
+.adm-stat-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+/* Figma: "Total Users" — font-weight 400, font-size 16px, color #000 */
 .adm-stat-label {
-  font-size: 10.5px;
-  font-weight: 600;
-  color: #475569;
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
+  font-size: 13px;
+  color: #000000;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
+/* Figma: "24,892" — font-weight 600, font-size 32px, color #000 */
 .adm-stat-number {
-  font-size: 20px;
-  font-weight: 800;
-  color: #1E1B4B;
-  margin-left: 40px;
+  font-family: 'Inter', sans-serif;
+  font-size: 24px;
+  font-weight: 700;
+  color: #000000;
   line-height: 1.1;
+  margin: 1px 0;
 }
 
+/* Figma Frame 108: trend row — arrow + percent green */
 .adm-stat-trend {
   display: flex;
   align-items: center;
-  gap: 4px;
-  margin-left: 40px;
-  font-size: 9px;
+  gap: 3px;
+  font-size: 13px;
+}
+
+.trend-arrow {
+  color: #019863;
+  font-weight: 700;
+  font-size: 13px;
 }
 
 .trend-up {
-  color: #10B981;
-  font-weight: 700;
+  color: #019863;
+  font-weight: 600;
+  font-size: 13px;
 }
 
-.trend-label {
-  color: #94A3B8;
+/* Figma: "vs last month" — font-weight 400, font-size 16px → scale to fit */
+.adm-stat-vs {
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
+  font-size: 11px;
+  color: #000000;
+  line-height: 1.2;
+  white-space: nowrap;
 }
 
 /* Row 2: Website Traffic Chart Card */
@@ -537,24 +482,27 @@
 
 .adm-pill-filters {
   display: flex;
-  gap: 4px;
+  gap: 8px;
 }
 
 .adm-filter-btn {
-  background: #F1F5F9;
-  border: none;
-  font-size: 9.5px;
-  font-weight: 600;
-  color: #475569;
+  background: transparent;
+  border: 1px solid #232356;
+  font-size: 11px;
+  font-weight: 500;
+  font-family: 'Inter', sans-serif;
+  letter-spacing: 0.02em;
+  color: #232356;
   padding: 3px 10px;
-  border-radius: 20px;
+  border-radius: 5px;
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
 .adm-filter-btn.active {
-  background: #2E0362;
-  color: #FFFFFF;
+  border-color: #9E04C3;
+  color: #9E04C3;
+  background: #FFFFFF;
 }
 
 .adm-chart-wrap {
@@ -814,64 +762,88 @@
   min-width: 0;
 }
 
-/* Card 1: Promo Banner */
+/* Card 1: Promo Banner (Figma: #2E0362, button #9E04C3, 3D assets) */
 .adm-promo-banner {
-  background: linear-gradient(135deg, #2E0362 0%, #6326AE 50%, #9E04C3 100%);
+  background: #2E0362;
   border-radius: 10px;
-  padding: 12px;
+  padding: 14px 16px;
   color: #FFFFFF;
   position: relative;
   overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  min-height: 125px;
+  box-shadow: 0 4px 15px rgba(46, 3, 98, 0.2);
 }
 
 .adm-promo-content {
   flex: 1;
+  max-width: 58%;
   z-index: 2;
 }
 
 .adm-promo-title {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 800;
   line-height: 1.25;
   margin: 0 0 4px;
+  color: #FFFFFF;
 }
 
 .adm-promo-desc {
-  font-size: 8.5px;
+  font-size: 9.5px;
   color: rgba(255, 255, 255, 0.85);
-  line-height: 1.3;
-  margin: 0 0 8px;
-  max-width: 160px;
+  line-height: 1.35;
+  margin: 0 0 10px;
 }
 
 .adm-btn-view-website {
-  background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.8);
+  background: #9E04C3;
+  border: none;
   color: #FFFFFF;
-  font-size: 9px;
-  font-weight: 600;
-  padding: 4px 10px;
-  border-radius: 4px;
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 5px 12px;
+  border-radius: 5px;
   cursor: pointer;
   text-decoration: none;
-  display: inline-block;
-  transition: all 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: background 0.15s ease;
 }
 
 .adm-btn-view-website:hover {
-  background: rgba(255, 255, 255, 0.15);
+  background: #B813DF;
 }
 
-.adm-promo-megaphone {
-  width: 80px;
-  height: 60px;
-  object-fit: contain;
+.adm-promo-art {
   position: absolute;
-  right: -6px;
-  bottom: 4px;
+  right: 0;
+  bottom: 0;
+  top: 0;
+  width: 140px;
+  pointer-events: none;
+}
+
+.adm-promo-bars-img {
+  position: absolute;
+  right: -5px;
+  bottom: -4px;
+  width: 135px;
+  height: 95px;
+  object-fit: contain;
+}
+
+.adm-promo-megaphone-img {
+  position: absolute;
+  right: 25px;
+  top: 8px;
+  width: 65px;
+  height: 58px;
+  object-fit: contain;
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.4));
   opacity: 0.9;
 }
 
@@ -933,50 +905,63 @@
   flex-shrink: 0;
 }
 
-/* Card 3: Platform Statistics */
+/* Card 3: Platform Statistics — Figma Frame 163 (314×285, background #801CE6, border-radius 10px) */
 .adm-platform-stats-card {
   padding: 0;
   overflow: hidden;
+  background: #801CE6;
+  border-radius: 10px;
+  border: none;
 }
 
+/* Figma Frame 96: "Platform Statistics" header — white text on purple bg */
 .adm-platform-stats-header {
-  background: #2E0362;
-  padding: 8px 12px;
+  background: transparent;
+  padding: 10px 12px 8px;
   color: #FFFFFF;
 }
 
 .adm-platform-stats-title {
-  font-size: 11.5px;
-  font-weight: 700;
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+  font-size: 14px;
+  letter-spacing: 0.02em;
+  color: #FFFFFF;
   margin: 0;
 }
 
+/* 2×2 grid of white mini cards inside purple outer */
 .adm-ps-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 8px;
-  padding: 10px 12px;
+  gap: 6px;
+  padding: 0 8px 10px;
 }
 
+/* Each white inner card — Figma Frame 164/165/166/167: 150×96, background #FFFFFF, border-radius 5px */
 .adm-ps-item {
   display: flex;
+  flex-direction: row;
   align-items: flex-start;
-  gap: 6px;
-  background: #F8FAFC;
-  border: 1px solid #F1F5F9;
-  border-radius: 6px;
-  padding: 6px 8px;
+  gap: 7px;
+  background: #FFFFFF;
+  border: none;
+  border-radius: 5px;
+  padding: 10px 8px;
+  box-sizing: border-box;
 }
 
+/* Figma Frame 152 (inside platform stats): 40×40, background #D0B9FF, border-radius 50px */
 .adm-ps-icon-wrap {
-  width: 24px;
-  height: 24px;
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
   border-radius: 50%;
-  background: #F3E8FF;
+  background: #D0B9FF;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 10px;
+  color: #2E0362;
   flex-shrink: 0;
 }
 
@@ -984,29 +969,38 @@
   display: flex;
   flex-direction: column;
   min-width: 0;
+  gap: 1px;
 }
 
+/* Figma: "Total Page Views" font-size 12px, font-weight 400, color #000 */
 .adm-ps-label {
-  font-size: 7.5px;
-  color: #64748B;
-  font-weight: 600;
+  font-family: 'Inter', sans-serif;
+  font-size: 10px;
+  font-weight: 400;
+  color: #000000;
+  line-height: 1.2;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
+/* Figma: "1,24,568" font-size 16px, font-weight 600, color #000 */
 .adm-ps-val {
-  font-size: 12px;
-  font-weight: 800;
-  color: #1E1B4B;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  color: #000000;
   line-height: 1.1;
   margin: 1px 0;
 }
 
+/* Figma: "+15.2%" font-size 12px, color #019863 */
 .adm-ps-trend {
-  font-size: 7.5px;
-  font-weight: 700;
-  color: #10B981;
+  font-family: 'Inter', sans-serif;
+  font-size: 10px;
+  font-weight: 500;
+  color: #019863;
+  letter-spacing: 0.02em;
 }
 
 /* Card 4: Need Help? */
@@ -1114,10 +1108,10 @@
   }
   .adm-sidebar {
     position: fixed;
-    top: 0;
-    left: -260px;
-    width: 220px;
-    height: 100vh;
+    top: 56px;
+    left: -285px;
+    width: 265px;
+    height: calc(100vh - 56px);
     z-index: 200;
     transition: left 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     box-shadow: 6px 0 24px rgba(0, 0, 0, 0.4);
