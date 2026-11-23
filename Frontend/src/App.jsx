@@ -1,27 +1,55 @@
 import { BrowserRouter, Routes, Route, useLocation, Navigate } from 'react-router-dom';
-import { useEffect } from 'react';
-import toast, { Toaster, ToastBar } from 'react-hot-toast';
+import { useEffect, lazy, Suspense } from 'react';
 import './index.css';
-import LandingPage from './pages/landing/LandingPage';
-import LoginPage from './pages/user/LoginPage';
-import ForgotPasswordPage from './pages/user/ForgotPasswordPage';
-import SignUpPage from './pages/user/SignUpPage';
-import UserDashboard from './pages/user/UserDashboard';
-import ProfilePage from './pages/user/ProfilePage';
-import CompleteProfilePage from './pages/user/CompleteProfilePage';
-import AllPostsPage from './pages/user/AllPostsPage';
-import MessagesPage from './pages/user/MessagesPage';
-import FollowingPage from './pages/user/FollowingPage';
-import LeadersPage from './pages/user/LeadersPage';
-import LeaderProfilePage from './pages/user/LeaderProfilePage';
-import AdminDashboard from './pages/admin/AdminDashboard';
-import AdminUserDashboard from './pages/admin/AdminUserDashboard';
-import AdminLoginPage from './pages/admin/AdminLoginPage';
-import PromotionsPage from './pages/user/PromotionsPage';
-import SettingsPage from './pages/user/SettingsPage';
-import GroupsPage from './pages/user/GroupsPage';
-import NotificationsPage from './pages/user/NotificationsPage';
-import SupportChatPage from './pages/user/SupportChatPage';
+
+// Route-level Code Splitting for Ultra-Fast Mobile & Desktop Page Loads
+const LandingPage = lazy(() => import('./pages/landing/LandingPage'));
+const LoginPage = lazy(() => import('./pages/user/LoginPage'));
+const ForgotPasswordPage = lazy(() => import('./pages/user/ForgotPasswordPage'));
+const SignUpPage = lazy(() => import('./pages/user/SignUpPage'));
+const UserDashboard = lazy(() => import('./pages/user/UserDashboard'));
+const ProfilePage = lazy(() => import('./pages/user/ProfilePage'));
+const CompleteProfilePage = lazy(() => import('./pages/user/CompleteProfilePage'));
+const AllPostsPage = lazy(() => import('./pages/user/AllPostsPage'));
+const MessagesPage = lazy(() => import('./pages/user/MessagesPage'));
+const FollowingPage = lazy(() => import('./pages/user/FollowingPage'));
+const LeadersPage = lazy(() => import('./pages/user/LeadersPage'));
+const LeaderProfilePage = lazy(() => import('./pages/user/LeaderProfilePage'));
+const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'));
+const AdminUserDashboard = lazy(() => import('./pages/admin/AdminUserDashboard'));
+const AdminLoginPage = lazy(() => import('./pages/admin/AdminLoginPage'));
+const PromotionsPage = lazy(() => import('./pages/user/PromotionsPage'));
+const SettingsPage = lazy(() => import('./pages/user/SettingsPage'));
+const GroupsPage = lazy(() => import('./pages/user/GroupsPage'));
+const NotificationsPage = lazy(() => import('./pages/user/NotificationsPage'));
+const SupportChatPage = lazy(() => import('./pages/user/SupportChatPage'));
+
+function PageLoader() {
+  return (
+    <div style={{
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      minHeight: '80vh',
+      flexDirection: 'column',
+      gap: '14px',
+      background: '#FAF8FD',
+    }}>
+      <div style={{
+        width: '38px',
+        height: '38px',
+        border: '3.5px solid #EDE8F5',
+        borderTopColor: '#8637EF',
+        borderRadius: '50%',
+        animation: 'fortaaSpin 0.75s linear infinite',
+      }} />
+      <span style={{ fontSize: '13px', color: '#6326AE', fontWeight: 600, letterSpacing: '0.02em' }}>
+        Loading Fortaa...
+      </span>
+      <style>{`@keyframes fortaaSpin { 100% { transform: rotate(360deg); } }`}</style>
+    </div>
+  );
+}
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -140,35 +168,37 @@ export default function App() {
         )}
       </Toaster>
       */}
-      <Routes>
-        <Route path="/" element={<LandingPage />} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-        <Route path="/signup" element={<SignUpPage />} />
-        <Route path="/complete-profile" element={<ProtectedRoute><CompleteProfilePage /></ProtectedRoute>} />
-        <Route path="/all-posts" element={<AllPostsPage />} />
-        <Route path="/following" element={<ProtectedRoute><FollowingPage /></ProtectedRoute>} />
-        <Route path="/leaders" element={<LeadersPage />} />
-        <Route path="/leaders/:id" element={<LeaderProfilePage />} />
-        <Route path="/leader/:id" element={<LeaderProfilePage />} />
-        <Route path="/leader-profile" element={<LeaderProfilePage />} />
-        <Route path="/network" element={<LeadersPage />} />
-        <Route path="/messages" element={<ProtectedRoute><MessagesPage /></ProtectedRoute>} />
-        <Route path="/notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />
-        <Route path="/promotions" element={<ProtectedRoute><PromotionsPage /></ProtectedRoute>} />
-        <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
-        <Route path="/support" element={<ProtectedRoute><SupportChatPage /></ProtectedRoute>} />
-        <Route path="/groups" element={<GroupsPage />} />
-        <Route path="/dashboard" element={<UserDashboard />} />
-        <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
-        <Route path="/dashboard/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
-        <Route path="/admin/login" element={<AdminLoginPage />} />
-        <Route path="/admin" element={<AdminProtectedRoute><AdminDashboard /></AdminProtectedRoute>} />
-        <Route path="/admin/dashboard" element={<AdminProtectedRoute><AdminDashboard /></AdminProtectedRoute>} />
-        <Route path="/admin/users" element={<AdminProtectedRoute><AdminUserDashboard /></AdminProtectedRoute>} />
-        <Route path="/admin/user-dashboard" element={<AdminProtectedRoute><AdminUserDashboard /></AdminProtectedRoute>} />
-        <Route path="*" element={<LandingPage />} />
-      </Routes>
+      <Suspense fallback={<PageLoader />}>
+        <Routes>
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/signup" element={<SignUpPage />} />
+          <Route path="/complete-profile" element={<ProtectedRoute><CompleteProfilePage /></ProtectedRoute>} />
+          <Route path="/all-posts" element={<AllPostsPage />} />
+          <Route path="/following" element={<ProtectedRoute><FollowingPage /></ProtectedRoute>} />
+          <Route path="/leaders" element={<LeadersPage />} />
+          <Route path="/leaders/:id" element={<LeaderProfilePage />} />
+          <Route path="/leader/:id" element={<LeaderProfilePage />} />
+          <Route path="/leader-profile" element={<LeaderProfilePage />} />
+          <Route path="/network" element={<LeadersPage />} />
+          <Route path="/messages" element={<ProtectedRoute><MessagesPage /></ProtectedRoute>} />
+          <Route path="/notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />
+          <Route path="/promotions" element={<ProtectedRoute><PromotionsPage /></ProtectedRoute>} />
+          <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
+          <Route path="/support" element={<ProtectedRoute><SupportChatPage /></ProtectedRoute>} />
+          <Route path="/groups" element={<GroupsPage />} />
+          <Route path="/dashboard" element={<UserDashboard />} />
+          <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
+          <Route path="/dashboard/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
+          <Route path="/admin/login" element={<AdminLoginPage />} />
+          <Route path="/admin" element={<AdminProtectedRoute><AdminDashboard /></AdminProtectedRoute>} />
+          <Route path="/admin/dashboard" element={<AdminProtectedRoute><AdminDashboard /></AdminProtectedRoute>} />
+          <Route path="/admin/users" element={<AdminProtectedRoute><AdminUserDashboard /></AdminProtectedRoute>} />
+          <Route path="/admin/user-dashboard" element={<AdminProtectedRoute><AdminUserDashboard /></AdminProtectedRoute>} />
+          <Route path="*" element={<LandingPage />} />
+        </Routes>
+      </Suspense>
     </BrowserRouter>
   );
 }

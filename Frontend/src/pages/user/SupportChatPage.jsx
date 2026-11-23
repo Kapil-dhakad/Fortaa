@@ -97,10 +97,10 @@ export default function SupportChatPage() {
       });
     }
 
-    // Polling fallback every 6 seconds to ensure replies sync seamlessly
+    // Passive polling fallback (Socket.IO handles real-time instant reply)
     const interval = setInterval(() => {
       loadMessages(false);
-    }, 6000);
+    }, 15000);
 
     return () => {
       clearInterval(interval);

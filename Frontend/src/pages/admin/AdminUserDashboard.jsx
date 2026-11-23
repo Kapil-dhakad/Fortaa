@@ -43,6 +43,7 @@ import userAvatarImg from '../../assets/dashboard/user_avatar_rahul.png';
 import bellIconImg from '../../assets/dashboard/bell-icon.png';
 import messageIconImg from '../../assets/dashboard/message-icon.png';
 import AdminSupportChatModal from '../../components/admin/AdminSupportChatModal';
+import AdminAccountTypesModal from '../../components/admin/AdminAccountTypesModal';
 import { fetchUnreadSupportCount } from '../../services/support.service';
 
 export default function AdminUserDashboard() {
@@ -55,6 +56,7 @@ export default function AdminUserDashboard() {
   const [modalSearch, setModalSearch] = useState('');
   const [supportChatOpen, setSupportChatOpen] = useState(false);
   const [unreadSupportCount, setUnreadSupportCount] = useState(0);
+  const [accountTypesModalOpen, setAccountTypesModalOpen] = useState(false);
 
   const loadUnreadSupport = useCallback(async () => {
     try {
@@ -578,6 +580,16 @@ export default function AdminUserDashboard() {
                   <Link to="/admin/users" className="adm-nav-sublink active">
                     <FiUser size={14} className="adm-sub-icon" /> User
                   </Link>
+                  <button
+                    type="button"
+                    className="adm-nav-sublink"
+                    onClick={() => {
+                      setAccountTypesModalOpen(true);
+                      setMobileMenuOpen(false);
+                    }}
+                  >
+                    <FiLayers size={14} className="adm-sub-icon" /> Account Types
+                  </button>
                   <a href="#roles" className="adm-nav-sublink">
                     <FiShield size={14} className="adm-sub-icon" /> Roles &amp; Permission
                   </a>
@@ -1223,6 +1235,12 @@ export default function AdminUserDashboard() {
         isOpen={supportChatOpen}
         onClose={() => setSupportChatOpen(false)}
         onUpdated={loadUnreadSupport}
+      />
+
+      {/* Admin Signup Account Types Manager Modal */}
+      <AdminAccountTypesModal
+        isOpen={accountTypesModalOpen}
+        onClose={() => setAccountTypesModalOpen(false)}
       />
     </div>
   );

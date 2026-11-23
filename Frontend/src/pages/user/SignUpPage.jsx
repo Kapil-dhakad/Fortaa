@@ -2,6 +2,8 @@ import { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { uploadSingleImage, uploadDocument } from '../../services/upload.service';
+import { fetchPublicAccountTypes } from '../../services/accountType.service';
+import AccountTypeIcon from '../../components/common/AccountTypeIcon';
 import logoIconImg from '../../assets/figma/logo_icon_img.png';
 import logoTextImg from '../../assets/figma/logo_text_img.png';
 import GoogleLoginButton from '../../components/auth/GoogleLoginButton';
@@ -443,59 +445,55 @@ export default function SignUpPage() {
     }
   };
 
-  // Step 1: Select Account Type
-  const accountTypes = [
+  // Step 1: Dynamic Account Types (Managed by Admin via PostgreSQL)
+  const [accountTypes, setAccountTypes] = useState([
     {
       title: 'Individual / Professional',
       desc: 'I want to explore opportunities, connect with leaders and grow my network.',
-      icon: (
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-          <circle cx="12" cy="7" r="4" />
-        </svg>
-      ),
+      icon: 'user',
     },
     {
       title: 'Business / Company',
       desc: 'I represent a company, brand or direct selling business.',
-      icon: (
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <rect x="4" y="2" width="16" height="20" rx="2" ry="2" />
-          <line x1="9" y1="22" x2="9" y2="22.01" />
-          <line x1="15" y1="22" x2="15" y2="22.01" />
-          <line x1="9" y1="6" x2="9" y2="6.01" />
-          <line x1="15" y1="6" x2="15" y2="6.01" />
-          <line x1="9" y1="10" x2="9" y2="10.01" />
-          <line x1="15" y1="10" x2="15" y2="10.01" />
-          <line x1="9" y1="14" x2="9" y2="14.01" />
-          <line x1="15" y1="14" x2="15" y2="14.01" />
-        </svg>
-      ),
+      icon: 'building',
     },
     {
       title: 'Distributor / Partner',
       desc: 'I want to become a distributor of partner with a company.',
-      icon: (
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-          <circle cx="8.5" cy="7" r="4" />
-          <polyline points="17 11 19 13 23 9" />
-        </svg>
-      ),
+      icon: 'briefcase',
     },
     {
       title: 'Team Leader',
       desc: 'i manage a team and work to build and grow my organiation.',
-      icon: (
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-          <circle cx="9" cy="7" r="4" />
-          <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-          <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-        </svg>
-      ),
+      icon: 'users',
     },
-  ];
+  ]);
+
+  useEffect(() => {
+    let isMounted = true;
+    fetchPublicAccountTypes()
+      .then((types) => {
+        if (isMounted && Array.isArray(types) && types.length > 0) {
+          const mapped = types.map((t) => ({
+            title: t.title,
+            desc: t.description,
+            icon: t.icon,
+          }));
+          setAccountTypes(mapped);
+
+          // If current selected accountType isn't in fetched list, set to first
+          setFormData((prev) => {
+            const hasMatch = mapped.some((m) => m.title === prev.accountType);
+            return hasMatch ? prev : { ...prev, accountType: mapped[0].title };
+          });
+        }
+      })
+      .catch((err) => console.warn('Account types fetch note:', err));
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   // Step 2 Submission Validation
   const handleStep2Submit = async (e) => {
@@ -549,11 +547,20 @@ export default function SignUpPage() {
 
     setLoading(true);
     try {
-      // 1. Check if email already exists in Database
-      const emailResponse = await fetch(`/api/users/check-email?email=${encodeURIComponent(formData.email.trim())}`);
-      const emailData = await emailResponse.json();
+      // Parallel check for both email and mobile (cuts latency in half on mobile networks)
+      const [emailRes, mobRes] = await Promise.all([
+        fetch(`/api/users/check-email?email=${encodeURIComponent(formData.email.trim())}`),
+        formData.mobileNumber
+          ? fetch(`/api/users/check-mobile?mobile=${encodeURIComponent(formData.mobileNumber.trim())}`)
+          : Promise.resolve({ json: () => ({ exists: false }) }),
+      ]);
 
-      if (emailData.exists) {
+      const [emailData, mobData] = await Promise.all([
+        emailRes.json().catch(() => ({ exists: false })),
+        mobRes.json().catch(() => ({ exists: false })),
+      ]);
+
+      if (emailData?.exists) {
         setFieldErrors((prev) => ({
           ...prev,
           email: 'An account with this email address already exists. Please log in.',
@@ -563,20 +570,14 @@ export default function SignUpPage() {
         return;
       }
 
-      // 2. Check if mobile number already exists in Database
-      if (formData.mobileNumber) {
-        const mobResponse = await fetch(`/api/users/check-mobile?mobile=${encodeURIComponent(formData.mobileNumber.trim())}`);
-        const mobData = await mobResponse.json();
-
-        if (mobData.exists) {
-          setFieldErrors((prev) => ({
-            ...prev,
-            mobileNumber: 'This mobile number is already registered. Please log in or use another number.',
-          }));
-          setErrorMessage('This mobile number is already registered. Please log in or use another number.');
-          toast.error('This mobile number is already registered. Please log in or use another number.');
-          return;
-        }
+      if (mobData?.exists) {
+        setFieldErrors((prev) => ({
+          ...prev,
+          mobileNumber: 'This mobile number is already registered. Please log in or use another number.',
+        }));
+        setErrorMessage('This mobile number is already registered. Please log in or use another number.');
+        toast.error('This mobile number is already registered. Please log in or use another number.');
+        return;
       }
 
       setStep(3);
@@ -771,7 +772,9 @@ export default function SignUpPage() {
                       onClick={() => handleChange('accountType', item.title)}
                     >
                       <div className="card-top-row">
-                        <div className="card-icon-box">{item.icon}</div>
+                        <div className="card-icon-box">
+                          <AccountTypeIcon name={item.icon} size={24} color="#FFFFFF" />
+                        </div>
                         <h3 className="card-title desktop-card-title">{item.title}</h3>
                         <div className="card-top-arrow-btn">
                           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={isSelected ? "#6226EA" : "#232356"} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">

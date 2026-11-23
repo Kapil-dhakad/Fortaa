@@ -1,0 +1,566 @@
+/* ── Admin Account Types Modal Overlay ── */
+.aat-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  background: rgba(15, 7, 34, 0.65);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: aatFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes aatFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.aat-modal {
+  width: 100%;
+  max-width: 920px;
+  max-height: 85vh;
+  background: #FFFFFF;
+  border-radius: 14px;
+  box-shadow: 0 25px 50px -12px rgba(46, 3, 98, 0.25), 0 0 0 1px rgba(134, 55, 239, 0.12);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  animation: aatSlideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes aatSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* ── Top Header ── */
+.aat-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px;
+  background: linear-gradient(135deg, #2E0362 0%, #46098F 60%, #6326AE 100%);
+  color: #FFFFFF;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.aat-header-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.aat-icon-badge {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.18);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.25);
+}
+
+.aat-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: #FFFFFF;
+}
+
+.aat-subtitle {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.aat-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.aat-refresh-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.15);
+  color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.aat-refresh-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.aat-spin {
+  animation: aatSpinAnim 1s linear infinite;
+}
+
+@keyframes aatSpinAnim {
+  100% { transform: rotate(360deg); }
+}
+
+.aat-close-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: none;
+  background: rgba(255, 255, 255, 0.1);
+  color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.aat-close-btn:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+/* ── Modal Body ── */
+.aat-body {
+  padding: 20px 24px;
+  overflow-y: auto;
+  flex: 1;
+  background: #FAF8FD;
+}
+
+.aat-sub-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 18px;
+}
+
+.aat-stats-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #FFFFFF;
+  border: 1px solid #E9D5FF;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #6326AE;
+}
+
+.aat-active-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #10B981;
+  box-shadow: 0 0 6px rgba(16, 185, 129, 0.6);
+}
+
+.aat-btn-primary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(135deg, #8637EF 0%, #6326AE 100%);
+  color: #FFFFFF;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(134, 55, 239, 0.25);
+  transition: all 0.15s ease;
+}
+
+.aat-btn-primary:hover:not(:disabled) {
+  background: linear-gradient(135deg, #7429db 0%, #521c94 100%);
+  transform: translateY(-1px);
+}
+
+.aat-btn-secondary {
+  background: #FFFFFF;
+  border: 1px solid #CBD5E1;
+  color: #475569;
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.aat-btn-secondary:hover:not(:disabled) {
+  background: #F1F5F9;
+  color: #0F172A;
+}
+
+/* ── Add / Edit Form Card ── */
+.aat-form-card {
+  background: #FFFFFF;
+  border: 1.5px solid #8637EF;
+  border-radius: 12px;
+  padding: 18px 20px;
+  margin-bottom: 22px;
+  box-shadow: 0 8px 24px rgba(134, 55, 239, 0.12);
+  animation: aatFadeIn 0.2s ease;
+}
+
+.aat-form-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.aat-form-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: #2E0362;
+}
+
+.aat-form-close-sm {
+  background: transparent;
+  border: none;
+  font-size: 16px;
+  color: #94A3B8;
+  cursor: pointer;
+}
+
+.aat-form-close-sm:hover {
+  color: #1E293B;
+}
+
+.aat-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.aat-form-row {
+  display: flex;
+  gap: 12px;
+}
+
+.aat-flex-1 { flex: 1; }
+.aat-flex-2 { flex: 2; }
+
+.aat-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.aat-form-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #475569;
+}
+
+.aat-form-input,
+.aat-form-textarea {
+  border: 1px solid #CBD5E1;
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-family: inherit;
+  color: #1E293B;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.aat-form-input:focus,
+.aat-form-textarea:focus {
+  border-color: #8637EF;
+  box-shadow: 0 0 0 3px rgba(134, 55, 239, 0.1);
+}
+
+.aat-form-textarea {
+  resize: vertical;
+}
+
+/* Icon Picker */
+.aat-icon-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 6px;
+  max-height: 140px;
+  overflow-y: auto;
+  border: 1px solid #E2E8F0;
+  border-radius: 8px;
+  padding: 8px;
+  background: #FAF8FD;
+}
+
+.aat-icon-choice {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 600;
+  color: #475569;
+  transition: all 0.15s ease;
+  text-align: left;
+}
+
+.aat-icon-choice:hover {
+  border-color: #8637EF;
+  color: #8637EF;
+}
+
+.aat-icon-choice.selected {
+  background: #8637EF;
+  border-color: #8637EF;
+  color: #FFFFFF;
+}
+
+.aat-icon-choice-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.aat-form-checkbox-row {
+  margin-top: 4px;
+}
+
+.aat-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #1E293B;
+  cursor: pointer;
+}
+
+.aat-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #F1F5F9;
+}
+
+/* ── Cards Grid ── */
+.aat-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+  gap: 16px;
+}
+
+.aat-empty-state {
+  grid-column: 1 / -1;
+  padding: 40px;
+  text-align: center;
+  color: #64748B;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+}
+
+/* ── Individual Account Type Card ── */
+.aat-card {
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 12px;
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  transition: all 0.2s ease;
+}
+
+.aat-card:hover {
+  border-color: #D8B4FE;
+  box-shadow: 0 4px 16px rgba(134, 55, 239, 0.1);
+  transform: translateY(-1px);
+}
+
+.aat-card.is-inactive {
+  opacity: 0.65;
+  background: #F8FAFC;
+  border-style: dashed;
+}
+
+.aat-card-top {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  margin-bottom: 10px;
+}
+
+.aat-card-icon-wrap {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #8637EF 0%, #2E0362 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 3px 8px rgba(134, 55, 239, 0.25);
+}
+
+.aat-card-meta {
+  flex: 1;
+}
+
+.aat-card-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.aat-card-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: #1E293B;
+}
+
+.aat-order-tag {
+  background: #F1F5F9;
+  color: #64748B;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.aat-status-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 10px;
+  display: inline-block;
+}
+
+.status-active {
+  background: #DCFCE7;
+  color: #166534;
+}
+
+.status-hidden {
+  background: #F1F5F9;
+  color: #64748B;
+}
+
+.aat-card-desc {
+  margin: 0 0 14px;
+  font-size: 13px;
+  color: #64748B;
+  line-height: 1.5;
+  min-height: 38px;
+}
+
+.aat-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 10px;
+  border-top: 1px solid #F1F5F9;
+}
+
+.aat-card-btn-action {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: #F1F5F9;
+  border: 1px solid #E2E8F0;
+  color: #475569;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.aat-card-btn-action:hover {
+  background: #E2E8F0;
+  color: #1E293B;
+}
+
+.aat-card-actions-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.aat-card-btn-edit {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: #FAF5FF;
+  border: 1px solid #E9D5FF;
+  color: #6326AE;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.aat-card-btn-edit:hover {
+  background: #8637EF;
+  color: #FFFFFF;
+  border-color: #8637EF;
+}
+
+.aat-card-btn-delete {
+  background: #FEF2F2;
+  border: 1px solid #FEE2E2;
+  color: #EF4444;
+  padding: 5px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.aat-card-btn-delete:hover {
+  background: #EF4444;
+  color: #FFFFFF;
+  border-color: #EF4444;
+}
+
+/* ── Mobile Responsive ── */
+@media (max-width: 768px) {
+  .aat-modal {
+    max-height: 95vh;
+  }
+  .aat-cards-grid {
+    grid-template-columns: 1fr;
+  }
+  .aat-form-row {
+    flex-direction: column;
+  }
+}

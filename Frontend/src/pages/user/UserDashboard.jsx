@@ -1017,7 +1017,8 @@ export default function UserDashboard() {
     const handleWindowRefresh = () => refreshCounts();
     window.addEventListener('messages_count_refresh', handleWindowRefresh);
 
-    const interval = setInterval(refreshCounts, 5000);
+    // Passive fallback interval (socket handles instant real-time events)
+    const interval = setInterval(refreshCounts, 25000);
 
     return () => {
       isMounted = false;
@@ -1068,21 +1069,15 @@ export default function UserDashboard() {
       if (!currentId) currentId = storedUser.id || 1;
 
       try {
-        // Parallel fetch overview, followingIds and all supporting widgets
-        const [overview, fData, tData, lData, sData, eData, gData, oData] = await Promise.all([
+        // Step 1: Immediate priority fetch for core profile & following states
+        const [overview, fData] = await Promise.all([
           fetchDashboardOverview(storedUser.email || ''),
           fetchFollowingIds(currentId),
-          fetchTrainers(),
-          fetchLeaders(currentId),
-          fetchServices(),
-          fetchEvents(),
-          fetchGroups(),
-          fetchOpportunities(),
         ]);
 
         if (!isMounted) return;
 
-        // 1. Overview & stats
+        // 1. Overview & stats (instant UI render)
         if (overview?.success && overview.user) {
           if (!currentId || overview.user.id === currentId) {
             currentId = overview.user.id;
@@ -1117,20 +1112,30 @@ export default function UserDashboard() {
         setFollowingIds(fData?.followingIds || []);
         setPendingIds(fData?.pendingIds || []);
 
-        // 3. Supporting widgets
-        if (tData?.length) setTrainersList(tData);
-        const rawLeaders = Array.isArray(lData) ? lData : [];
-        const visibleLeaders = rawLeaders.filter(
-          (lead) => Number(lead.id) !== Number(currentId)
-        );
-        setLeadersList(visibleLeaders);
+        // Step 2: Non-blocking background fetch for supporting widgets (prevents network bottleneck on mobile)
+        Promise.all([
+          fetchTrainers(),
+          fetchLeaders(currentId),
+          fetchServices(),
+          fetchEvents(),
+          fetchGroups(),
+          fetchOpportunities(),
+        ]).then(([tData, lData, sData, eData, gData, oData]) => {
+          if (!isMounted) return;
+          if (tData?.length) setTrainersList(tData);
+          const rawLeaders = Array.isArray(lData) ? lData : [];
+          const visibleLeaders = rawLeaders.filter(
+            (lead) => Number(lead.id) !== Number(currentId)
+          );
+          setLeadersList(visibleLeaders);
 
-        if (sData?.length) setServicesList(sData);
-        if (eData?.length) setEventsList(eData);
-        if (gData?.length) setGroupsList(gData);
-        if (oData?.length) setOpportunitiesList(oData);
+          if (sData?.length) setServicesList(sData);
+          if (eData?.length) setEventsList(eData);
+          if (gData?.length) setGroupsList(gData);
+          if (oData?.length) setOpportunitiesList(oData);
+        }).catch((wErr) => console.warn('Side widgets fetch notice:', wErr));
       } catch (err) {
-        console.warn('Dashboard parallel load error:', err);
+        console.warn('Dashboard priority load error:', err);
       }
     }
 

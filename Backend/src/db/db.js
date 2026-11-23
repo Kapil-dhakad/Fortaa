@@ -343,6 +343,21 @@ CREATE TABLE IF NOT EXISTS support_queries (
 
 CREATE INDEX IF NOT EXISTS idx_support_queries_created ON support_queries(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_support_queries_is_read ON support_queries(is_read);
+
+-- Account Types Table (Managed dynamically by Admin for Signup & Onboarding)
+CREATE TABLE IF NOT EXISTS account_types (
+  id SERIAL PRIMARY KEY,
+  title VARCHAR(150) NOT NULL,
+  description TEXT NOT NULL,
+  icon VARCHAR(50) DEFAULT 'user',
+  is_active BOOLEAN DEFAULT TRUE,
+  display_order INTEGER DEFAULT 0,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_account_types_active ON account_types(is_active);
+CREATE INDEX IF NOT EXISTS idx_account_types_order ON account_types(display_order ASC);
 `;
 
 /**

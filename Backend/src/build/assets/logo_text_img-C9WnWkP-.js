@@ -1,0 +1,1 @@
+var e=`/assets/logo_text_img-CGLc9Ig1.png`;export{e as t};

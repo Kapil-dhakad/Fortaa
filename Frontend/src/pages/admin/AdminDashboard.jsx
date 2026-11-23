@@ -58,6 +58,7 @@ import {
   fetchAdminPlatformStats,
 } from '../../services/admin.service';
 import AdminSupportChatModal from '../../components/admin/AdminSupportChatModal';
+import AdminAccountTypesModal from '../../components/admin/AdminAccountTypesModal';
 import { fetchUnreadSupportCount } from '../../services/support.service';
 
 export default function AdminDashboard() {
@@ -70,6 +71,7 @@ export default function AdminDashboard() {
   const [_loading, setLoading] = useState(true);
   const [supportChatOpen, setSupportChatOpen] = useState(false);
   const [unreadSupportCount, setUnreadSupportCount] = useState(0);
+  const [accountTypesModalOpen, setAccountTypesModalOpen] = useState(false);
 
   const loadUnreadSupport = useCallback(async () => {
     try {
@@ -669,6 +671,16 @@ export default function AdminDashboard() {
               {openSections.user && (
                 <div className="adm-nav-sublist">
                   <Link to="/admin/users" className="adm-nav-sublink"><FiUser size={14} className="adm-sub-icon" /> User</Link>
+                  <button
+                    type="button"
+                    className="adm-nav-sublink"
+                    onClick={() => {
+                      setAccountTypesModalOpen(true);
+                      setMobileMenuOpen(false);
+                    }}
+                  >
+                    <FiLayers size={14} className="adm-sub-icon" /> Account Types
+                  </button>
                   <a href="#roles" className="adm-nav-sublink"><FiShield size={14} className="adm-sub-icon" /> Roles &amp; Permission</a>
                 </div>
               )}
@@ -1181,6 +1193,12 @@ export default function AdminDashboard() {
         isOpen={supportChatOpen}
         onClose={() => setSupportChatOpen(false)}
         onUpdated={loadUnreadSupport}
+      />
+
+      {/* Admin Signup Account Types Manager Modal */}
+      <AdminAccountTypesModal
+        isOpen={accountTypesModalOpen}
+        onClose={() => setAccountTypesModalOpen(false)}
       />
     </div>
   );
