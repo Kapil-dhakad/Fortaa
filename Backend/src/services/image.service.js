@@ -1,12 +1,17 @@
 const path = require('path');
-const sharp = require('sharp');
 const { PutObjectCommand } = require('@aws-sdk/client-s3');
 const s3 = require('../config/s3');
 const { getMediaUrl } = require('./video.service');
 
-// Keep Sharp memory footprint small on low-RAM EC2 instances
-sharp.cache(false);
-sharp.concurrency(1);
+let sharp = null;
+try {
+  sharp = require('sharp');
+  // Keep Sharp memory footprint small on low-RAM EC2 instances
+  sharp.cache(false);
+  sharp.concurrency(1);
+} catch (err) {
+  console.warn('[Image Optimization Disabled]: Sharp could not load on this runtime:', err.message);
+}
 
 const CACHE_CONTROL_HEADER = 'public, max-age=31536000, immutable';
 
@@ -38,7 +43,7 @@ async function processAndUploadImage(file, folder = 'images') {
   let outputMime = file.mimetype || 'image/jpeg';
   let optimized = false;
 
-  if (!isPassthrough && file.buffer && file.buffer.length > 0) {
+  if (sharp && !isPassthrough && file.buffer && file.buffer.length > 0) {
     try {
       const isAvatar = cleanFolder === 'avatars' || cleanFolder === 'profile';
       const maxWidth = isAvatar ? 400 : 1280;
