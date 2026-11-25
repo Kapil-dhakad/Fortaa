@@ -1,38 +1,56 @@
+/* ==========================================================================
+   FORTAA LIVE SUPPORT CHAT PAGE - DESKTOP & MOBILE RESPONSIVE
+   ========================================================================== */
+
 /* ── Support Live Chat Page Container ── */
 .sp-chat-page-root {
-  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
   background-color: #F8F7FC;
   display: flex;
   flex-direction: column;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  box-sizing: border-box;
+}
+
+.sp-chat-page-root .ud-main-wrapper {
+  display: flex;
+  width: 100%;
+  height: calc(100vh - 56px);
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
 .sp-chat-main-container {
   flex: 1;
-  padding: 18px 24px 28px;
+  padding: 16px 24px 20px;
   display: flex;
   justify-content: center;
   align-items: stretch;
-  height: calc(100vh - 75px);
+  height: 100%;
   box-sizing: border-box;
+  overflow: hidden;
 }
 
 .sp-chat-card {
   width: 100%;
-  max-width: 980px;
+  max-width: 920px;
+  height: 100%;
   background: #FFFFFF;
   border-radius: 16px;
   border: 1px solid #E9E1FA;
-  box-shadow: 0 10px 30px rgba(46, 3, 98, 0.06);
+  box-shadow: 0 8px 30px rgba(46, 3, 98, 0.08);
   display: flex;
   flex-direction: column;
   overflow: hidden;
   position: relative;
+  box-sizing: border-box;
 }
 
 /* ── Top Header Bar ── */
 .sp-chat-header {
-  padding: 16px 22px;
-  background: linear-gradient(135deg, #2E0362 0%, #4B0998 60%, #6326AE 100%);
+  padding: 14px 20px;
+  background: linear-gradient(135deg, #2E0362 0%, #4B0998 50%, #5B24FF 100%);
   color: #FFFFFF;
   display: flex;
   align-items: center;
@@ -40,21 +58,22 @@
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow: 0 2px 10px rgba(46, 3, 98, 0.15);
   z-index: 2;
+  flex-shrink: 0;
 }
 
 .sp-chat-header-left {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 12px;
 }
 
 .sp-chat-back-btn {
   background: rgba(255, 255, 255, 0.15);
-  border: none;
+  border: 1px solid rgba(255, 255, 255, 0.2);
   color: #FFFFFF;
   width: 36px;
   height: 36px;
-  border-radius: 8px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -72,10 +91,10 @@
 }
 
 .sp-chat-agent-avatar {
-  width: 44px;
-  height: 44px;
+  width: 42px;
+  height: 42px;
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.18);
   border: 1.5px solid rgba(255, 255, 255, 0.35);
   display: flex;
   align-items: center;
@@ -92,7 +111,13 @@
   border-radius: 50%;
   background: #10B981;
   border: 2px solid #2E0362;
-  box-shadow: 0 0 6px #10B981;
+  box-shadow: 0 0 8px #10B981;
+  animation: spPulseDot 2s infinite ease-in-out;
+}
+
+@keyframes spPulseDot {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.15); opacity: 0.85; }
 }
 
 .sp-chat-agent-info {
@@ -108,7 +133,7 @@
 
 .sp-chat-agent-name {
   margin: 0;
-  font-size: 17px;
+  font-size: 16px;
   font-weight: 700;
   color: #FFFFFF;
   letter-spacing: -0.01em;
@@ -118,17 +143,18 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  background: rgba(255, 255, 255, 0.2);
-  padding: 2px 7px;
+  background: rgba(255, 255, 255, 0.18);
+  padding: 2px 8px;
   border-radius: 12px;
   font-size: 11px;
   font-weight: 600;
   color: #E9D5FF;
+  border: 1px solid rgba(255, 255, 255, 0.25);
 }
 
 .sp-chat-agent-status {
-  margin: 3px 0 0;
-  font-size: 12px;
+  margin: 2px 0 0;
+  font-size: 11.5px;
   color: rgba(255, 255, 255, 0.85);
   display: flex;
   align-items: center;
@@ -157,7 +183,7 @@
   border: 1px solid rgba(255, 255, 255, 0.25);
   color: #FFFFFF;
   border-radius: 8px;
-  padding: 7px 13px;
+  padding: 6px 12px;
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
@@ -165,7 +191,7 @@
 }
 
 .sp-chat-refresh-btn:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.28);
+  background: rgba(255, 255, 255, 0.25);
 }
 
 .sp-spin {
@@ -182,30 +208,31 @@
 .sp-chat-body {
   flex: 1;
   overflow-y: auto;
-  padding: 24px 24px 16px;
-  background: #FDFBFF;
+  padding: 20px 20px 14px;
+  background: #FAF8FE;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 14px;
   scroll-behavior: smooth;
+  box-sizing: border-box;
 }
 
 .sp-chat-date-divider {
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 4px 0 10px;
+  margin: 4px 0 8px;
 }
 
 .sp-chat-date-divider span {
   background: #EDE8F5;
   color: #6326AE;
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 700;
   padding: 3px 12px;
   border-radius: 12px;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.05em;
 }
 
 .sp-chat-loading-notice {
@@ -239,12 +266,12 @@
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: #8637EF;
+  background: linear-gradient(135deg, #7C3AED 0%, #4B0998 100%);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  box-shadow: 0 2px 6px rgba(134, 55, 239, 0.25);
+  box-shadow: 0 2px 6px rgba(124, 58, 237, 0.25);
 }
 
 .sp-admin-avatar {
@@ -265,17 +292,18 @@
 .sp-chat-bubble {
   max-width: 72%;
   padding: 12px 16px;
-  border-radius: 14px;
+  border-radius: 16px;
   position: relative;
   word-break: break-word;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  box-sizing: border-box;
 }
 
 /* Incoming Bubble (Support Team / Bot) */
 .sp-bubble-incoming {
   background: #FFFFFF;
   border: 1px solid #E9D5FF;
-  border-bottom-left-radius: 3px;
+  border-bottom-left-radius: 4px;
   color: #1E293B;
 }
 
@@ -304,14 +332,14 @@
   color: #2E0362;
   font-size: 10px;
   font-weight: 700;
-  padding: 1px 6px;
+  padding: 2px 6px;
   border-radius: 4px;
 }
 
 .sp-bubble-status-pill {
   font-size: 11px;
   font-weight: 700;
-  padding: 2px 7px;
+  padding: 2px 8px;
   border-radius: 10px;
   display: inline-flex;
   align-items: center;
@@ -327,13 +355,13 @@
 .sp-bubble-outgoing {
   background: linear-gradient(135deg, #6326AE 0%, #2E0362 100%);
   color: #FFFFFF;
-  border-bottom-right-radius: 3px;
+  border-bottom-right-radius: 4px;
   box-shadow: 0 4px 12px rgba(46, 3, 98, 0.18);
 }
 
 .sp-bubble-text {
   margin: 0;
-  font-size: 14px;
+  font-size: 13.5px;
   line-height: 1.55;
   white-space: pre-wrap;
 }
@@ -362,15 +390,16 @@
   color: #A7F3D0;
 }
 
-/* ── Quick Prompt Chips ── */
+/* ── Quick Prompt Chips (Carousel with NO ugly scrollbars) ── */
 .sp-chat-quick-chips {
-  padding: 10px 20px;
+  padding: 8px 16px;
   background: #FFFFFF;
   border-top: 1px solid #F1F5F9;
   display: flex;
   align-items: center;
   gap: 10px;
-  overflow-x: auto;
+  overflow: hidden;
+  flex-shrink: 0;
 }
 
 .sp-chips-label {
@@ -387,7 +416,14 @@
   display: flex;
   gap: 8px;
   overflow-x: auto;
-  padding-bottom: 2px;
+  padding: 2px 0;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.sp-chips-scroll::-webkit-scrollbar {
+  display: none;
 }
 
 .sp-quick-chip {
@@ -396,7 +432,7 @@
   color: #6326AE;
   font-size: 12px;
   font-weight: 500;
-  padding: 5px 12px;
+  padding: 6px 13px;
   border-radius: 20px;
   white-space: nowrap;
   cursor: pointer;
@@ -412,13 +448,14 @@
 
 /* ── Input Bar ── */
 .sp-chat-input-bar {
-  padding: 14px 22px;
+  padding: 12px 18px;
   background: #FFFFFF;
   border-top: 1px solid #E9E1FA;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   z-index: 2;
+  flex-shrink: 0;
 }
 
 .sp-input-wrapper {
@@ -432,13 +469,13 @@
   background: #F8F7FC;
   border: 1.5px solid #E2E8F0;
   border-radius: 24px;
-  padding: 12px 18px;
-  font-size: 14px;
+  padding: 11px 18px;
+  font-size: 13.5px;
   font-family: inherit;
   color: #1E293B;
   outline: none;
   resize: none;
-  max-height: 100px;
+  max-height: 90px;
   transition: all 0.15s ease;
 }
 
@@ -450,6 +487,7 @@
 
 .sp-chat-input::placeholder {
   color: #94A3B8;
+  font-size: 13px;
 }
 
 .sp-chat-send-btn {
@@ -457,12 +495,12 @@
   border: none;
   color: #FFFFFF;
   border-radius: 24px;
-  padding: 12px 22px;
-  font-size: 14px;
+  padding: 10px 20px;
+  font-size: 13.5px;
   font-weight: 600;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 7px;
   cursor: pointer;
   box-shadow: 0 4px 12px rgba(134, 55, 239, 0.3);
   transition: all 0.15s ease;
@@ -476,41 +514,93 @@
 }
 
 .sp-chat-send-btn:disabled {
-  opacity: 0.55;
+  opacity: 0.5;
   cursor: not-allowed;
   box-shadow: none;
 }
 
-/* ── Mobile Responsive ── */
+/* ==========================================================================
+   MOBILE RESPONSIVENESS (< 768px)
+   ========================================================================== */
+
 @media (max-width: 768px) {
+  .sp-chat-page-root {
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  .sp-chat-page-root .ud-main-wrapper {
+    height: calc(100vh - 56px);
+    flex-direction: column;
+  }
+
   .sp-chat-main-container {
-    padding: 8px 10px 85px; /* space for mobile bottom nav */
-    height: calc(100vh - 60px);
+    padding: 0 0 65px 0; /* clean fit above mobile bottom nav */
+    height: calc(100vh - 56px);
+    overflow: hidden;
   }
 
   .sp-chat-card {
-    border-radius: 12px;
+    border-radius: 0;
+    border: none;
+    box-shadow: none;
+    max-width: 100%;
+    height: 100%;
   }
 
   .sp-chat-header {
-    padding: 12px 14px;
+    padding: 10px 14px;
+  }
+
+  .sp-chat-agent-avatar {
+    width: 36px;
+    height: 36px;
   }
 
   .sp-chat-agent-name {
-    font-size: 15px;
+    font-size: 14.5px;
   }
 
   .sp-chat-agent-status {
-    font-size: 11px;
+    font-size: 10.5px;
+  }
+
+  .sp-chat-refresh-btn span {
+    display: none;
+  }
+
+  .sp-chat-refresh-btn {
+    padding: 7px 8px;
+    border-radius: 8px;
+  }
+
+  .sp-chat-body {
+    padding: 14px 12px 10px;
+    gap: 12px;
   }
 
   .sp-chat-bubble {
-    max-width: 86%;
+    max-width: 85%;
     padding: 10px 13px;
+    font-size: 13px;
+  }
+
+  .sp-chat-quick-chips {
+    padding: 6px 12px;
+  }
+
+  .sp-quick-chip {
+    padding: 4px 11px;
+    font-size: 11.5px;
   }
 
   .sp-chat-input-bar {
-    padding: 10px 12px;
+    padding: 8px 12px 10px;
+  }
+
+  .sp-chat-input {
+    padding: 9px 14px;
+    font-size: 13px;
   }
 
   .sp-send-btn-label {
@@ -518,10 +608,11 @@
   }
 
   .sp-chat-send-btn {
-    padding: 10px 14px;
+    padding: 0;
     border-radius: 50%;
-    width: 42px;
-    height: 42px;
+    width: 40px;
+    height: 40px;
     justify-content: center;
   }
 }
+

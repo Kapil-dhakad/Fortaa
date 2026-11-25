@@ -206,7 +206,7 @@ export default function UserMobileBottomNav({
                 >
                   <span className="ud-mob-menu-card-icon-wrap">
                     {item.isSupport ? (
-                      <FiHeadphones size={22} color="#7E22CE" />
+                      <FiHeadphones size={20} color="#FFFFFF" />
                     ) : (
                       <img src={item.icon} alt={item.label} className="ud-mob-menu-card-icon" />
                     )}

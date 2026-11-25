@@ -26,7 +26,7 @@ const footerColumns = [
   {
     title: 'Business',
     links: [
-      { name: 'List Your Business', href: '/signup', isRoute: true },
+      { name: 'Register Your Account', href: '/signup', isRoute: true },
       { name: 'Advertise With Us', href: '#promotions', targetId: 'promotions' },
       { name: 'Featured Listings', href: '#companies', targetId: 'companies' },
       { name: 'Partnership', href: '/login', isRoute: true },

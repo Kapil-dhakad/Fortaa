@@ -277,7 +277,11 @@ export default function NotificationsPage() {
   return (
     <div className="np-page-root">
       {/* Universal Desktop & Mobile Header */}
-      <UserHeader currentUserId={currentUserId} />
+      <UserHeader
+        user={storedUser}
+        mobileMenuOpen={mobileMenuOpen}
+        setMobileMenuOpen={setMobileMenuOpen}
+      />
 
       <div className="np-main-layout">
         {/* Unified Sidebar for Desktop */}

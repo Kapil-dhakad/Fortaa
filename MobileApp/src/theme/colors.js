@@ -1,0 +1,18 @@
+export const COLORS = {
+  primary: '#2E0362',
+  primaryDark: '#1A0138',
+  primaryPurple: '#6326AE',
+  accentPurple: '#8637EF',
+  accentLight: '#F4EBFF',
+  bgLight: '#F9FAFB',
+  white: '#FFFFFF',
+  textDark: '#1D2939',
+  textMuted: '#667085',
+  border: '#EAECF0',
+  borderFocus: '#8637EF',
+  success: '#12B76A',
+  successBg: '#ECFDF3',
+  error: '#F04438',
+  errorBg: '#FEF3F2',
+  inputBg: '#F8F9FC',
+};

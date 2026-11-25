@@ -142,7 +142,7 @@ export default function HeroSection() {
               <img src={iconRightArrow} alt="" />
             </a>
             <Link to="/signup" className="figma-hero-btn-list">
-              List Your Business
+              Register Your Account
             </Link>
           </div>
 

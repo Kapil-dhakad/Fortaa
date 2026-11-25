@@ -180,6 +180,7 @@ export default function SupportChatPage() {
     <div className="ud-dashboard-root sp-chat-page-root">
       {/* Header */}
       <UserHeader
+        user={storedUser}
         mobileMenuOpen={mobileMenuOpen}
         setMobileMenuOpen={setMobileMenuOpen}
       />

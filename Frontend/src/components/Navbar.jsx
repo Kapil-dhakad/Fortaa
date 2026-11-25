@@ -70,7 +70,7 @@ export default function Navbar() {
               Log In
             </Link>
             <Link to="/signup" className="figma-btn-list-business mobile-drawer-btn" onClick={() => setMenuOpen(false)}>
-              List Your Business
+              Register Your Account
             </Link>
           </div>
         </nav>
@@ -91,7 +91,7 @@ export default function Navbar() {
           </Link>
 
           <Link to="/signup" className="figma-btn-list-business">
-            List Your Business
+            Register Your Account
           </Link>
 
           <button

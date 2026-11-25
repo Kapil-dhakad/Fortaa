@@ -599,11 +599,11 @@ export default function SignUpPage() {
 
   // Step 4: Final Complete Registration API Call
   const handleCompleteRegistration = async () => {
-    // 1. Enforce Mobile Verification
-    if (!formData.mobileVerified) {
-      toast.error('Please verify your mobile number to complete registration.');
-      return;
-    }
+    // 1. Enforce Mobile Verification (Temporarily commented out)
+    // if (!formData.mobileVerified) {
+    //   toast.error('Please verify your mobile number to complete registration.');
+    //   return;
+    // }
 
     // 2. Enforce Email Verification
     if (!formData.emailVerified) {
@@ -922,7 +922,7 @@ export default function SignUpPage() {
                 {/* WhatsApp Number (Preserved) */}
                 <div className="form-field">
                   <label className="form-label">
-                    WhatsApp Number (Optional)
+                    WhatsApp Number
                   </label>
                   <div className="phone-input-group">
                     <div className="country-code-pill">
@@ -1348,7 +1348,8 @@ export default function SignUpPage() {
               <p className="step-subheading">Verify your identity to complete the registration process.</p>
 
               <div className="verification-list">
-                {/* Mobile / WhatsApp Verification */}
+                {/* Mobile / WhatsApp Verification (Temporarily commented out) */}
+                {/*
                 <div className={`verify-item-card ${formData.mobileVerified ? 'verified-card' : ''}`}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: 16, flexWrap: 'wrap' }}>
                     <div className="verify-left">
@@ -1383,7 +1384,6 @@ export default function SignUpPage() {
                     )}
                   </div>
 
-                  {/* Inline WhatsApp OTP Input Box */}
                   {showMobileOtpInput && !formData.mobileVerified && (
                     <div className="email-otp-drawer">
                       <div style={{ fontSize: '13px', fontWeight: 600, color: '#4B5563', marginBottom: 8 }}>
@@ -1421,6 +1421,7 @@ export default function SignUpPage() {
                     </div>
                   )}
                 </div>
+                */}
 
                 {/* Email Verification */}
                 <div className={`verify-item-card ${formData.emailVerified ? 'verified-card' : ''}`}>

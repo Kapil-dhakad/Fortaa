@@ -8,6 +8,13 @@ node_modules/
 !.env.example
 *.env
 
+# Expo & Mobile
+.expo/
+*/.expo/
+*.jks
+*.p8
+*.p12
+
 # Logs
 logs/
 *.log

@@ -93,7 +93,7 @@ export default function UserSidebar({
             >
               <span className="ud-nav-icon">
                 {item.isSupport ? (
-                  <FiHeadphones size={20} color={activeTab === item.label ? '#7E22CE' : '#FFFFFF'} />
+                  <FiHeadphones size={20} color="#FFFFFF" />
                 ) : (
                   <img src={item.icon} alt={item.label} className={`ud-nav-icon-img ${item.label === 'Services' ? 'ud-nav-icon-white' : ''}`} />
                 )}
