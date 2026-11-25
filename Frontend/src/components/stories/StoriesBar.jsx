@@ -117,6 +117,7 @@ export default function StoriesBar({
             <img
               src={currentUser?.avatarUrl || userAvatarImg}
               alt="My Story"
+              decoding="async"
               className={`sb-avatar-img ${myStories.length > 0 ? 'has-ring' : ''}`}
             />
             <button
@@ -155,6 +156,8 @@ export default function StoriesBar({
                   <img
                     src={group.userAvatar || userAvatarImg}
                     alt={group.userName}
+                    loading={gIdx > 4 ? 'lazy' : 'eager'}
+                    decoding="async"
                     className="sb-avatar-img"
                     onError={(e) => {
                       e.currentTarget.onerror = null;

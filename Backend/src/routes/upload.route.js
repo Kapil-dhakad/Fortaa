@@ -1,15 +1,16 @@
 const express = require('express');
 const router = express.Router();
-const { uploadImage, uploadDocument, uploadVideo, uploadVideoTemp } = require('../middleware/upload.middleware');
+const { uploadImageMemory, uploadDocument, uploadVideoTemp } = require('../middleware/upload.middleware');
+const { processAndUploadImage } = require('../services/image.service');
 const { processAndUploadVideo } = require('../services/video.service');
 
 /**
  * @route   POST /api/upload/image
- * @desc    Upload single image (avatar, logo, product image, post image)
- * @query   ?folder=avatars | posts | products | companies
+ * @desc    Upload single image (automatically resized & WebP-compressed via Sharp before S3)
+ * @query   ?folder=avatars | posts | products | companies | stories
  */
 router.post('/image', (req, res) => {
-  uploadImage.single('file')(req, res, (err) => {
+  uploadImageMemory.single('file')(req, res, async (err) => {
     if (err) {
       return res.status(400).json({
         success: false,
@@ -24,24 +25,39 @@ router.post('/image', (req, res) => {
       });
     }
 
-    return res.status(200).json({
-      success: true,
-      message: 'Image uploaded successfully',
-      url: req.file.location,
-      key: req.file.key,
-      size: req.file.size,
-      mimetype: req.file.mimetype,
-    });
+    try {
+      const folder = req.query.folder || 'images';
+      const result = await processAndUploadImage(req.file, folder);
+
+      return res.status(200).json({
+        success: true,
+        message: result.optimized
+          ? 'Image compressed & uploaded successfully'
+          : 'Image uploaded successfully',
+        url: result.url,
+        key: result.key,
+        size: result.size,
+        mimetype: result.mimetype,
+        optimized: result.optimized,
+      });
+    } catch (uploadErr) {
+      console.error('[Image Optimization/Upload Error]:', uploadErr);
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to process and upload image',
+        error: uploadErr.message,
+      });
+    }
   });
 });
 
 /**
  * @route   POST /api/upload/images
- * @desc    Upload multiple images (gallery, multiple products)
+ * @desc    Upload multiple images (automatically resized & WebP-compressed via Sharp before S3)
  * @query   ?folder=gallery | products
  */
 router.post('/images', (req, res) => {
-  uploadImage.array('files', 10)(req, res, (err) => {
+  uploadImageMemory.array('files', 10)(req, res, async (err) => {
     if (err) {
       return res.status(400).json({
         success: false,
@@ -56,17 +72,27 @@ router.post('/images', (req, res) => {
       });
     }
 
-    const uploaded = req.files.map((file) => ({
-      url: file.location,
-      key: file.key,
-      size: file.size,
-    }));
+    try {
+      const folder = req.query.folder || 'gallery';
+      // Process sequentially to avoid Sharp memory spikes on small EC2 instances
+      const uploaded = [];
+      for (const file of req.files) {
+        uploaded.push(await processAndUploadImage(file, folder));
+      }
 
-    return res.status(200).json({
-      success: true,
-      message: `${uploaded.length} images uploaded successfully`,
-      files: uploaded,
-    });
+      return res.status(200).json({
+        success: true,
+        message: `${uploaded.length} images uploaded successfully`,
+        files: uploaded,
+      });
+    } catch (uploadErr) {
+      console.error('[Multiple Image Upload Error]:', uploadErr);
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to process and upload images',
+        error: uploadErr.message,
+      });
+    }
   });
 });
 

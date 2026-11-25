@@ -156,12 +156,14 @@
   background: rgba(158, 4, 195, 0.06);
 }
 
-/* List Your Business [2:38] w:153, h:30, r:10 */
+/* Register Your Account [2:38] */
 .figma-btn-list-business {
-  width: 153px;
-  height: 30px;
+  width: auto;
+  min-width: 158px;
+  height: 32px;
   border-radius: 10px;
-  padding: 10px;
+  padding: 0 16px;
+  box-sizing: border-box;
   gap: 10px;
   background: linear-gradient(270deg, #E26BFE 0%, #6436F9 18.27%, #6436F9 82.21%, #E26BFE 100%);
   display: flex;

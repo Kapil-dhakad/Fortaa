@@ -423,6 +423,8 @@ function InFeedSuggestedPeople({
                 <img
                   src={person.avatar}
                   alt={person.name}
+                  loading="lazy"
+                  decoding="async"
                   className="ud-infeed-avatar-img"
                   onError={(e) => {
                     e.currentTarget.onerror = null;
@@ -903,6 +905,20 @@ export default function UserDashboard() {
     }
   });
   const [searchQuery, setSearchQuery] = useState('');
+  const [isMobileViewport, setIsMobileViewport] = useState(() =>
+    typeof window !== 'undefined' ? window.innerWidth <= 768 : false
+  );
+  const [visiblePostCount, setVisiblePostCount] = useState(10);
+  const loadMoreRef = useRef(null);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.matchMedia) return;
+    const mq = window.matchMedia('(max-width: 768px)');
+    const handleViewportChange = (e) => setIsMobileViewport(e.matches);
+    setIsMobileViewport(mq.matches);
+    mq.addEventListener('change', handleViewportChange);
+    return () => mq.removeEventListener('change', handleViewportChange);
+  }, []);
 
   const filteredPosts = React.useMemo(() => {
     if (!searchQuery?.trim()) return posts;
@@ -914,6 +930,26 @@ export default function UserDashboard() {
         (p.author_role || '').toLowerCase().includes(q)
     );
   }, [posts, searchQuery]);
+
+  const displayedPosts = React.useMemo(() => {
+    if (searchQuery?.trim()) return filteredPosts;
+    return filteredPosts.slice(0, visiblePostCount);
+  }, [filteredPosts, visiblePostCount, searchQuery]);
+
+  useEffect(() => {
+    const el = loadMoreRef.current;
+    if (!el || visiblePostCount >= filteredPosts.length) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          setVisiblePostCount((prev) => Math.min(prev + 10, filteredPosts.length));
+        }
+      },
+      { rootMargin: '400px' }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [visiblePostCount, filteredPosts.length, isMobileViewport]);
 
   const [openCommentsPostId, setOpenCommentsPostId] = useState(null);
   const [shareModalPost, setShareModalPost] = useState(null);
@@ -1603,6 +1639,7 @@ export default function UserDashboard() {
       />
 
       {/* ───────────────── DESKTOP VIEW (> 768px) ───────────────── */}
+      {!isMobileViewport && (
       <div className="ud-desktop-only">
         {/* ───────────────── MAIN WRAPPER: PINNED SIDEBAR + SCROLLABLE RIGHT CONTENT ───────────────── */}
         <div className="ud-main-wrapper">
@@ -1869,8 +1906,9 @@ export default function UserDashboard() {
                     </button>
                   </div>
                 )}
-                {filteredPosts.length > 0 ? (
-                  filteredPosts.map((post, pIdx) => (
+                {displayedPosts.length > 0 ? (
+                  <>
+                  {displayedPosts.map((post, pIdx) => (
                     <React.Fragment key={post.id || pIdx}>
                       <div className={`ud-post-item ${pIdx === 0 ? 'ud-post-item-first' : 'ud-post-item-second'}`}>
                       <div className="ud-post-header">
@@ -1883,6 +1921,8 @@ export default function UserDashboard() {
                           <img
                             src={post.author_avatar || userAvatarImg}
                             alt=""
+                            loading={pIdx > 2 ? 'lazy' : 'eager'}
+                            decoding="async"
                             className="ud-post-avatar"
                             onError={(e) => {
                               e.currentTarget.onerror = null;
@@ -1983,6 +2023,10 @@ export default function UserDashboard() {
                             <img
                               src={post.image_url}
                               alt="Post Media"
+                              loading={pIdx > 1 ? 'lazy' : 'eager'}
+                              decoding="async"
+                              fetchPriority={pIdx === 0 ? 'high' : 'auto'}
+                              onLoad={(e) => e.currentTarget.parentElement?.classList.add('has-loaded')}
                               className="ud-post-img"
                             />
                             <div className="ud-post-img-logo-badge">
@@ -2096,7 +2140,28 @@ export default function UserDashboard() {
                         />
                       )}
                     </React.Fragment>
-                  ))
+                  ))}
+                  {!searchQuery?.trim() && visiblePostCount < filteredPosts.length && (
+                    <div ref={loadMoreRef} style={{ textAlign: 'center', padding: '14px 0' }}>
+                      <button
+                        type="button"
+                        onClick={() => setVisiblePostCount((prev) => prev + 10)}
+                        style={{
+                          padding: '8px 20px',
+                          borderRadius: '20px',
+                          border: '1px solid #E2D8FA',
+                          background: '#F7F4FC',
+                          color: '#5A2CE4',
+                          fontWeight: 600,
+                          fontSize: '13px',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        Load More Posts
+                      </button>
+                    </div>
+                  )}
+                  </>
                 ) : searchQuery.trim() ? (
                   <div
                     style={{
@@ -2302,8 +2367,10 @@ export default function UserDashboard() {
         </div>
       </div>
       </div>
+      )}
 
       {/* ───────────────── FIGMA MOBILE DASHBOARD (<= 768px) ───────────────── */}
+      {isMobileViewport && (
       <div className="ud-mobile-only">
         {/* Main Content Card: Frame 109 (White container with soft glow) */}
         <div className="ud-mob-frame109">
@@ -2523,8 +2590,9 @@ export default function UserDashboard() {
                 </button>
               </div>
             )}
-            {filteredPosts && filteredPosts.length > 0 ? (
-              filteredPosts.map((post, pIdx) => (
+            {displayedPosts && displayedPosts.length > 0 ? (
+              <>
+              {displayedPosts.map((post, pIdx) => (
                 <React.Fragment key={post.id || pIdx}>
                   <article className="ud-mob-post-card">
                   <div className="ud-mob-post-header">
@@ -2538,6 +2606,8 @@ export default function UserDashboard() {
                         <img
                           src={post.author_avatar || userAvatarImg}
                           alt={post.author_name}
+                          loading={pIdx > 2 ? 'lazy' : 'eager'}
+                          decoding="async"
                           className="ud-mob-author-avatar"
                           onError={(e) => {
                             e.currentTarget.onerror = null;
@@ -2647,7 +2717,15 @@ export default function UserDashboard() {
                         }}
                         onTouchEnd={(e) => handlePostMediaTouch(e, post)}
                       >
-                        <img src={post.image_url} alt="Post content" className="ud-mob-post-banner-img" />
+                        <img
+                          src={post.image_url}
+                          alt="Post content"
+                          loading={pIdx > 1 ? 'lazy' : 'eager'}
+                          decoding="async"
+                          fetchPriority={pIdx === 0 ? 'high' : 'auto'}
+                          onLoad={(e) => e.currentTarget.parentElement?.classList.add('has-loaded')}
+                          className="ud-mob-post-banner-img"
+                        />
                         {heartAnimPostIds[post.id] && (
                           <div className="ud-insta-heart-overlay">
                             <svg className="ud-insta-heart-icon" viewBox="0 0 24 24" fill="#FF2D55">
@@ -2759,7 +2837,28 @@ export default function UserDashboard() {
                     />
                   )}
                 </React.Fragment>
-              ))
+              ))}
+              {!searchQuery?.trim() && visiblePostCount < filteredPosts.length && (
+                <div ref={loadMoreRef} style={{ textAlign: 'center', padding: '12px 0 20px' }}>
+                  <button
+                    type="button"
+                    onClick={() => setVisiblePostCount((prev) => prev + 10)}
+                    style={{
+                      padding: '8px 18px',
+                      borderRadius: '20px',
+                      border: '1px solid #E2D8FA',
+                      background: '#F7F4FC',
+                      color: '#5A2CE4',
+                      fontWeight: 600,
+                      fontSize: '12px',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Load More Posts
+                  </button>
+                </div>
+              )}
+              </>
             ) : searchQuery.trim() ? (
               <div
                 className="ud-mob-no-posts-card"
@@ -2839,6 +2938,7 @@ export default function UserDashboard() {
           onPlusClick={() => setIsCreatePostModalOpen(true)}
         />
       </div>
+      )}
 
       {/* ───────────────── CREATE POST POPUP MODAL ───────────────── */}
       {isCreatePostModalOpen && (

@@ -50,7 +50,7 @@ const uploadsDir = path.join(__dirname, '../uploads');
 if (!require('fs').existsSync(uploadsDir)) {
   require('fs').mkdirSync(uploadsDir, { recursive: true });
 }
-app.use('/uploads', express.static(uploadsDir));
+app.use('/uploads', express.static(uploadsDir, { maxAge: '30d', immutable: true }));
 
 // 2. Serve static frontend build files with browser cache
 const buildPath = path.join(__dirname, 'build');

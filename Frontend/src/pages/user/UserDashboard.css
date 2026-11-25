@@ -5084,19 +5084,42 @@
    INSTAGRAM STYLE PHOTO/VIDEO DISPLAY & DOUBLE TAP HEART POPUP
    ========================================================= */
 
+@keyframes udImgShimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
 .ud-post-image-box {
   position: relative !important;
   width: 100% !important;
   max-width: 100% !important;
   border-radius: 12px !important;
   overflow: hidden !important;
-  background: #09090B !important;
+  background: linear-gradient(90deg, #F3EFFB 25%, #EAE2FA 50%, #F3EFFB 75%) !important;
+  background-size: 200% 100% !important;
+  animation: udImgShimmer 1.4s ease-in-out infinite;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
   margin: 8px 0 10px 0 !important;
   user-select: none !important;
   cursor: pointer !important;
+}
+
+.ud-post-image-box.has-loaded,
+.ud-mob-post-banner-wrap.has-loaded {
+  background: #F8F5FD !important;
+  animation: none !important;
+}
+
+.ud-post-image-box.ud-post-video-box,
+.ud-mob-post-banner-wrap.ud-post-video-box {
+  background: #09090B !important;
+  animation: none !important;
 }
 
 .ud-post-img {
@@ -5114,7 +5137,9 @@
   overflow: hidden !important;
   position: relative !important;
   margin: 8px 0 10px !important;
-  background: #09090B !important;
+  background: linear-gradient(90deg, #F3EFFB 25%, #EAE2FA 50%, #F3EFFB 75%) !important;
+  background-size: 200% 100% !important;
+  animation: udImgShimmer 1.4s ease-in-out infinite;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;

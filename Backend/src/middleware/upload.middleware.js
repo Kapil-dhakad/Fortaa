@@ -5,11 +5,14 @@ const fs = require('fs');
 const os = require('os');
 const s3 = require('../config/s3');
 
-// S3 Storage setup for images
+const CACHE_CONTROL_HEADER = 'public, max-age=31536000, immutable';
+
+// S3 Storage setup for images (direct S3 fallback)
 const imageStorage = multerS3({
   s3: s3,
   bucket: process.env.AWS_S3_BUCKET || 'fortaa-media-storage',
   contentType: multerS3.AUTO_CONTENT_TYPE,
+  cacheControl: CACHE_CONTROL_HEADER,
   metadata: (req, file, cb) => {
     cb(null, { fieldName: file.fieldname });
   },
@@ -49,11 +52,19 @@ const uploadImage = multer({
   fileFilter: imageFileFilter,
 });
 
+// In-memory multer instance so Sharp can resize & convert images before S3 upload
+const uploadImageMemory = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 25 * 1024 * 1024 }, // 25MB limit
+  fileFilter: imageFileFilter,
+});
+
 // Document storage setup (for PDF, docs, catalogs, IDs)
 const documentStorage = multerS3({
   s3: s3,
   bucket: process.env.AWS_S3_BUCKET || 'fortaa-media-storage',
   contentType: multerS3.AUTO_CONTENT_TYPE,
+  cacheControl: CACHE_CONTROL_HEADER,
   key: (req, file, cb) => {
     const folder = req.query.folder || 'documents';
     const ext = path.extname(file.originalname).toLowerCase();
@@ -92,6 +103,7 @@ const videoStorage = multerS3({
   s3: s3,
   bucket: process.env.AWS_S3_BUCKET || 'fortaa-media-storage',
   contentType: multerS3.AUTO_CONTENT_TYPE,
+  cacheControl: CACHE_CONTROL_HEADER,
   key: (req, file, cb) => {
     const folder = req.query.folder || 'videos';
     const ext = path.extname(file.originalname).toLowerCase() || '.mp4';
@@ -151,6 +163,7 @@ const uploadVideoTemp = multer({
 
 module.exports = {
   uploadImage,
+  uploadImageMemory,
   uploadDocument,
   uploadVideo,
   uploadVideoTemp,

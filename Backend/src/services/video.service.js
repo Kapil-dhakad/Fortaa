@@ -126,6 +126,7 @@ async function processAndUploadVideo(file, folder = 'videos') {
       Key: targetKey,
       Body: fileStream,
       ContentType: 'video/mp4',
+      CacheControl: 'public, max-age=31536000, immutable',
     };
 
     await s3.send(new PutObjectCommand(uploadParams));
