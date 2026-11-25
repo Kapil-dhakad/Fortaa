@@ -9,6 +9,7 @@ import OpportunityScreen from './src/screens/OpportunityScreen';
 import MessagesScreen from './src/screens/MessagesScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
 import NotificationsScreen from './src/screens/NotificationsScreen';
+import GroupsScreen from './src/screens/GroupsScreen';
 import UserMobileBottomNav from './src/components/UserMobileBottomNav';
 import MenuBottomSheet from './src/components/MenuBottomSheet';
 import CreatePostModal from './src/components/CreatePostModal';
@@ -62,8 +63,8 @@ export default function App() {
     else if (key === 'leaders') setActiveTab('network');
     else if (key === 'messages') setActiveTab('messages');
     else if (key === 'notifications') setActiveTab('notifications');
+    else if (key === 'groups') setActiveTab('groups');
     else if (key === 'promotions') Alert.alert('Promotions', 'Exclusive promotions & offers');
-    else if (key === 'groups') Alert.alert('Groups', 'Community groups & team discussions');
     else if (key === 'settings') Alert.alert('Settings', 'Account & Privacy Settings');
     else if (key === 'support') Alert.alert('Support', '24/7 Live Support: support@fortaa.com');
   };
@@ -159,11 +160,26 @@ export default function App() {
                 onLogout={handleLogout}
               />
             )}
+
+            {/* Screen 7: Groups */}
+            {activeTab === 'groups' && (
+              <GroupsScreen
+                user={user}
+                onOpenGroupChat={(groupContact) => {
+                  setActiveChatPartner(groupContact);
+                  setActiveTab('messages');
+                }}
+                onNavigateToMessages={() => setActiveTab('messages')}
+                onNavigateToProfile={() => setActiveTab('profile')}
+                onNavigateToNotifications={() => setActiveTab('notifications')}
+                onLogout={handleLogout}
+              />
+            )}
           </View>
 
           {/* Docked Mobile Bottom Navigation Bar with FAB (+) */}
           <UserMobileBottomNav
-            activeTab={activeTab === 'notifications' ? 'menu' : activeTab}
+            activeTab={activeTab === 'notifications' || activeTab === 'groups' ? 'menu' : activeTab}
             onSelectTab={handleSelectTab}
             onPlusClick={() => setCreatePostModalOpen(true)}
           />

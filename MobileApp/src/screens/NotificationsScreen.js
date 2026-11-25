@@ -9,6 +9,8 @@ import {
   ActivityIndicator,
   Alert,
   Dimensions,
+  Modal,
+  TouchableWithoutFeedback,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -122,21 +124,31 @@ export default function NotificationsScreen({ user, onNavigateToMessages, onNavi
   const [activeFilter, setActiveFilter] = useState('All');
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [actionStates, setActionStates] = useState({});
+  const [selectedNotifAction, setSelectedNotifAction] = useState(null);
 
   const filters = ['All', 'Unread', 'Likes', 'Comments', 'Follows'];
 
   const unreadCount = notifications.filter((n) => !n.read).length;
 
   const filteredNotifications = notifications.filter((n) => {
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      const matchActor = (n.actor || '').toLowerCase().includes(q);
+      const matchMsg = (n.message || '').toLowerCase().includes(q);
+      const matchDetail = (n.detail || '').toLowerCase().includes(q);
+      if (!matchActor && !matchMsg && !matchDetail) return false;
+    }
     if (activeFilter === 'Unread') return !n.read;
     if (activeFilter === 'Likes') return n.type === 'like';
     if (activeFilter === 'Comments') return n.type === 'comment';
-    if (activeFilter === 'Follows') return n.type === 'follow';
+    if (activeFilter === 'Follows') return n.type === 'follow' || n.type === 'connect';
     return true;
   });
 
   const markAllRead = () => {
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+    Alert.alert('All Read ✨', 'All notifications marked as read.');
   };
 
   const markRead = (id) => {
@@ -145,42 +157,102 @@ export default function NotificationsScreen({ user, onNavigateToMessages, onNavi
     );
   };
 
-  const renderNotification = ({ item }) => (
-    <TouchableOpacity
-      style={[styles.notifCard, !item.read && styles.notifCardUnread]}
-      onPress={() => markRead(item.id)}
-      activeOpacity={0.85}
-    >
-      {/* Unread dot */}
-      {!item.read && <View style={styles.unreadDot} />}
+  const toggleReadState = (id) => {
+    setNotifications((prev) =>
+      prev.map((n) => (n.id === id ? { ...n, read: !n.read } : n))
+    );
+    setSelectedNotifAction(null);
+  };
 
-      {/* Icon */}
-      <View style={[styles.notifIcon, { backgroundColor: item.iconBg }]}>
-        <Feather name={item.icon} size={18} color={item.iconColor} />
-      </View>
+  const deleteNotification = (id) => {
+    setNotifications((prev) => prev.filter((n) => n.id !== id));
+    setSelectedNotifAction(null);
+  };
 
-      {/* Content */}
-      <View style={styles.notifContent}>
-        <Text style={styles.notifText} numberOfLines={2}>
-          <Text style={styles.notifActor}>{item.actor} </Text>
-          <Text style={styles.notifMessage}>{item.message}</Text>
-        </Text>
-        {item.detail ? (
-          <Text style={styles.notifDetail} numberOfLines={1}>{item.detail}</Text>
-        ) : null}
-        <Text style={styles.notifTime}>{item.time}</Text>
-      </View>
+  const handleAcceptRequest = (item) => {
+    setActionStates((prev) => ({ ...prev, [item.id]: 'accepted' }));
+    markRead(item.id);
+    Alert.alert('Connection Accepted 🎉', `You and ${item.actor} are now connected!`);
+  };
 
-      {/* Action for follow/connect */}
-      {(item.type === 'follow' || item.type === 'connect') && item.read === false && (
-        <View style={styles.notifActions}>
-          <TouchableOpacity style={styles.acceptBtn}>
-            <Text style={styles.acceptBtnText}>Accept</Text>
-          </TouchableOpacity>
+  const handleDeclineRequest = (item) => {
+    setActionStates((prev) => ({ ...prev, [item.id]: 'declined' }));
+    markRead(item.id);
+  };
+
+  const renderNotification = ({ item }) => {
+    const actionStatus = actionStates[item.id];
+
+    return (
+      <TouchableOpacity
+        style={[styles.notifCard, !item.read && styles.notifCardUnread]}
+        onPress={() => markRead(item.id)}
+        activeOpacity={0.85}
+      >
+        {/* Unread dot */}
+        {!item.read && <View style={styles.unreadDot} />}
+
+        {/* Icon */}
+        <View style={[styles.notifIcon, { backgroundColor: item.iconBg }]}>
+          <Feather name={item.icon} size={18} color={item.iconColor} />
         </View>
-      )}
-    </TouchableOpacity>
-  );
+
+        {/* Content */}
+        <View style={styles.notifContent}>
+          <Text style={styles.notifText} numberOfLines={2}>
+            <Text style={styles.notifActor}>{item.actor} </Text>
+            <Text style={styles.notifMessage}>{item.message}</Text>
+          </Text>
+          {item.detail ? (
+            <Text style={styles.notifDetail} numberOfLines={1}>{item.detail}</Text>
+          ) : null}
+          <Text style={styles.notifTime}>{item.time}</Text>
+
+          {/* Action for follow/connect request */}
+          {(item.type === 'follow' || item.type === 'connect') && (
+            <View style={styles.notifActions}>
+              {actionStatus === 'accepted' ? (
+                <View style={styles.statusPillAccepted}>
+                  <Feather name="check" size={12} color="#059669" />
+                  <Text style={styles.statusPillAcceptedText}>Connected</Text>
+                </View>
+              ) : actionStatus === 'declined' ? (
+                <View style={styles.statusPillDeclined}>
+                  <Text style={styles.statusPillDeclinedText}>Declined</Text>
+                </View>
+              ) : (
+                <View style={styles.requestBtnsRow}>
+                  <TouchableOpacity
+                    style={styles.acceptBtn}
+                    onPress={() => handleAcceptRequest(item)}
+                    activeOpacity={0.75}
+                  >
+                    <Text style={styles.acceptBtnText}>Accept</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.declineBtn}
+                    onPress={() => handleDeclineRequest(item)}
+                    activeOpacity={0.75}
+                  >
+                    <Text style={styles.declineBtnText}>Decline</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
+          )}
+        </View>
+
+        {/* 3-Dots Action button */}
+        <TouchableOpacity
+          style={styles.notifMoreBtn}
+          onPress={() => setSelectedNotifAction(item)}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <Feather name="more-horizontal" size={18} color="#94A3B8" />
+        </TouchableOpacity>
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <View style={styles.container}>
@@ -265,6 +337,67 @@ export default function NotificationsScreen({ user, onNavigateToMessages, onNavi
           }
         />
       )}
+
+      {/* 3-Dots Notification Action Modal */}
+      <Modal
+        visible={!!selectedNotifAction}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setSelectedNotifAction(null)}
+      >
+        <TouchableWithoutFeedback onPress={() => setSelectedNotifAction(null)}>
+          <View style={styles.modalOverlay}>
+            <TouchableWithoutFeedback>
+              <View style={styles.notifActionCard}>
+                {selectedNotifAction && (
+                  <>
+                    <TouchableOpacity
+                      style={styles.notifActionItem}
+                      onPress={() => toggleReadState(selectedNotifAction.id)}
+                    >
+                      <Feather
+                        name={selectedNotifAction.read ? 'circle' : 'check-circle'}
+                        size={18}
+                        color="#4F46E5"
+                        style={styles.notifActionIcon}
+                      />
+                      <Text style={styles.notifActionText}>
+                        {selectedNotifAction.read ? 'Mark as unread' : 'Mark as read'}
+                      </Text>
+                    </TouchableOpacity>
+
+                    <View style={styles.notifActionDivider} />
+
+                    <TouchableOpacity
+                      style={styles.notifActionItem}
+                      onPress={() => deleteNotification(selectedNotifAction.id)}
+                    >
+                      <Feather
+                        name="trash-2"
+                        size={18}
+                        color="#EF4444"
+                        style={styles.notifActionIcon}
+                      />
+                      <Text style={[styles.notifActionText, styles.textDanger]}>
+                        Delete notification
+                      </Text>
+                    </TouchableOpacity>
+
+                    <View style={styles.notifActionThickDivider} />
+
+                    <TouchableOpacity
+                      style={styles.notifActionCancel}
+                      onPress={() => setSelectedNotifAction(null)}
+                    >
+                      <Text style={styles.notifActionCancelText}>Cancel</Text>
+                    </TouchableOpacity>
+                  </>
+                )}
+              </View>
+            </TouchableWithoutFeedback>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
     </View>
   );
 }
@@ -362,14 +495,118 @@ const styles = StyleSheet.create({
   notifDetail: { fontSize: 12, color: '#6B7280', marginTop: 3, fontStyle: 'italic' },
   notifTime: { fontSize: 11, color: '#9CA3AF', marginTop: 4, fontWeight: '500' },
 
-  notifActions: { marginLeft: 8, flexShrink: 0 },
+  notifActions: { marginTop: 6, flexShrink: 0 },
+  requestBtnsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   acceptBtn: {
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 8,
     backgroundColor: '#5321E8',
   },
   acceptBtnText: { fontSize: 12, fontWeight: '700', color: '#fff' },
+  declineBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 8,
+    backgroundColor: '#F1F5F9',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  declineBtnText: { fontSize: 12, fontWeight: '600', color: '#64748B' },
+  statusPillAccepted: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#ECFDF5',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    alignSelf: 'flex-start',
+  },
+  statusPillAcceptedText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#059669',
+  },
+  statusPillDeclined: {
+    backgroundColor: '#F1F5F9',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    alignSelf: 'flex-start',
+  },
+  statusPillDeclinedText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#94A3B8',
+  },
+  notifMoreBtn: {
+    padding: 6,
+    marginLeft: 4,
+  },
+
+  /* Notification 3-Dots Action Modal */
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.55)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 28,
+  },
+  notifActionCard: {
+    width: '100%',
+    maxWidth: 320,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.2,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  notifActionItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 22,
+    gap: 14,
+  },
+  notifActionIcon: {
+    width: 22,
+    textAlign: 'center',
+  },
+  notifActionText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#1E293B',
+  },
+  textDanger: {
+    color: '#EF4444',
+  },
+  notifActionDivider: {
+    height: 1,
+    backgroundColor: '#F1F5F9',
+  },
+  notifActionThickDivider: {
+    height: 1,
+    backgroundColor: '#E2E8F0',
+  },
+  notifActionCancel: {
+    paddingVertical: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FAFAFA',
+  },
+  notifActionCancelText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#475569',
+  },
 
   emptyWrap: { alignItems: 'center', paddingTop: 60 },
   emptyIconWrap: { marginBottom: 16 },

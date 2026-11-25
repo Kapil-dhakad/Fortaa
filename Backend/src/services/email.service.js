@@ -1,6 +1,28 @@
 const nodemailer = require('nodemailer');
+const path = require('path');
+const fs = require('fs');
 const db = require('../db/db');
 require('dotenv').config();
+
+const LOGO_PATH = path.join(__dirname, '../assets/fortaa-logo.png');
+
+function getLogoAttachments() {
+  if (fs.existsSync(LOGO_PATH)) {
+    return [
+      {
+        filename: 'fortaa-logo.png',
+        path: LOGO_PATH,
+        cid: 'fortaa-logo',
+      },
+    ];
+  }
+  return [];
+}
+
+const SENDER_EMAIL = 'No-reply@fortaa.com';
+function getSender(label = 'FORTAA') {
+  return `"${label}" <${SENDER_EMAIL}>`;
+}
 
 // Create transporter if SMTP credentials are provided
 function createTransporter() {
@@ -43,20 +65,23 @@ async function sendOtpEmail(toEmail, otp) {
       <meta charset="utf-8">
       <style>
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f8fafc; margin: 0; padding: 24px; color: #1e293b; }
-        .card { max-width: 480px; margin: 0 auto; background: #ffffff; border-radius: 16px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
-        .header { background: linear-gradient(135deg, #6D28D9 0%, #4C1D95 100%); padding: 28px 24px; text-align: center; color: #ffffff; }
-        .header h1 { margin: 0; font-size: 24px; font-weight: 800; letter-spacing: 1px; }
-        .header p { margin: 6px 0 0; font-size: 13px; opacity: 0.9; }
+        .card { max-width: 480px; margin: 0 auto; background: #ffffff; border-radius: 16px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 4px 16px rgba(0,0,0,0.06); }
+        .header { background: linear-gradient(135deg, #4E1AD9 0%, #320CA0 100%); padding: 30px 24px; text-align: center; color: #ffffff; }
+        .logo-box { display: inline-block; background: #ffffff; padding: 10px 22px; border-radius: 12px; margin-bottom: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.12); }
+        .logo-img { width: 140px; height: 32px; vertical-align: middle; display: block; image-rendering: -webkit-optimize-contrast; }
+        .header p { margin: 6px 0 0; font-size: 13px; color: #E9D5FF; font-weight: 500; letter-spacing: 0.5px; }
         .body { padding: 32px 28px; text-align: center; }
         .text { font-size: 15px; line-height: 1.6; color: #475569; margin: 0 0 24px; }
-        .otp-box { background: #f5f3ff; border: 2px dashed #8b5cf6; border-radius: 12px; padding: 18px 24px; font-size: 32px; font-weight: 800; letter-spacing: 8px; color: #5b21b6; margin: 0 auto 24px; display: inline-block; font-family: monospace; }
+        .otp-box { background: #f5f3ff; border: 2px dashed #8b5cf6; border-radius: 12px; padding: 18px 24px; font-size: 34px; font-weight: 800; letter-spacing: 8px; color: #4E1AD9; margin: 0 auto 24px; display: inline-block; font-family: monospace; }
         .footer { padding: 20px 28px; background: #f8fafc; border-top: 1px solid #f1f5f9; text-align: center; font-size: 12px; color: #94a3b8; }
       </style>
     </head>
     <body>
       <div class="card">
         <div class="header">
-          <h1>FORTAA</h1>
+          <div class="logo-box">
+            <img src="cid:fortaa-logo" alt="FORTAA" class="logo-img" onerror="this.onerror=null; this.src='https://fortaa.com/fortaa-logo.png';" />
+          </div>
           <p>Discover, Easy and Grow</p>
         </div>
         <div class="body">
@@ -73,16 +98,16 @@ async function sendOtpEmail(toEmail, otp) {
     </html>
   `;
 
-  const senderAddress = process.env.SMTP_USER
-    ? `"Fortaa Security" <${process.env.SMTP_USER}>`
-    : (process.env.EMAIL_FROM || '"Fortaa Security" <noreply@fortaa.com>');
+  const senderAddress = getSender('FORTAA Security');
 
   const mailOptions = {
     from: senderAddress,
+    replyTo: 'No-reply@fortaa.com',
     to: toEmail,
     subject: `Your Fortaa Verification Code: ${otp}`,
     text: `Your Fortaa email verification code is: ${otp}. It will expire in 10 minutes.`,
     html: htmlContent,
+    attachments: getLogoAttachments(),
   };
 
   try {
@@ -122,22 +147,25 @@ async function sendWelcomeEmail(toEmail, userName) {
       <style>
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f8fafc; margin: 0; padding: 24px; color: #1e293b; }
         .card { max-width: 520px; margin: 0 auto; background: #ffffff; border-radius: 16px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 4px 16px rgba(0,0,0,0.06); }
-        .header { background: linear-gradient(135deg, #6D28D9 0%, #4C1D95 100%); padding: 36px 24px; text-align: center; color: #ffffff; }
-        .header h1 { margin: 0; font-size: 26px; font-weight: 800; letter-spacing: 1px; }
-        .header p { margin: 8px 0 0; font-size: 14px; opacity: 0.95; }
+        .header { background: linear-gradient(135deg, #4E1AD9 0%, #320CA0 100%); padding: 36px 24px; text-align: center; color: #ffffff; }
+        .logo-box { display: inline-block; background: #ffffff; padding: 10px 22px; border-radius: 12px; margin-bottom: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.12); }
+        .logo-img { width: 140px; height: 32px; vertical-align: middle; display: block; image-rendering: -webkit-optimize-contrast; }
+        .header p { margin: 6px 0 0; font-size: 13.5px; color: #E9D5FF; font-weight: 500; letter-spacing: 0.5px; }
         .body { padding: 36px 32px; text-align: left; }
         .greeting { font-size: 18px; font-weight: 700; color: #1e293b; margin: 0 0 16px; }
         .text { font-size: 15px; line-height: 1.6; color: #475569; margin: 0 0 20px; }
         .highlight-box { background: #f5f3ff; border-left: 4px solid #7c3aed; padding: 16px 20px; border-radius: 8px; margin: 24px 0; font-size: 14px; color: #5b21b6; line-height: 1.5; font-weight: 500; }
         .btn-wrap { text-align: center; margin: 32px 0 16px; }
-        .btn { display: inline-block; background: #6D28D9; color: #ffffff !important; text-decoration: none; padding: 14px 32px; border-radius: 10px; font-weight: 700; font-size: 15px; }
+        .btn { display: inline-block; background: #4E1AD9; color: #ffffff !important; text-decoration: none; padding: 14px 32px; border-radius: 10px; font-weight: 700; font-size: 15px; }
         .footer { padding: 24px 32px; background: #f8fafc; border-top: 1px solid #f1f5f9; text-align: center; font-size: 12px; color: #94a3b8; line-height: 1.5; }
       </style>
     </head>
     <body>
       <div class="card">
         <div class="header">
-          <h1>FORTAA</h1>
+          <div class="logo-box">
+            <img src="cid:fortaa-logo" alt="FORTAA" class="logo-img" onerror="this.onerror=null; this.src='https://fortaa.com/fortaa-logo.png';" />
+          </div>
           <p>Discover, Easy and Grow</p>
         </div>
         <div class="body">
@@ -164,16 +192,16 @@ async function sendWelcomeEmail(toEmail, userName) {
     </html>
   `;
 
-  const senderAddress = process.env.SMTP_USER
-    ? `"Fortaa Team" <${process.env.SMTP_USER}>`
-    : (process.env.EMAIL_FROM || '"Fortaa Team" <noreply@fortaa.com>');
+  const senderAddress = getSender('FORTAA Team');
 
   const mailOptions = {
     from: senderAddress,
+    replyTo: 'No-reply@fortaa.com',
     to: toEmail,
     subject: `Welcome to FORTAA, ${displayName}! Your account is ready 🚀`,
     text: `Hello ${displayName}, Welcome to FORTAA! Your account has been successfully created. Explore leadership opportunities and grow your network: https://fortaa.com`,
     html: htmlContent,
+    attachments: getLogoAttachments(),
   };
 
   try {
@@ -223,9 +251,10 @@ async function sendProfileViewEmail({ targetEmail, targetName, viewerName, viewe
       <style>
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f8fafc; margin: 0; padding: 24px; color: #1e293b; }
         .card { max-width: 520px; margin: 0 auto; background: #ffffff; border-radius: 16px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 4px 16px rgba(0,0,0,0.06); }
-        .header { background: #2E0362; padding: 28px 24px; text-align: center; color: #ffffff; }
-        .header h1 { margin: 0; font-size: 24px; font-weight: 800; letter-spacing: 1px; color: #ffffff; }
-        .header p { margin: 6px 0 0; font-size: 13px; opacity: 0.9; color: #e9d5ff; }
+        .header { background: linear-gradient(135deg, #4E1AD9 0%, #320CA0 100%); padding: 30px 24px; text-align: center; color: #ffffff; }
+        .logo-box { display: inline-block; background: #ffffff; padding: 10px 22px; border-radius: 12px; margin-bottom: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.12); }
+        .logo-img { width: 140px; height: 32px; vertical-align: middle; display: block; image-rendering: -webkit-optimize-contrast; }
+        .header p { margin: 6px 0 0; font-size: 13px; color: #E9D5FF; font-weight: 500; letter-spacing: 0.5px; }
         .body { padding: 32px 28px; text-align: left; }
         .greeting { font-size: 17px; font-weight: 700; color: #1e293b; margin: 0 0 12px; }
         .text { font-size: 14.5px; line-height: 1.6; color: #475569; margin: 0 0 20px; }
@@ -235,14 +264,16 @@ async function sendProfileViewEmail({ targetEmail, targetName, viewerName, viewe
         .vc-name { font-size: 16px; font-weight: 800; color: #2E0362; margin: 0 0 4px; }
         .vc-sub { font-size: 13px; color: #64748B; margin: 0; }
         .btn-wrap { text-align: center; margin: 28px 0 12px; }
-        .btn { display: inline-block; background: #2E0362; color: #ffffff !important; text-decoration: none; padding: 12px 28px; border-radius: 8px; font-weight: 700; font-size: 14px; }
+        .btn { display: inline-block; background: #4E1AD9; color: #ffffff !important; text-decoration: none; padding: 12px 28px; border-radius: 8px; font-weight: 700; font-size: 14px; }
         .footer { padding: 20px 28px; background: #f8fafc; border-top: 1px solid #f1f5f9; text-align: center; font-size: 11.5px; color: #94a3b8; line-height: 1.5; }
       </style>
     </head>
     <body>
       <div class="card">
         <div class="header">
-          <h1>FORTAA</h1>
+          <div class="logo-box">
+            <img src="cid:fortaa-logo" alt="FORTAA" class="logo-img" onerror="this.onerror=null; this.src='https://fortaa.com/fortaa-logo.png';" />
+          </div>
           <p>Discover, Easy and Grow</p>
         </div>
         <div class="body">
@@ -275,16 +306,16 @@ async function sendProfileViewEmail({ targetEmail, targetName, viewerName, viewe
     </html>
   `;
 
-  const senderAddress = process.env.SMTP_USER
-    ? `"Fortaa Community" <${process.env.SMTP_USER}>`
-    : (process.env.EMAIL_FROM || '"Fortaa Community" <noreply@fortaa.com>');
+  const senderAddress = getSender('FORTAA Network');
 
   const mailOptions = {
     from: senderAddress,
+    replyTo: 'No-reply@fortaa.com',
     to: targetEmail,
     subject: `👀 ${vName} viewed your Fortaa profile`,
     text: `Hello ${targetDisplayName}, ${vName} (${vRole} at ${vCompany}) viewed your profile on Fortaa. Connect back: ${profileUrl}`,
     html: htmlContent,
+    attachments: getLogoAttachments(),
   };
 
   try {
@@ -332,9 +363,10 @@ async function sendMessageNotificationEmail({ receiverEmail, receiverName, sende
       <style>
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f8fafc; margin: 0; padding: 24px; color: #1e293b; }
         .card { max-width: 520px; margin: 0 auto; background: #ffffff; border-radius: 16px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 4px 16px rgba(0,0,0,0.06); }
-        .header { background: #2E0362; padding: 28px 24px; text-align: center; color: #ffffff; }
-        .header h1 { margin: 0; font-size: 24px; font-weight: 800; letter-spacing: 1px; color: #ffffff; }
-        .header p { margin: 6px 0 0; font-size: 13px; opacity: 0.9; color: #e9d5ff; }
+        .header { background: linear-gradient(135deg, #4E1AD9 0%, #320CA0 100%); padding: 30px 24px; text-align: center; color: #ffffff; }
+        .logo-box { display: inline-block; background: #ffffff; padding: 10px 22px; border-radius: 12px; margin-bottom: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.12); }
+        .logo-img { width: 140px; height: 32px; vertical-align: middle; display: block; image-rendering: -webkit-optimize-contrast; }
+        .header p { margin: 6px 0 0; font-size: 13px; color: #E9D5FF; font-weight: 500; letter-spacing: 0.5px; }
         .body { padding: 32px 28px; text-align: left; }
         .greeting { font-size: 17px; font-weight: 700; color: #1e293b; margin: 0 0 12px; }
         .text { font-size: 14.5px; line-height: 1.6; color: #475569; margin: 0 0 20px; }
@@ -343,16 +375,18 @@ async function sendMessageNotificationEmail({ receiverEmail, receiverName, sende
         .sb-info { display: table-cell; vertical-align: middle; padding-left: 10px; }
         .sb-name { font-size: 15px; font-weight: 800; color: #1e293b; margin: 0; }
         .sb-role { font-size: 12px; color: #64748B; margin: 2px 0 0; }
-        .quote-bubble { background: #F8FAFC; border-left: 4px solid #2E0362; border-radius: 4px; padding: 14px 16px; font-size: 14px; color: #334155; line-height: 1.5; font-style: italic; margin-bottom: 24px; }
+        .quote-bubble { background: #F8FAFC; border-left: 4px solid #4E1AD9; border-radius: 4px; padding: 14px 16px; font-size: 14px; color: #334155; line-height: 1.5; font-style: italic; margin-bottom: 24px; }
         .btn-wrap { text-align: center; margin: 28px 0 12px; }
-        .btn { display: inline-block; background: #2E0362; color: #ffffff !important; text-decoration: none; padding: 12px 28px; border-radius: 8px; font-weight: 700; font-size: 14px; }
+        .btn { display: inline-block; background: #4E1AD9; color: #ffffff !important; text-decoration: none; padding: 12px 28px; border-radius: 8px; font-weight: 700; font-size: 14px; }
         .footer { padding: 20px 28px; background: #f8fafc; border-top: 1px solid #f1f5f9; text-align: center; font-size: 11.5px; color: #94a3b8; line-height: 1.5; }
       </style>
     </head>
     <body>
       <div class="card">
         <div class="header">
-          <h1>FORTAA</h1>
+          <div class="logo-box">
+            <img src="cid:fortaa-logo" alt="FORTAA" class="logo-img" onerror="this.onerror=null; this.src='https://fortaa.com/fortaa-logo.png';" />
+          </div>
           <p>Discover, Easy and Grow</p>
         </div>
         <div class="body">
@@ -383,16 +417,16 @@ async function sendMessageNotificationEmail({ receiverEmail, receiverName, sende
     </html>
   `;
 
-  const senderAddress = process.env.SMTP_USER
-    ? `"Fortaa Messages" <${process.env.SMTP_USER}>`
-    : (process.env.EMAIL_FROM || '"Fortaa Messages" <noreply@fortaa.com>');
+  const senderAddress = getSender('FORTAA Messages');
 
   const mailOptions = {
     from: senderAddress,
+    replyTo: 'No-reply@fortaa.com',
     to: receiverEmail,
     subject: `💬 ${sName} sent you a message on Fortaa`,
     text: `Hello ${recDisplayName}, ${sName} sent you a message: "${messagePreview}". Reply here: ${chatUrl}`,
     html: htmlContent,
+    attachments: getLogoAttachments(),
   };
 
   try {

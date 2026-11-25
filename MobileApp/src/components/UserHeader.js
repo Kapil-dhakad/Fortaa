@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Image,
   Platform,
+  StatusBar,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -177,7 +178,7 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   gradientBg: {
-    paddingTop: Platform.OS === 'ios' ? 44 : 32,
+    paddingTop: Platform.OS === 'ios' ? 48 : (StatusBar.currentHeight ? StatusBar.currentHeight + 10 : 42),
     paddingHorizontal: 14,
     paddingBottom: 12,
   },

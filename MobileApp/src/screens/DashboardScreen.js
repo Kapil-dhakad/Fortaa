@@ -20,6 +20,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import UserHeader from '../components/UserHeader';
 import StoriesBar from '../components/StoriesBar';
 import CreatePostModal from '../components/CreatePostModal';
+import PostActionModal from '../components/PostActionModal';
 import {
   fetchPostsApi,
   likePostApi,
@@ -51,6 +52,14 @@ export default function DashboardScreen({
   const [commentsLoading, setCommentsLoading] = useState(false);
   const [newCommentText, setNewCommentText] = useState('');
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
+
+  // Instagram Style Three-Dots Action Menu State
+  const [actionMenuPost, setActionMenuPost] = useState(null);
+
+  const handleDeletePost = (postId) => {
+    setPosts((prev) => prev.filter((p) => p.id !== postId));
+    Alert.alert('Post Deleted', 'Your post has been removed successfully.');
+  };
 
   // Load real posts from backend
   const loadPosts = async () => {
@@ -356,7 +365,7 @@ export default function DashboardScreen({
                   </View>
                   <TouchableOpacity
                     style={styles.postMoreBtn}
-                    onPress={() => Alert.alert('Post Options', `Shared by ${post.author_name}`)}
+                    onPress={() => setActionMenuPost(post)}
                   >
                     <Feather name="more-vertical" size={18} color="#64748B" />
                   </TouchableOpacity>
@@ -593,6 +602,18 @@ export default function DashboardScreen({
         onClose={() => setCreatePostVisible(false)}
         user={user}
         onPostCreated={handlePostCreated}
+      />
+
+      {/* 3. Instagram-Style 3-Dots Post Action Menu Modal */}
+      <PostActionModal
+        visible={!!actionMenuPost}
+        onClose={() => setActionMenuPost(null)}
+        post={actionMenuPost}
+        currentUser={user}
+        onDeletePost={handleDeletePost}
+        onGoToPost={(post) => {
+          Alert.alert(post.author_name || 'Post', post.content || 'Viewing post');
+        }}
       />
     </View>
   );

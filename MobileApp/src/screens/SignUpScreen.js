@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
+  StatusBar,
   ScrollView,
   Image,
   Alert,
@@ -665,7 +666,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     paddingHorizontal: 16,
-    paddingTop: Platform.OS === 'ios' ? 44 : 28,
+    paddingTop: Platform.OS === 'ios' ? 48 : (StatusBar.currentHeight ? StatusBar.currentHeight + 10 : 40),
     paddingBottom: 36,
   },
   topHeader: {
