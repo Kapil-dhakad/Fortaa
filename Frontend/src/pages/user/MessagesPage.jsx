@@ -170,6 +170,36 @@ export default function MessagesPage() {
   const [isGroupMembersModalOpen, setIsGroupMembersModalOpen] = useState(false);
   const groupMenuRef = useRef(null);
 
+  // Chat search filter states & popup
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [filterRole, setFilterRole] = useState('all'); // 'all' | 'leaders' | 'members'
+  const [filterStatus, setFilterStatus] = useState('all'); // 'all' | 'online' | 'unread'
+  const [sortBy, setSortBy] = useState('recent'); // 'recent' | 'unread' | 'name'
+  const filterDropdownRef = useRef(null);
+
+  const isAnyFilterActive = filterRole !== 'all' || filterStatus !== 'all' || sortBy !== 'recent';
+
+  const handleResetFilters = () => {
+    setFilterRole('all');
+    setFilterStatus('all');
+    setSortBy('recent');
+  };
+
+  useEffect(() => {
+    const handleOutsideClick = (e) => {
+      if (
+        isFilterOpen &&
+        filterDropdownRef.current &&
+        !filterDropdownRef.current.contains(e.target) &&
+        !e.target.closest('.msg-search-filter-btn')
+      ) {
+        setIsFilterOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, [isFilterOpen]);
+
   // Mobile navigation screen view: 'list' (Image 1) or 'chat' (Image 2)
   const [mobileActiveScreen, setMobileActiveScreen] = useState(
     () => (preselectUserId ? 'chat' : 'list')
@@ -1336,34 +1366,57 @@ export default function MessagesPage() {
 
   const filteredContacts = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
+    let baseList = conversations;
+
     if (q) {
       // When searching, search active conversations AND registered suggestions to start new chat
       const existingIds = new Set(conversations.map((c) => String(c.user_id)));
       const filteredSuggestions = suggestions.filter((s) => !existingIds.has(String(s.user_id)));
-      const combined = [...conversations, ...filteredSuggestions];
-      return combined.filter((c) => {
+      baseList = [...conversations, ...filteredSuggestions];
+    }
+
+    let result = baseList.filter((c) => {
+      if (q) {
         const matchesSearch =
           (c.name || '').toLowerCase().includes(q) ||
           (c.role || '').toLowerCase().includes(q) ||
           (c.last_message_text || '').toLowerCase().includes(q);
         if (!matchesSearch) return false;
-        if (activeTab === 'All') return true;
-        if (activeTab === 'Unread') return Number(c.unread_count) > 0;
-        if (activeTab === 'Direct') return c.category === 'Direct';
-        if (activeTab === 'Group') return c.category === 'Group';
-        return true;
-      });
-    }
+      }
 
-    // Default Instagram style: ONLY active conversations & joined groups!
-    return conversations.filter((c) => {
-      if (activeTab === 'All') return true;
-      if (activeTab === 'Unread') return Number(c.unread_count) > 0;
-      if (activeTab === 'Direct') return c.category === 'Direct';
-      if (activeTab === 'Group') return c.category === 'Group';
+      // Tab filter
+      if (activeTab === 'Unread' && !(Number(c.unread_count) > 0)) return false;
+      if (activeTab === 'Direct' && c.category !== 'Direct') return false;
+      if (activeTab === 'Group' && c.category !== 'Group') return false;
+
+      // Filter: Role / Rank
+      if (filterRole === 'leaders') {
+        const r = (c.role || '').toLowerCase();
+        if (!r.includes('leader')) return false;
+      } else if (filterRole === 'members') {
+        const r = (c.role || '').toLowerCase();
+        if (r.includes('leader')) return false;
+      }
+
+      // Filter: Status (Online / Unread)
+      if (filterStatus === 'online') {
+        if (!onlineUserIds.includes(String(c.user_id))) return false;
+      } else if (filterStatus === 'unread') {
+        if (!(Number(c.unread_count) > 0)) return false;
+      }
+
       return true;
     });
-  }, [conversations, suggestions, searchQuery, activeTab]);
+
+    // Sort Order
+    if (sortBy === 'unread') {
+      result = [...result].sort((a, b) => (Number(b.unread_count) || 0) - (Number(a.unread_count) || 0));
+    } else if (sortBy === 'name') {
+      result = [...result].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+    }
+
+    return result;
+  }, [conversations, suggestions, searchQuery, activeTab, filterRole, filterStatus, sortBy, onlineUserIds]);
 
   return (
     <div className="msg-page-container">
@@ -1424,12 +1477,126 @@ export default function MessagesPage() {
               </div>
               <button
                 type="button"
-                className="msg-search-filter-btn"
+                className={`msg-search-filter-btn ${isAnyFilterActive ? 'has-active-filter' : ''} ${isFilterOpen ? 'active' : ''}`}
                 title="Filter options"
-                onClick={() => toast('Filter options')}
+                onClick={() => setIsFilterOpen((prev) => !prev)}
+                aria-expanded={isFilterOpen}
               >
                 <BsSliders className="msg-filter-icon-svg" />
+                {isAnyFilterActive && <span className="msg-filter-active-dot" />}
               </button>
+
+              {/* Filter Dropdown Popup */}
+              {isFilterOpen && (
+                <div className="msg-filter-dropdown" ref={filterDropdownRef}>
+                  <div className="msg-filter-dropdown-header">
+                    <span className="msg-filter-dropdown-title">Filter Chats</span>
+                    {isAnyFilterActive && (
+                      <button
+                        type="button"
+                        className="msg-filter-reset-link"
+                        onClick={handleResetFilters}
+                      >
+                        Reset
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Section 1: Role / Rank */}
+                  <div className="msg-filter-section">
+                    <div className="msg-filter-section-label">Role</div>
+                    <div className="msg-filter-pills-row">
+                      <button
+                        type="button"
+                        className={`msg-filter-pill ${filterRole === 'all' ? 'active' : ''}`}
+                        onClick={() => setFilterRole('all')}
+                      >
+                        All
+                      </button>
+                      <button
+                        type="button"
+                        className={`msg-filter-pill ${filterRole === 'leaders' ? 'active' : ''}`}
+                        onClick={() => setFilterRole('leaders')}
+                      >
+                        Leaders
+                      </button>
+                      <button
+                        type="button"
+                        className={`msg-filter-pill ${filterRole === 'members' ? 'active' : ''}`}
+                        onClick={() => setFilterRole('members')}
+                      >
+                        Members
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Section 2: Online & Status */}
+                  <div className="msg-filter-section">
+                    <div className="msg-filter-section-label">Status</div>
+                    <div className="msg-filter-pills-row">
+                      <button
+                        type="button"
+                        className={`msg-filter-pill ${filterStatus === 'all' ? 'active' : ''}`}
+                        onClick={() => setFilterStatus('all')}
+                      >
+                        All
+                      </button>
+                      <button
+                        type="button"
+                        className={`msg-filter-pill ${filterStatus === 'online' ? 'active' : ''}`}
+                        onClick={() => setFilterStatus('online')}
+                      >
+                        Online
+                      </button>
+                      <button
+                        type="button"
+                        className={`msg-filter-pill ${filterStatus === 'unread' ? 'active' : ''}`}
+                        onClick={() => setFilterStatus('unread')}
+                      >
+                        Unread
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Section 3: Sort By */}
+                  <div className="msg-filter-section">
+                    <div className="msg-filter-section-label">Sort By</div>
+                    <div className="msg-filter-pills-row">
+                      <button
+                        type="button"
+                        className={`msg-filter-pill ${sortBy === 'recent' ? 'active' : ''}`}
+                        onClick={() => setSortBy('recent')}
+                      >
+                        Recent
+                      </button>
+                      <button
+                        type="button"
+                        className={`msg-filter-pill ${sortBy === 'unread' ? 'active' : ''}`}
+                        onClick={() => setSortBy('unread')}
+                      >
+                        Most Unread
+                      </button>
+                      <button
+                        type="button"
+                        className={`msg-filter-pill ${sortBy === 'name' ? 'active' : ''}`}
+                        onClick={() => setSortBy('name')}
+                      >
+                        Name (A-Z)
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="msg-filter-dropdown-footer">
+                    <button
+                      type="button"
+                      className="msg-filter-done-btn"
+                      onClick={() => setIsFilterOpen(false)}
+                    >
+                      Done
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Category Filter Tabs (Figma Image 2) */}
@@ -1493,7 +1660,18 @@ export default function MessagesPage() {
               {loadingContacts ? (
                 <div className="msg-loading-contacts">Loading contacts...</div>
               ) : filteredContacts.length === 0 ? (
-                <div className="msg-no-conversations-found">No contacts found</div>
+                <div className="msg-no-conversations-found">
+                  <div>No contacts found</div>
+                  {isAnyFilterActive && (
+                    <button
+                      type="button"
+                      className="msg-clear-filter-btn"
+                      onClick={handleResetFilters}
+                    >
+                      Reset filters
+                    </button>
+                  )}
+                </div>
               ) : (
                 filteredContacts.map((contact, index) => {
                   const isSelected = String(selectedContact?.user_id) === String(contact.user_id);

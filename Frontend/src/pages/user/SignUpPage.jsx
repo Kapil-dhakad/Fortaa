@@ -820,7 +820,7 @@ export default function SignUpPage() {
                 </button>
 
                 <div className="auth-footer-prompt">
-                  <span>Always have an account? </span>
+                  <span>Already have an account? </span>
                   <Link
                     to={redirectUrl !== '/dashboard' ? `/login?redirect=${encodeURIComponent(redirectUrl)}` : '/login'}
                     className="auth-footer-login-link"

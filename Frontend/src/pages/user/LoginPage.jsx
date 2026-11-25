@@ -398,9 +398,9 @@ export default function LoginPage() {
 
         {/* Footer Switch Prompt: Always have an account? Log In */}
         <div className="auth-footer-prompt">
-          <span>Always have an account? </span>
-          <Link to="/login" className="auth-footer-login-link">
-            Log In
+          <span>Don’t have an account? </span>
+          <Link to="/signup" className="auth-footer-login-link">
+            Create one
           </Link>
         </div>
       </div>

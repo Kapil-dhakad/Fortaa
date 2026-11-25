@@ -500,8 +500,15 @@ const broadcastFeedAudioState = (muted) => {
 
 let isModalMediaActive = false;
 
+export const isPostVideo = (p) => {
+  if (!p) return false;
+  if (p.media_type === 'video' || p.video_url) return true;
+  if (p.image_url && /\.(mp4|webm|mov|mkv|avi)(\?.*)?$/i.test(p.image_url)) return true;
+  return false;
+};
+
 // ── Feed Video with Instagram-style Autoplay & Audio Toggle ──
-function FeedVideo({ src, onDoubleTap, onSingleTap, isHeartActive, isMobile = false }) {
+export function FeedVideo({ src, onDoubleTap, onSingleTap, isHeartActive, isMobile = false }) {
   const videoRef = useRef(null);
   const [isMuted, setIsMuted] = useState(globalFeedAudioMuted);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -2025,9 +2032,6 @@ export default function UserDashboard() {
                               onLoad={(e) => e.currentTarget.parentElement?.classList.add('has-loaded')}
                               className="ud-post-img"
                             />
-                            <div className="ud-post-img-logo-badge">
-                              <img src={logoTextImg} alt="FORTAA" className="ud-post-logo-badge-img" />
-                            </div>
                             {heartAnimPostIds[post.id] && (
                               <div className="ud-insta-heart-overlay">
                                 <svg className="ud-insta-heart-icon" viewBox="0 0 24 24" fill="#FF2D55">

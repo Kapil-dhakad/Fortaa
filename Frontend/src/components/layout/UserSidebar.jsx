@@ -54,6 +54,14 @@ export default function UserSidebar({
   const navigate = useNavigate();
   const [isHovered, setIsHovered] = useState(false);
 
+  const handleMouseEnter = () => {
+    setIsHovered(true);
+  };
+
+  const handleMouseLeave = () => {
+    setIsHovered(false);
+  };
+
   const handleItemClick = (item) => {
     setMobileMenuOpen?.(false);
 
@@ -79,8 +87,8 @@ export default function UserSidebar({
       {/* Collapsible Left Sidebar (Icons only by default, expands on cursor hover) */}
       <aside
         className={`ud-sidebar-left ${isHovered ? 'is-hovered' : ''} ${mobileMenuOpen ? 'mobile-open' : ''}`}
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
       >
         <nav className="ud-nav-list">
           {NAV_ITEMS.map((item) => (

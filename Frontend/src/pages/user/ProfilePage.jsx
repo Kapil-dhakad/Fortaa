@@ -31,6 +31,8 @@ import {
   renderFormattedContent,
   renderInstagramLikes,
   PostPoll,
+  FeedVideo,
+  isPostVideo,
 } from './UserDashboard';
 
 // Brand & icons
@@ -1684,7 +1686,7 @@ export default function ProfilePage() {
                           </div>
 
                           <div className="prof-post-body">
-                            <p className="prof-post-caption">{renderFormattedContent(post.content)}</p>
+                            <p className="ud-post-text prof-post-caption">{renderFormattedContent(post.content)}</p>
                             {post.tags && <p className="prof-post-tags">{post.tags}</p>}
 
                             {/* Interactive Poll Display (Fix for missing poll) */}
@@ -1698,22 +1700,21 @@ export default function ProfilePage() {
                             )}
 
                             {(() => {
-                              const isVideo = post.media_type === 'video' || post.video_url || (post.image_url && /\.(mp4|webm|mov|mkv|avi)(\?.*)?$/i.test(post.image_url));
+                              const isVideo = isPostVideo(post);
                               const mediaSrc = post.video_url || post.image_url;
                               if (!mediaSrc) return null;
 
                               if (isVideo) {
                                 return (
-                                  <div className="prof-post-media-box" style={{ background: '#000', borderRadius: '12px', overflow: 'hidden' }}>
-                                    <video
-                                      src={mediaSrc}
-                                      controls
-                                      playsInline
-                                      preload="metadata"
-                                      className="prof-post-img"
-                                      style={{ width: '100%', maxHeight: '420px', objectFit: 'contain', background: '#000', display: 'block' }}
-                                    />
-                                  </div>
+                                  <FeedVideo
+                                    src={mediaSrc}
+                                    onDoubleTap={(e) => {
+                                      e.stopPropagation();
+                                      handleLike(post.id);
+                                    }}
+                                    isHeartActive={false}
+                                    isMobile={typeof window !== 'undefined' && window.innerWidth <= 768}
+                                  />
                                 );
                               }
 
