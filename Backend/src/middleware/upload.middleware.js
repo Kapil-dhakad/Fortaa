@@ -36,9 +36,17 @@ const imageFileFilter = (req, file, cb) => {
     'image/webp',
     'image/gif',
     'image/svg+xml',
+    'image/heic',
+    'image/heif',
+    'image/avif',
   ];
 
-  if (allowedMimeTypes.includes(file.mimetype)) {
+  const hasImageExt = /\.(jpe?g|png|webp|gif|svg|heic|heif|avif|bmp)$/i.test(file.originalname || '');
+  if (
+    allowedMimeTypes.includes((file.mimetype || '').toLowerCase()) ||
+    (file.mimetype && file.mimetype.startsWith('image/')) ||
+    hasImageExt
+  ) {
     cb(null, true);
   } else {
     cb(new Error('Invalid file format. Only JPG, PNG, WEBP, GIF, and SVG images are allowed!'), false);

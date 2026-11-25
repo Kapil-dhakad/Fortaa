@@ -62,18 +62,28 @@ export default function CreateStoryModal({
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (activeTab === 'photo' && !file.type.startsWith('image/')) {
+    const isImg =
+      (file.type && file.type.startsWith('image/')) ||
+      /\.(jpe?g|png|webp|gif|svg|heic|heif|avif|bmp)$/i.test(file.name || '');
+    const isVid =
+      (file.type && file.type.startsWith('video/')) ||
+      /\.(mp4|webm|mov|mkv|avi|3gp)$/i.test(file.name || '');
+
+    if (activeTab === 'photo' && !isImg) {
       toast.error('Please select an image file');
+      e.target.value = '';
       return;
     }
-    if (activeTab === 'video' && !file.type.startsWith('video/')) {
+    if (activeTab === 'video' && !isVid) {
       toast.error('Please select a video file');
+      e.target.value = '';
       return;
     }
 
     setMediaFile(file);
     const url = URL.createObjectURL(file);
     setMediaPreview(url);
+    e.target.value = '';
   };
 
   // Reset modal state
@@ -169,7 +179,7 @@ export default function CreateStoryModal({
 
       const res = await createStory(payload);
       if (res?.success) {
-        // toast.success('Your story was published! 🌟');
+        toast.success('Your story was published!');
         onStoryCreated?.(res.story);
         handleClose();
       } else {

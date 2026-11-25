@@ -120,7 +120,7 @@ export async function uploadSingleImage(file, folder = 'images') {
     // toast.success('Image uploaded successfully!', { id: toastId });
     return data.url;
   } catch (error) {
-    // toast.error(error.message || 'Failed to upload image', { id: toastId });
+    console.error('[uploadSingleImage error]:', error);
     return null;
   }
 }
@@ -149,7 +149,7 @@ export async function uploadSingleVideo(file, folder = 'videos') {
     // toast.success('Video uploaded successfully! 🎬', { id: toastId });
     return data.url;
   } catch (error) {
-    // toast.error(error.message || 'Failed to upload video', { id: toastId });
+    console.error('[uploadSingleVideo error]:', error);
     return null;
   }
 }

@@ -369,9 +369,10 @@ async function createPost(req, res) {
   try {
     const { content, tags, imageUrl, videoUrl, mediaType, authorName, authorRole, authorAvatar, userId, pollData } = req.body;
 
-    if (!content || !content.trim()) {
-      return res.status(400).json({ success: false, message: 'Post content cannot be empty' });
+    if ((!content || !content.trim()) && !imageUrl && !videoUrl && !pollData) {
+      return res.status(400).json({ success: false, message: 'Post content, media, or poll is required' });
     }
+    const cleanContent = (content || '').trim();
 
     const postAuthor = authorName || 'Kapil Dhakad';
     const postRole = authorRole || 'Senior Leader';
@@ -388,7 +389,7 @@ async function createPost(req, res) {
         `INSERT INTO posts (user_id, author_name, author_role, author_avatar, content, tags, image_url, video_url, media_type, poll_data, likes_count, comments_count)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 0, 0)
          RETURNING *`,
-        [postUserId, postAuthor, postRole, postAvatar, content.trim(), postTags, postImage, postVideo, postMediaType, postPollData]
+        [postUserId, postAuthor, postRole, postAvatar, cleanContent, postTags, postImage, postVideo, postMediaType, postPollData]
       );
       return res.status(201).json({
         success: true,
@@ -404,7 +405,7 @@ async function createPost(req, res) {
       author_name: postAuthor,
       author_role: postRole,
       author_avatar: postAvatar,
-      content: content.trim(),
+      content: cleanContent,
       tags: postTags,
       image_url: postImage,
       video_url: postVideo,
@@ -1010,7 +1011,7 @@ async function addPostComment(req, res) {
       author_name: name,
       author_role: role,
       author_avatar: avatar,
-      content: content.trim(),
+      content: cleanContent,
       likes_count: 0,
       created_at: new Date().toISOString(),
     };

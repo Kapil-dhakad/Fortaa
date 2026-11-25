@@ -1237,6 +1237,7 @@ export default function UserDashboard() {
     setPostImagePreview(URL.createObjectURL(file));
     setPostVideoFile(null);
     setPostVideoPreview(null);
+    e.target.value = '';
   };
 
   // Handle Video File Pick (Max 100MB)
@@ -1245,12 +1246,14 @@ export default function UserDashboard() {
     if (!file) return;
     if (file.size > 100 * 1024 * 1024) {
       toast.error('Video size should not exceed 100MB');
+      e.target.value = '';
       return;
     }
     setPostVideoFile(file);
     setPostVideoPreview(URL.createObjectURL(file));
     setPostImageFile(null);
     setPostImagePreview(null);
+    e.target.value = '';
   };
 
   const isPostVideo = (p) => {
@@ -1260,10 +1263,10 @@ export default function UserDashboard() {
     return false;
   };
 
-  // Submit Post to Backend (supports description only, with photo, video, or interactive poll)
+  // Submit Post to Backend (supports description only, photo/video only, or interactive poll)
   const handleCreatePost = async () => {
-    if (!postText.trim() && !showPollCreator) {
-      toast.error('Please enter a description or question for your post');
+    if (!postText.trim() && !postImageFile && !postVideoFile && !showPollCreator) {
+      toast.error('Please add text, a photo, a video, or a poll for your post');
       return;
     }
 
@@ -1294,9 +1297,15 @@ export default function UserDashboard() {
 
       if (postImageFile) {
         uploadedImageUrl = await uploadSingleImage(postImageFile, 'posts');
+        if (!uploadedImageUrl) {
+          toast.error('Image upload failed. Please try again.');
+          setSubmittingPost(false);
+          return;
+        }
       } else if (postVideoFile) {
         uploadedVideoUrl = await uploadSingleVideo(postVideoFile, 'posts');
         if (!uploadedVideoUrl) {
+          toast.error('Video upload failed. Please try again.');
           setSubmittingPost(false);
           return;
         }
@@ -1329,13 +1338,13 @@ export default function UserDashboard() {
         ...prev,
         totalPosts: (Number(prev.totalPosts) || 0) + 1,
       }));
-      /* toast.success(
+      toast.success(
         pollPayload
-          ? 'Poll published successfully! 📊'
+          ? 'Poll published successfully!'
           : uploadedVideoUrl
-          ? 'Video post published successfully! 🚀'
-          : 'Post published successfully! 🚀'
-      ); */
+          ? 'Video post published successfully!'
+          : 'Post published successfully!'
+      );
     } catch (err) {
       toast.error(err.message || 'Failed to publish post');
     } finally {
@@ -1667,6 +1676,9 @@ export default function UserDashboard() {
           <div className="ud-center-split-grid">
             {/* Feed Column (Left) */}
             <div className="ud-feed-column">
+              {/* Stories / Highlights Row (Desktop Instagram-Style Stories) */}
+              <StoriesBar currentUser={profile} variant="desktop" />
+
               {/* Create a Post Box */}
               <div className="ud-create-post-card">
                 <div className="ud-cp-header">
@@ -1824,22 +1836,6 @@ export default function UserDashboard() {
                   </div>
                 )}
 
-                {/* Hidden File Inputs for Image & Video */}
-                <input
-                  type="file"
-                  ref={photoInputRef}
-                  accept="image/*"
-                  style={{ display: 'none' }}
-                  onChange={handlePhotoSelect}
-                />
-                <input
-                  type="file"
-                  ref={videoInputRef}
-                  accept="video/mp4,video/webm,video/quicktime,video/x-msvideo,video/x-matroska,video/*"
-                  style={{ display: 'none' }}
-                  onChange={handleVideoSelect}
-                />
-
                 <div className="ud-cp-actions-row">
                   <div className="ud-cp-tags">
                     <button
@@ -1986,7 +1982,7 @@ export default function UserDashboard() {
                       </div>
 
                       <div className="ud-post-body">
-                        <p className="ud-post-text">{renderFormattedContent(post.content)}</p>
+                        {post.content && <p className="ud-post-text">{renderFormattedContent(post.content)}</p>}
                         {post.tags && <p className="ud-post-tags">{post.tags}</p>}
 
                         {/* Interactive Poll if attached */}
@@ -2545,7 +2541,7 @@ export default function UserDashboard() {
                 type="button"
                 className="ud-mob-cp-post-btn"
                 onClick={handleCreatePost}
-                disabled={submittingPost || (!postText.trim() && !showPollCreator)}
+                disabled={submittingPost || (!postText.trim() && !postImageFile && !postVideoFile && !showPollCreator)}
               >
                 {submittingPost ? '...' : 'Post'}
               </button>
@@ -2674,7 +2670,7 @@ export default function UserDashboard() {
                   </div>
 
                   <div className="ud-mob-post-body">
-                    <p className="ud-mob-post-text">{renderFormattedContent(post.content)}</p>
+                    {post.content && <p className="ud-mob-post-text">{renderFormattedContent(post.content)}</p>}
 
                     {post.tags && (
                       <div className="ud-mob-post-tags">
@@ -2940,6 +2936,22 @@ export default function UserDashboard() {
       </div>
       )}
 
+      {/* Shared Hidden File Inputs for Image & Video (Works on Both Desktop & Mobile) */}
+      <input
+        type="file"
+        ref={photoInputRef}
+        accept="image/*"
+        style={{ display: 'none' }}
+        onChange={handlePhotoSelect}
+      />
+      <input
+        type="file"
+        ref={videoInputRef}
+        accept="video/mp4,video/webm,video/quicktime,video/x-msvideo,video/x-matroska,video/*"
+        style={{ display: 'none' }}
+        onChange={handleVideoSelect}
+      />
+
       {/* ───────────────── CREATE POST POPUP MODAL ───────────────── */}
       {isCreatePostModalOpen && (
         <div
@@ -3025,6 +3037,71 @@ export default function UserDashboard() {
                 </div>
               )}
 
+              {/* Poll Creator Box in Modal */}
+              {showPollCreator && (
+                <div className="ud-cp-poll-box" style={{ marginTop: 10 }}>
+                  <div className="ud-cp-poll-head">
+                    <span className="ud-cp-poll-badge">📊 Create a Poll</span>
+                    <button
+                      type="button"
+                      className="ud-cp-poll-close"
+                      onClick={() => {
+                        setShowPollCreator(false);
+                        setPollQuestion('');
+                        setPollOptions(['', '']);
+                      }}
+                      title="Cancel poll"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                  <input
+                    type="text"
+                    className="ud-cp-poll-q-input"
+                    placeholder="Ask a question..."
+                    value={pollQuestion}
+                    onChange={(e) => setPollQuestion(e.target.value)}
+                  />
+                  <div className="ud-cp-poll-opts">
+                    {pollOptions.map((opt, oIdx) => (
+                      <div key={oIdx} className="ud-cp-poll-opt-row">
+                        <span className="ud-cp-poll-opt-num">{oIdx + 1}.</span>
+                        <input
+                          type="text"
+                          className="ud-cp-poll-opt-input"
+                          placeholder={`Option ${oIdx + 1}`}
+                          value={opt}
+                          onChange={(e) => {
+                            const newOpts = [...pollOptions];
+                            newOpts[oIdx] = e.target.value;
+                            setPollOptions(newOpts);
+                          }}
+                        />
+                        {pollOptions.length > 2 && (
+                          <button
+                            type="button"
+                            className="ud-cp-poll-del-opt"
+                            onClick={() => setPollOptions(pollOptions.filter((_, i) => i !== oIdx))}
+                            title="Remove option"
+                          >
+                            ✕
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  {pollOptions.length < 4 && (
+                    <button
+                      type="button"
+                      className="ud-cp-poll-add-btn"
+                      onClick={() => setPollOptions([...pollOptions, ''])}
+                    >
+                      + Add Option
+                    </button>
+                  )}
+                </div>
+              )}
+
               {/* Toolbar */}
               <div className="ud-cpm-tools-row">
                 <span className="ud-cpm-tools-label">Add to your post:</span>
@@ -3046,9 +3123,9 @@ export default function UserDashboard() {
                   <button
                     type="button"
                     className="ud-cpm-tool-btn"
-                    onClick={() => toast.success('Tag #Fortaa added!')}
+                    onClick={() => setShowPollCreator(!showPollCreator)}
                   >
-                    🏷️ Tags
+                    📊 Poll
                   </button>
                 </div>
               </div>
@@ -3067,7 +3144,7 @@ export default function UserDashboard() {
                 type="button"
                 className="ud-cpm-submit-btn"
                 onClick={handleCreatePost}
-                disabled={submittingPost || !postText.trim()}
+                disabled={submittingPost || (!postText.trim() && !postImageFile && !postVideoFile && !showPollCreator)}
               >
                 {submittingPost ? 'Publishing...' : 'Post'}
               </button>
