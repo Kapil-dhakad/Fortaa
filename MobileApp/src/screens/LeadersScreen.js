@@ -12,10 +12,11 @@ import {
   Dimensions,
   ScrollView,
 } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import { Feather, Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { getLeadersApi } from '../services/api';
+import { getLeadersApi, toggleFollowApi } from '../services/api';
 import UserHeader from '../components/UserHeader';
+import LeaderProfileModal from '../components/LeaderProfileModal';
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = (width - 36) / 2;
@@ -44,23 +45,33 @@ const BG_COLORS = [
   ['#360033', '#0b8793'],
 ];
 
+const formatCount = (n) => {
+  if (!n || n === 0) return '0';
+  if (n >= 1000) return (n / 1000).toFixed(1) + 'k';
+  return String(n);
+};
+
 export default function LeadersScreen({
   currentUser,
   onOpenChat,
   onNavigateToMessages,
   onNavigateToProfile,
   onLogout,
+  onNavigateToNotifications,
 }) {
   const [leaders, setLeaders] = useState([]);
   const [filteredLeaders, setFilteredLeaders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeFilter, setActiveFilter] = useState('All');
+  const [activeFilter, setActiveFilter] = useState('All Leaders');
   const [followingIds, setFollowingIds] = useState(new Set());
   const [dismissedIds, setDismissedIds] = useState(new Set());
 
-  const filterTabs = ['All Leaders', 'Top Leaders', 'Diamond', 'Platinum'];
+  // Leader Profile Modal
+  const [selectedLeader, setSelectedLeader] = useState(null);
+
+  const filterTabs = ['All Leaders', 'Top Leaders', 'Diamond', 'Platinum', 'Team Leader'];
 
   const fetchLeaders = async () => {
     try {
@@ -72,24 +83,11 @@ export default function LeadersScreen({
       applyFilter(list, searchQuery, activeFilter);
     } catch (err) {
       console.warn('Error fetching leaders:', err);
-      // Use mock data if API fails
-      const mockData = generateMockLeaders();
-      setLeaders(mockData);
-      setFilteredLeaders(mockData);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
   };
-
-  const generateMockLeaders = () => [
-    { id: '1', name: 'Kapil Dhakad', designation: 'Super Admin', accountTypeName: 'Super Admin', followers: 1200, following: 350, posts: 48, city: 'Bhopal' },
-    { id: '2', name: 'Priya Sharma', designation: 'Diamond Leader', accountTypeName: 'Diamond Leader', followers: 980, following: 220, posts: 62, city: 'Mumbai' },
-    { id: '3', name: 'Rahul Verma', designation: 'Team Leader', accountTypeName: 'Team Leader', followers: 760, following: 180, posts: 34, city: 'Delhi' },
-    { id: '4', name: 'Anita Singh', designation: 'Platinum Leader', accountTypeName: 'Platinum Leader', followers: 540, following: 120, posts: 27, city: 'Pune' },
-    { id: '5', name: 'Vikram Joshi', designation: 'Gold Leader', accountTypeName: 'Gold Leader', followers: 320, following: 90, posts: 19, city: 'Jaipur' },
-    { id: '6', name: 'Sunita Patel', designation: 'Silver Leader', accountTypeName: 'Silver Leader', followers: 210, following: 65, posts: 12, city: 'Ahmedabad' },
-  ];
 
   useEffect(() => {
     fetchLeaders();
@@ -106,7 +104,8 @@ export default function LeadersScreen({
     if (query.trim()) {
       result = result.filter((u) =>
         (u.name || '').toLowerCase().includes(query.toLowerCase()) ||
-        (u.designation || '').toLowerCase().includes(query.toLowerCase())
+        (u.designation || '').toLowerCase().includes(query.toLowerCase()) ||
+        (u.companyBrand || u.company_brand || '').toLowerCase().includes(query.toLowerCase())
       );
     }
     setFilteredLeaders(result.filter((u) => !dismissedIds.has(u.id)));
@@ -114,37 +113,53 @@ export default function LeadersScreen({
 
   useEffect(() => {
     applyFilter(leaders, searchQuery, activeFilter);
-  }, [searchQuery, activeFilter, dismissedIds]);
+  }, [searchQuery, activeFilter, dismissedIds, leaders]);
 
-  const handleFollow = (id) => {
+  const handleFollow = async (item) => {
+    const id = item.id;
+    const wasFollowing = followingIds.has(id);
+    // Optimistic update
     setFollowingIds((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
       return next;
     });
+    try {
+      await toggleFollowApi(id, currentUser?.id);
+    } catch (err) {
+      // Revert on error
+      setFollowingIds((prev) => {
+        const next = new Set(prev);
+        if (wasFollowing) next.add(id);
+        else next.delete(id);
+        return next;
+      });
+    }
   };
 
   const handleDismiss = (id) => {
     setDismissedIds((prev) => new Set([...prev, id]));
   };
 
-  const getBadgeStyle = (type) => {
-    return BADGE_COLORS[type] || BADGE_COLORS['default'];
-  };
-
+  const getBadgeStyle = (type) => BADGE_COLORS[type] || BADGE_COLORS['default'];
   const getBgColors = (index) => BG_COLORS[index % BG_COLORS.length];
 
   const renderLeaderCard = ({ item, index }) => {
     const isFollowing = followingIds.has(item.id);
     const badge = getBadgeStyle(item.accountTypeName || item.designation || 'Member');
     const bgColors = getBgColors(index);
-    const followers = item.followers || Math.floor(Math.random() * 1000) + 100;
-    const following = item.following || Math.floor(Math.random() * 500) + 50;
-    const posts = item.posts || Math.floor(Math.random() * 80) + 5;
+    const followers = item.followers || item.followers_count || 0;
+    const following = item.following || item.following_count || 0;
+    const posts = item.posts || item.posts_count || 0;
+    const avatarUrl = item.avatarUrl || item.avatar_url;
 
     return (
-      <View style={styles.leaderCard}>
+      <TouchableOpacity
+        style={styles.leaderCard}
+        onPress={() => setSelectedLeader(item)}
+        activeOpacity={0.9}
+      >
         {/* Cover Photo Background */}
         <LinearGradient colors={bgColors} style={styles.cardCover}>
           {/* Dismiss X Button */}
@@ -168,11 +183,15 @@ export default function LeadersScreen({
           {/* Avatar overlapping cover bottom */}
           <View style={styles.avatarWrapper}>
             <View style={styles.avatarRing}>
-              <View style={styles.avatarCircle}>
-                <Text style={styles.avatarInitial}>
-                  {(item.name || 'U')[0].toUpperCase()}
-                </Text>
-              </View>
+              {avatarUrl ? (
+                <Image source={{ uri: avatarUrl }} style={styles.avatarImg} />
+              ) : (
+                <View style={styles.avatarCircle}>
+                  <Text style={styles.avatarInitial}>
+                    {(item.name || 'U')[0].toUpperCase()}
+                  </Text>
+                </View>
+              )}
             </View>
           </View>
         </LinearGradient>
@@ -183,6 +202,17 @@ export default function LeadersScreen({
           <Text style={styles.leaderRole} numberOfLines={1}>
             {item.designation || item.accountTypeName || 'Member'}
           </Text>
+          {(item.companyBrand || item.company_brand) ? (
+            <Text style={styles.leaderCompany} numberOfLines={1}>
+              {item.companyBrand || item.company_brand}
+            </Text>
+          ) : null}
+          {(item.city || item.location) ? (
+            <View style={styles.locationRow}>
+              <Feather name="map-pin" size={9} color="#9CA3AF" />
+              <Text style={styles.locationText}>{item.city || item.location}</Text>
+            </View>
+          ) : null}
 
           {/* Stats Row */}
           <View style={styles.statsRow}>
@@ -206,7 +236,7 @@ export default function LeadersScreen({
           <View style={styles.cardActions}>
             <TouchableOpacity
               style={[styles.followBtn, isFollowing && styles.followingBtn]}
-              onPress={() => handleFollow(item.id)}
+              onPress={() => handleFollow(item)}
               activeOpacity={0.85}
             >
               {isFollowing ? (
@@ -228,13 +258,8 @@ export default function LeadersScreen({
             </TouchableOpacity>
           </View>
         </View>
-      </View>
+      </TouchableOpacity>
     );
-  };
-
-  const formatCount = (n) => {
-    if (n >= 1000) return (n / 1000).toFixed(1) + 'k';
-    return String(n);
   };
 
   return (
@@ -244,7 +269,7 @@ export default function LeadersScreen({
         searchQuery={searchQuery}
         onSearchChange={(q) => setSearchQuery(q)}
         onNavigateToMessages={onNavigateToMessages}
-        onNavigateToNotifications={() => Alert.alert('Notifications', 'No new notifications')}
+        onNavigateToNotifications={onNavigateToNotifications || (() => {})}
         onNavigateToProfile={onNavigateToProfile}
         onLogout={onLogout}
       />
@@ -275,7 +300,9 @@ export default function LeadersScreen({
         <Text style={styles.sectionTitle}>
           {filteredLeaders.length} Leaders Found
         </Text>
-        <Feather name="sliders" size={16} color="#5321E8" />
+        <TouchableOpacity onPress={fetchLeaders} activeOpacity={0.7}>
+          <Feather name="refresh-cw" size={15} color="#5321E8" />
+        </TouchableOpacity>
       </View>
 
       {loading ? (
@@ -308,6 +335,20 @@ export default function LeadersScreen({
           }
         />
       )}
+
+      {/* Leader Profile Modal — opens when card tapped */}
+      {selectedLeader && (
+        <LeaderProfileModal
+          visible={!!selectedLeader}
+          leader={selectedLeader}
+          currentUser={currentUser}
+          onClose={() => setSelectedLeader(null)}
+          onOpenChat={(leader) => {
+            setSelectedLeader(null);
+            if (onOpenChat) onOpenChat(leader);
+          }}
+        />
+      )}
     </View>
   );
 }
@@ -326,10 +367,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E8E0FF',
   },
-  filterTabActive: {
-    backgroundColor: '#5321E8',
-    borderColor: '#5321E8',
-  },
+  filterTabActive: { backgroundColor: '#5321E8', borderColor: '#5321E8' },
   filterTabText: { fontSize: 12, color: '#6B7280', fontWeight: '500' },
   filterTabTextActive: { color: '#fff', fontWeight: '700' },
 
@@ -386,11 +424,7 @@ const styles = StyleSheet.create({
     maxWidth: CARD_WIDTH - 40,
   },
   roleBadgeText: { fontSize: 9, fontWeight: '700', letterSpacing: 0.3 },
-  avatarWrapper: {
-    position: 'absolute',
-    bottom: -18,
-    left: 10,
-  },
+  avatarWrapper: { position: 'absolute', bottom: -18, left: 10 },
   avatarRing: {
     width: 44,
     height: 44,
@@ -398,13 +432,14 @@ const styles = StyleSheet.create({
     borderWidth: 2.5,
     borderColor: '#fff',
     backgroundColor: '#5321E8',
+    overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',
   },
+  avatarImg: { width: '100%', height: '100%' },
   avatarCircle: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
+    width: '100%',
+    height: '100%',
     backgroundColor: '#7C3AED',
     alignItems: 'center',
     justifyContent: 'center',
@@ -414,7 +449,10 @@ const styles = StyleSheet.create({
   // Card Body
   cardBody: { padding: 10, paddingTop: 24 },
   leaderName: { fontSize: 13, fontWeight: '700', color: '#1E1B4B', marginBottom: 1 },
-  leaderRole: { fontSize: 10, color: '#6B7280', marginBottom: 8 },
+  leaderRole: { fontSize: 10, color: '#6B7280', marginBottom: 2 },
+  leaderCompany: { fontSize: 9.5, color: '#9CA3AF', marginBottom: 2 },
+  locationRow: { flexDirection: 'row', alignItems: 'center', gap: 3, marginBottom: 6 },
+  locationText: { fontSize: 9, color: '#9CA3AF' },
 
   // Stats
   statsRow: {

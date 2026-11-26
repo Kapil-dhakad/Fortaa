@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   StyleSheet,
   Text,
@@ -12,9 +12,15 @@ import {
   Image,
   Alert,
 } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import { Feather, Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as WebBrowser from 'expo-web-browser';
+import * as AuthSession from 'expo-auth-session';
 import { loginApi, googleLoginApi } from '../services/api';
+
+WebBrowser.maybeCompleteAuthSession();
+
+const GOOGLE_CLIENT_ID = '620993789654-2q0r7h7hpddu1vd8lvrghftsj4pl3sss.apps.googleusercontent.com';
 
 export default function LoginScreen({ onNavigateToSignUp, onLoginSuccess }) {
   const [emailOrPhone, setEmailOrPhone] = useState('');
@@ -22,6 +28,20 @@ export default function LoginScreen({ onNavigateToSignUp, onLoginSuccess }) {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+
+  // Dynamically load Google Identity Services (GIS) on web
+  useEffect(() => {
+    if (Platform.OS === 'web' && typeof document !== 'undefined') {
+      if (!document.getElementById('google-gsi-client')) {
+        const script = document.createElement('script');
+        script.id = 'google-gsi-client';
+        script.src = 'https://accounts.google.com/gsi/client';
+        script.async = true;
+        script.defer = true;
+        document.head.appendChild(script);
+      }
+    }
+  }, []);
 
   const handleLogin = async () => {
     if (!emailOrPhone.trim()) {
@@ -49,36 +69,104 @@ export default function LoginScreen({ onNavigateToSignUp, onLoginSuccess }) {
     }
   };
 
-  const performGoogleAuth = async (googleEmail) => {
+  const performGoogleAuth = async (googleEmail, customName = null, picture = null) => {
     try {
       setLoading(true);
-      const name = googleEmail.split('@')[0];
+      const name = customName || googleEmail.split('@')[0];
       const data = await googleLoginApi({
-        email: googleEmail,
+        email: googleEmail.trim().toLowerCase(),
         name: name.charAt(0).toUpperCase() + name.slice(1),
-        picture: null,
+        picture: picture || null,
       });
       Alert.alert('Google Sign-In Successful 🎉', `Welcome, ${data.user?.name || name}!`);
       if (onLoginSuccess) {
         onLoginSuccess(data.user || data);
       }
     } catch (err) {
-      Alert.alert('Google Sign-In', err.message || 'Google authentication failed.');
+      Alert.alert('Google Sign-In Failed', err.message || 'Google authentication failed.');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleGoogleSignIn = () => {
+  // Real Google Sign-In with user's own device/browser accounts
+  const handleGoogleSignIn = async () => {
+    // 1. If user already typed their email in the input box, use it directly
     const trimmed = emailOrPhone.trim();
-    if (!trimmed || !trimmed.includes('@')) {
-      Alert.alert(
-        'Google Sign-In',
-        'Please enter your Google Email address in the box above, then tap "Continue with Google".'
-      );
+    if (trimmed && trimmed.includes('@')) {
+      performGoogleAuth(trimmed);
       return;
     }
-    performGoogleAuth(trimmed);
+
+    // 2. Web browser: Open Google Identity Services account chooser
+    if (Platform.OS === 'web' && typeof window !== 'undefined' && window.google?.accounts?.oauth2) {
+      try {
+        setLoading(true);
+        const tokenClient = window.google.accounts.oauth2.initTokenClient({
+          client_id: GOOGLE_CLIENT_ID,
+          scope: 'email profile openid',
+          prompt: 'select_account',
+          callback: async (tokenResponse) => {
+            if (tokenResponse?.access_token) {
+              try {
+                const userinfoRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+                  headers: { Authorization: `Bearer ${tokenResponse.access_token}` },
+                });
+                const gUser = await userinfoRes.json();
+                if (gUser?.email) {
+                  await performGoogleAuth(gUser.email, gUser.name, gUser.picture);
+                } else {
+                  setLoading(false);
+                }
+              } catch (e) {
+                setLoading(false);
+                Alert.alert('Google Sign-In Error', e.message);
+              }
+            } else {
+              setLoading(false);
+            }
+          },
+        });
+        tokenClient.requestAccessToken({ prompt: 'select_account' });
+        return;
+      } catch (err) {
+        setLoading(false);
+        console.warn('Google web OAuth error:', err);
+      }
+    }
+
+    // 3. Mobile Native: Open system browser with Google OAuth 2.0 select_account
+    try {
+      setLoading(true);
+      const redirectUri = AuthSession.makeRedirectUri({ scheme: 'mobileapp' });
+      const authUrl =
+        `https://accounts.google.com/o/oauth2/v2/auth?` +
+        `client_id=${encodeURIComponent(GOOGLE_CLIENT_ID)}` +
+        `&redirect_uri=${encodeURIComponent(redirectUri)}` +
+        `&response_type=token` +
+        `&scope=${encodeURIComponent('openid profile email')}` +
+        `&prompt=select_account`;
+
+      const result = await WebBrowser.openAuthSessionAsync(authUrl, redirectUri);
+      if (result.type === 'success' && result.url) {
+        const match = result.url.match(/access_token=([^&]+)/);
+        if (match && match[1]) {
+          const accessToken = match[1];
+          const userinfoRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+            headers: { Authorization: `Bearer ${accessToken}` },
+          });
+          const gUser = await userinfoRes.json();
+          if (gUser?.email) {
+            await performGoogleAuth(gUser.email, gUser.name, gUser.picture);
+            return;
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('Native Google Auth session error:', err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -196,28 +284,28 @@ export default function LoginScreen({ onNavigateToSignUp, onLoginSuccess }) {
             <Text style={styles.forgotText}>Forget Password?</Text>
           </TouchableOpacity>
 
-          {/* Social Buttons Stack: Google + LinkedIn (Figma Specs) */}
+          {/* Social Buttons Stack: Google + LinkedIn (Exact Match to Screenshot) */}
           <View style={styles.socialStack}>
-            {/* Google Button */}
+            {/* Google Button: Vibrant Blue BG, White Text, White circle with G icon */}
             <TouchableOpacity
               style={styles.btnGoogle}
-              activeOpacity={0.8}
+              activeOpacity={0.85}
               onPress={handleGoogleSignIn}
             >
-              <View style={styles.socialIconBox}>
-                <Text style={styles.googleIconText}>G</Text>
+              <View style={styles.googleIconCircle}>
+                <Ionicons name="logo-google" size={13} color="#EA4335" />
               </View>
               <Text style={styles.btnGoogleText}>Continue with Google</Text>
             </TouchableOpacity>
 
-            {/* LinkedIn Button */}
+            {/* LinkedIn Button: White BG, Sky Blue Border, 'in' badge, Dark Text */}
             <TouchableOpacity
               style={styles.btnLinkedIn}
-              activeOpacity={0.8}
-              onPress={() => Alert.alert('LinkedIn Sign-In', 'LinkedIn Authentication')}
+              activeOpacity={0.85}
+              onPress={() => Alert.alert('LinkedIn Sign-In', 'LinkedIn authentication is available on Fortaa Web Portal.')}
             >
-              <View style={styles.socialIconBox}>
-                <Text style={styles.linkedInIconText}>in</Text>
+              <View style={styles.linkedInIconBox}>
+                <Ionicons name="logo-linkedin" size={13} color="#FFFFFF" />
               </View>
               <Text style={styles.btnLinkedInText}>Continue with LinkedIn</Text>
             </TouchableOpacity>
@@ -302,16 +390,19 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    paddingHorizontal: 20,
-    paddingTop: 45,
-    paddingBottom: 30,
+    paddingHorizontal: 16,
+    paddingTop: Platform.OS === 'web' ? 16 : 26,
+    paddingBottom: 20,
     justifyContent: 'center',
   },
   topHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: 14,
+    maxWidth: 420,
+    width: '100%',
+    alignSelf: 'center',
   },
   brandLogoRow: {
     flexDirection: 'row',
@@ -354,19 +445,19 @@ const styles = StyleSheet.create({
   },
   titleSection: {
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 14,
   },
   authTitle: {
     fontFamily: Platform.OS === 'ios' ? 'Inter' : 'sans-serif',
-    fontSize: 28,
+    fontSize: 25,
     fontWeight: '700',
     color: '#232356',
     letterSpacing: 0.3,
-    marginBottom: 4,
+    marginBottom: 2,
     textAlign: 'center',
   },
   authSubtitle: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '400',
     color: '#232356',
     textAlign: 'center',
@@ -379,11 +470,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 10,
     borderRadius: 10,
-    marginBottom: 16,
+    marginBottom: 12,
     gap: 8,
     borderWidth: 1,
     borderColor: '#FECDCA',
-    maxWidth: 340,
+    maxWidth: 420,
     alignSelf: 'center',
     width: '100%',
   },
@@ -395,7 +486,7 @@ const styles = StyleSheet.create({
   },
   formContainer: {
     width: '100%',
-    maxWidth: 340,
+    maxWidth: 420,
     alignSelf: 'center',
   },
   inputWrapper: {
@@ -405,9 +496,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#232356',
     borderRadius: 10,
-    height: 48,
+    height: 46,
     paddingHorizontal: 12,
-    marginBottom: 14,
+    marginBottom: 10,
   },
   inputIconLeft: {
     marginRight: 10,
@@ -423,13 +514,13 @@ const styles = StyleSheet.create({
     padding: 6,
   },
   forgotBtn: {
-    alignSelf: 'flex-end',
-    marginBottom: 16,
-    marginTop: -4,
+    alignSelf: 'flex-start',
+    marginBottom: 12,
+    marginTop: -2,
   },
   forgotText: {
-    fontSize: 14,
-    color: '#232356',
+    fontSize: 13.5,
+    color: '#BC45F8',
     fontWeight: '500',
   },
   socialStack: {
@@ -442,20 +533,22 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     height: 46,
     borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#4285F4',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#0066FF',
+    paddingHorizontal: 16,
     gap: 10,
   },
-  googleIconText: {
-    fontSize: 16,
-    fontWeight: '900',
-    color: '#4285F4',
+  googleIconCircle: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   btnGoogleText: {
     fontSize: 15,
-    fontWeight: '500',
-    color: '#232356',
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
   btnLinkedIn: {
     flexDirection: 'row',
@@ -463,30 +556,30 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     height: 46,
     borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#29B6EB',
     backgroundColor: '#FFFFFF',
+    borderWidth: 1.5,
+    borderColor: '#38BDF8',
+    paddingHorizontal: 16,
     gap: 10,
   },
-  socialIconBox: {
-    width: 20,
+  linkedInIconBox: {
+    width: 18,
+    height: 18,
+    borderRadius: 3,
+    backgroundColor: '#0A66C2',
     alignItems: 'center',
-  },
-  linkedInIconText: {
-    fontSize: 16,
-    fontWeight: '900',
-    color: '#0A66C2',
+    justifyContent: 'center',
   },
   btnLinkedInText: {
     fontSize: 15,
-    fontWeight: '500',
+    fontWeight: '600',
     color: '#232356',
   },
   dividerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: 12,
-    gap: 16,
+    marginVertical: 8,
+    gap: 12,
   },
   dividerLine: {
     flex: 1,
@@ -495,22 +588,22 @@ const styles = StyleSheet.create({
     opacity: 0.8,
   },
   dividerText: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '500',
     color: '#232356',
   },
   btnSignUpEmail: {
-    height: 46,
+    height: 44,
     borderRadius: 10,
     borderWidth: 1,
     borderColor: '#53029E',
     backgroundColor: 'transparent',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 14,
+    marginBottom: 10,
   },
   btnSignUpEmailText: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '500',
     color: '#53029E',
   },
@@ -525,7 +618,7 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   nextBtnGrad: {
-    height: 50,
+    height: 46,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -533,7 +626,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   nextBtnText: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '600',
     color: '#FFFFFF',
     letterSpacing: 0.3,
@@ -542,14 +635,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 18,
+    marginTop: 12,
   },
   footerPromptText: {
-    fontSize: 14,
+    fontSize: 13.5,
     color: 'rgba(83, 2, 158, 0.55)',
   },
   footerLoginLink: {
-    fontSize: 14,
+    fontSize: 13.5,
     fontWeight: '700',
     color: '#5321E8',
   },

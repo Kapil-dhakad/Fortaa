@@ -10,6 +10,7 @@ import MessagesScreen from './src/screens/MessagesScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
 import NotificationsScreen from './src/screens/NotificationsScreen';
 import GroupsScreen from './src/screens/GroupsScreen';
+import SettingsScreen from './src/screens/SettingsScreen';
 import UserMobileBottomNav from './src/components/UserMobileBottomNav';
 import MenuBottomSheet from './src/components/MenuBottomSheet';
 import CreatePostModal from './src/components/CreatePostModal';
@@ -64,8 +65,8 @@ export default function App() {
     else if (key === 'messages') setActiveTab('messages');
     else if (key === 'notifications') setActiveTab('notifications');
     else if (key === 'groups') setActiveTab('groups');
+    else if (key === 'settings') setActiveTab('settings');
     else if (key === 'promotions') Alert.alert('Promotions', 'Exclusive promotions & offers');
-    else if (key === 'settings') Alert.alert('Settings', 'Account & Privacy Settings');
     else if (key === 'support') Alert.alert('Support', '24/7 Live Support: support@fortaa.com');
   };
 
@@ -107,6 +108,7 @@ export default function App() {
                 onNavigateToMessages={() => setActiveTab('messages')}
                 onNavigateToProfile={() => setActiveTab('profile')}
                 onNavigateToNotifications={() => setActiveTab('notifications')}
+                onNavigateToSettings={() => setActiveTab('settings')}
                 onLogout={handleLogout}
               />
             )}
@@ -118,6 +120,8 @@ export default function App() {
                 onOpenChat={handleOpenChatWithLeader}
                 onNavigateToMessages={() => setActiveTab('messages')}
                 onNavigateToProfile={() => setActiveTab('profile')}
+                onNavigateToNotifications={() => setActiveTab('notifications')}
+                onNavigateToSettings={() => setActiveTab('settings')}
                 onLogout={handleLogout}
               />
             )}
@@ -128,6 +132,7 @@ export default function App() {
                 user={user}
                 onNavigateToMessages={() => setActiveTab('messages')}
                 onNavigateToProfile={() => setActiveTab('profile')}
+                onNavigateToSettings={() => setActiveTab('settings')}
                 onLogout={handleLogout}
               />
             )}
@@ -145,8 +150,10 @@ export default function App() {
             {activeTab === 'profile' && (
               <ProfileScreen
                 user={user}
+                onUpdateUser={(updated) => setUser(updated)}
                 onNavigateToMessages={() => setActiveTab('messages')}
                 onNavigateToNotifications={() => setActiveTab('notifications')}
+                onNavigateToSettings={() => setActiveTab('settings')}
                 onLogout={handleLogout}
               />
             )}
@@ -155,6 +162,8 @@ export default function App() {
             {activeTab === 'notifications' && (
               <NotificationsScreen
                 user={user}
+                onNavigateBack={() => setActiveTab('dashboard')}
+                onNavigateTab={(tab) => setActiveTab(tab)}
                 onNavigateToMessages={() => setActiveTab('messages')}
                 onNavigateToProfile={() => setActiveTab('profile')}
                 onLogout={handleLogout}
@@ -173,6 +182,18 @@ export default function App() {
                 onNavigateToProfile={() => setActiveTab('profile')}
                 onNavigateToNotifications={() => setActiveTab('notifications')}
                 onLogout={handleLogout}
+              />
+            )}
+
+            {/* Screen 8: Settings (Web Mobile Responsive Match) */}
+            {activeTab === 'settings' && (
+              <SettingsScreen
+                user={user}
+                onNavigateToMessages={() => setActiveTab('messages')}
+                onNavigateToNotifications={() => setActiveTab('notifications')}
+                onNavigateToProfile={() => setActiveTab('profile')}
+                onLogout={handleLogout}
+                onBack={() => setActiveTab('home')}
               />
             )}
           </View>

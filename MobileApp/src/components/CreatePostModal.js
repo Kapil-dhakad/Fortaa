@@ -156,6 +156,13 @@ export default function CreatePostModal({ visible, onClose, user, onPostCreated 
       let uploadedUrl = null;
       if (mediaUri) {
         uploadedUrl = await uploadMediaApi(mediaUri, mediaType === 'video');
+        if (mediaType === 'video' && (!uploadedUrl || uploadedUrl.startsWith('file:///'))) {
+          Alert.alert(
+            'Video Upload Error',
+            'Could not upload video to the server. Please check internet connection and try again.'
+          );
+          return;
+        }
       }
 
       const payload = {
@@ -166,7 +173,7 @@ export default function CreatePostModal({ visible, onClose, user, onPostCreated 
         content: postText.trim() || (isPollOpen ? pollQuestion.trim() : 'New update shared'),
         tags: tags.trim() || null,
         imageUrl: mediaType === 'image' ? (uploadedUrl || mediaUri) : null,
-        videoUrl: mediaType === 'video' ? (uploadedUrl || mediaUri) : null,
+        videoUrl: mediaType === 'video' ? uploadedUrl : null,
         mediaType: mediaType || (pollPayload ? 'poll' : 'text'),
         pollData: pollPayload,
       };
@@ -290,11 +297,21 @@ export default function CreatePostModal({ visible, onClose, user, onPostCreated 
           {/* Media Preview Box (Instagram style) */}
           {mediaUri && (
             <View style={styles.previewBox}>
-              <Image
-                source={{ uri: mediaUri }}
-                style={styles.previewMedia}
-                resizeMode="cover"
-              />
+              {mediaType === 'video' ? (
+                <View style={[styles.previewMedia, styles.videoPreviewFallback]}>
+                  <Feather name="video" size={36} color="#5321E8" />
+                  <Text style={styles.videoPreviewTitle}>Video Attached</Text>
+                  <Text style={styles.videoPreviewSub} numberOfLines={1}>
+                    {mediaUri.split('/').pop() || 'video.mp4'}
+                  </Text>
+                </View>
+              ) : (
+                <Image
+                  source={{ uri: mediaUri }}
+                  style={styles.previewMedia}
+                  resizeMode="cover"
+                />
+              )}
               <TouchableOpacity
                 style={styles.removeMediaBtn}
                 onPress={() => {
@@ -562,6 +579,23 @@ const styles = StyleSheet.create({
     backgroundColor: '#0F092A',
   },
   previewMedia: { width: '100%', height: '100%' },
+  videoPreviewFallback: {
+    backgroundColor: '#F8FAFC',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 20,
+  },
+  videoPreviewTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#1E1B4B',
+  },
+  videoPreviewSub: {
+    fontSize: 12,
+    color: '#64748B',
+    textAlign: 'center',
+  },
   removeMediaBtn: {
     position: 'absolute',
     top: 10,

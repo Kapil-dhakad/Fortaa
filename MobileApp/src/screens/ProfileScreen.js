@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   StyleSheet,
   Text,
@@ -7,30 +7,110 @@ import {
   TouchableOpacity,
   Image,
   Alert,
+  FlatList,
+  RefreshControl,
+  ActivityIndicator,
+  Dimensions,
 } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import { Feather, Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import UserHeader from '../components/UserHeader';
+import EditProfileModal from '../components/EditProfileModal';
+import { fetchUserProfileApi, fetchUserStatsApi, fetchUserPostsApi } from '../services/api';
+
+const { width } = Dimensions.get('window');
 
 const POST_TABS = ['All posts', 'Network', 'Followers', 'Groups', 'Following'];
 
+function timeAgo(dateStr) {
+  if (!dateStr) return '';
+  const diff = (Date.now() - new Date(dateStr).getTime()) / 1000;
+  if (diff < 60) return 'just now';
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+  return `${Math.floor(diff / 86400)}d ago`;
+}
+
 export default function ProfileScreen({
   user,
+  onUpdateUser,
   onNavigateToMessages,
   onNavigateToNotifications,
+  onNavigateToSettings,
   onLogout,
 }) {
+  const [profileUser, setProfileUser] = useState(user || {});
   const [searchQuery, setSearchQuery] = useState('');
   const [activePostTab, setActivePostTab] = useState('All posts');
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [stats, setStats] = useState({ followers: 0, following: 0, posts: 0, network: 0 });
+  const [myPosts, setMyPosts] = useState([]);
+  const [postsLoading, setPostsLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
-  const userName = user?.name || 'Nilesh';
-  const userCompany = user?.company_brand || 'shivkripa traders';
-  const userRole = user?.designation || user?.accountType || 'Marketing';
-  const userHandle = user?.email
-    ? `@${user.email.split('@')[0]}`
-    : '@kapildhakad1709';
-  const userEmail = user?.email || 'kapildhakad1709@gmail.com';
-  const userCity = user?.city || 'Bhopal';
+  // Load profile + stats
+  const loadProfile = useCallback(async () => {
+    if (!user?.id) return;
+    try {
+      const [profile, fetchedStats, posts] = await Promise.all([
+        fetchUserProfileApi(user.id),
+        fetchUserStatsApi(user.id),
+        fetchUserPostsApi(user.id),
+      ]);
+      if (profile) setProfileUser((prev) => ({ ...prev, ...profile }));
+      if (fetchedStats) setStats(fetchedStats);
+      setMyPosts(Array.isArray(posts) ? posts : []);
+    } catch (e) {
+      console.warn('ProfileScreen loadProfile error:', e);
+    }
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (user) setProfileUser(user);
+    loadProfile();
+  }, [user, loadProfile]);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await loadProfile();
+    setRefreshing(false);
+  };
+
+  const handleProfileUpdated = (updated) => {
+    setProfileUser(updated);
+    if (onUpdateUser) onUpdateUser(updated);
+    loadProfile();
+  };
+
+  const userName = profileUser?.name || 'Fortaa Leader';
+  const userCompany =
+    profileUser?.companyBrand ||
+    profileUser?.company_brand ||
+    profileUser?.businessName ||
+    'Business Enterprise';
+  const userRole = profileUser?.designation || profileUser?.accountType || 'Senior Leader';
+  const userHandle = profileUser?.username
+    ? `@${profileUser.username}`
+    : profileUser?.email
+    ? `@${profileUser.email.split('@')[0]}`
+    : '@leader';
+  const userEmail = profileUser?.email || '';
+  const userCity = profileUser?.location || profileUser?.city || 'India';
+  const userBio = profileUser?.bio || '';
+  const userAvatar = profileUser?.avatarUrl || profileUser?.avatar_url;
+  const skills = Array.isArray(profileUser?.skills)
+    ? profileUser.skills
+    : typeof profileUser?.skills === 'string'
+    ? profileUser.skills.split(',').map((s) => s.trim()).filter(Boolean)
+    : [];
+
+  const followerCount = stats.followers || profileUser?.followers_count || profileUser?.followersCount || 0;
+  const followingCount = stats.following || profileUser?.following_count || profileUser?.followingCount || 0;
+  const postsCount = myPosts.length || stats.posts || profileUser?.posts_count || 0;
+  const networkCount = stats.network || profileUser?.network_count || 0;
+
+  // Filter posts by tab
+  const filteredPosts = myPosts; // For now show all; can filter by tab later
 
   return (
     <View style={styles.container}>
@@ -48,8 +128,9 @@ export default function ProfileScreen({
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#5321E8']} />}
       >
-        {/* 2. Cover Banner Card (Purple Mountain Background) */}
+        {/* 2. Cover Banner Card */}
         <View style={styles.coverCard}>
           <Image
             source={require('../../assets/dashboard/profile_cover_purple.png')}
@@ -57,23 +138,36 @@ export default function ProfileScreen({
             resizeMode="cover"
           />
 
-          {/* Edit Profile Button in Top Right */}
+          {/* Edit Profile Button */}
           <TouchableOpacity
             style={styles.editProfileBtn}
-            onPress={() => Alert.alert('Edit Profile', 'Profile editor opening...')}
+            onPress={() => setEditModalOpen(true)}
             activeOpacity={0.85}
           >
             <Feather name="edit-3" size={13} color="#1E1B4B" />
             <Text style={styles.editProfileText}>Edit Profile</Text>
           </TouchableOpacity>
 
+          {/* Settings button */}
+          {onNavigateToSettings && (
+            <TouchableOpacity
+              style={styles.settingsBtn}
+              onPress={onNavigateToSettings}
+              activeOpacity={0.85}
+            >
+              <Feather name="settings" size={14} color="#fff" />
+            </TouchableOpacity>
+          )}
+
           {/* Avatar with Verified Tick */}
           <View style={styles.avatarWrap}>
             <LinearGradient colors={['#DC3AEE', '#5321E8']} style={styles.avatarRing}>
               <View style={styles.avatarInner}>
-                <Text style={styles.avatarInitial}>
-                  {(userName[0] || 'N').toUpperCase()}
-                </Text>
+                {userAvatar ? (
+                  <Image source={{ uri: userAvatar }} style={styles.avatarRealImg} />
+                ) : (
+                  <Text style={styles.avatarInitial}>{(userName[0] || 'N').toUpperCase()}</Text>
+                )}
               </View>
             </LinearGradient>
             <View style={styles.verifiedTick}>
@@ -97,25 +191,31 @@ export default function ProfileScreen({
         </View>
 
         {/* 3. Profile Complete Prompt */}
-        <TouchableOpacity style={styles.promptCard} activeOpacity={0.8}>
-          <Text style={styles.lightningIcon}>⚡</Text>
-          <View style={styles.promptTextWrap}>
-            <Text style={styles.promptText}>
-              <Text style={styles.promptBold}>Complete your profile</Text> — Add photo, bio &
-              skills to get{' '}
-              <Text style={styles.promptBold}>3x more visibility</Text> in the network
-            </Text>
-          </View>
-          <Text style={styles.promptLink}>Complete →</Text>
-        </TouchableOpacity>
+        {!userBio || !userAvatar ? (
+          <TouchableOpacity
+            style={styles.promptCard}
+            onPress={() => setEditModalOpen(true)}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.lightningIcon}>⚡</Text>
+            <View style={styles.promptTextWrap}>
+              <Text style={styles.promptText}>
+                <Text style={styles.promptBold}>Complete your profile</Text> — Add photo, bio &
+                skills to get{' '}
+                <Text style={styles.promptBold}>3x more visibility</Text> in the network
+              </Text>
+            </View>
+            <Text style={styles.promptLink}>Edit →</Text>
+          </TouchableOpacity>
+        ) : null}
 
-        {/* 4. Stats Row */}
+        {/* 4. Stats Row — REAL DATA */}
         <View style={styles.statsRow}>
           <View style={styles.statBox}>
             <View style={[styles.statIconCircle, { backgroundColor: '#EDE9FE' }]}>
               <Feather name="users" size={14} color="#7C3AED" />
             </View>
-            <Text style={styles.statNumber}>0</Text>
+            <Text style={styles.statNumber}>{followerCount.toLocaleString()}</Text>
             <Text style={styles.statLabel}>Followers</Text>
           </View>
 
@@ -123,7 +223,7 @@ export default function ProfileScreen({
             <View style={[styles.statIconCircle, { backgroundColor: '#DBEAFE' }]}>
               <Feather name="user-check" size={14} color="#2563EB" />
             </View>
-            <Text style={styles.statNumber}>0</Text>
+            <Text style={styles.statNumber}>{followingCount.toLocaleString()}</Text>
             <Text style={styles.statLabel}>Following</Text>
           </View>
 
@@ -131,65 +231,115 @@ export default function ProfileScreen({
             <View style={[styles.statIconCircle, { backgroundColor: '#D1FAE5' }]}>
               <Feather name="link" size={14} color="#059669" />
             </View>
-            <Text style={styles.statNumber}>0</Text>
+            <Text style={styles.statNumber}>{networkCount.toLocaleString()}</Text>
             <Text style={styles.statLabel}>Network</Text>
           </View>
 
           <View style={styles.statBox}>
             <View style={[styles.statIconCircle, { backgroundColor: '#FEE2E2' }]}>
-              <Feather name="message-square" size={14} color="#DC2626" />
+              <Feather name="file-text" size={14} color="#DC2626" />
             </View>
-            <Text style={styles.statNumber}>0</Text>
+            <Text style={styles.statNumber}>{postsCount.toLocaleString()}</Text>
             <Text style={styles.statLabel}>Posts</Text>
           </View>
         </View>
 
         {/* 5. About Me Section */}
         <View style={styles.aboutCard}>
-          <Text style={styles.aboutHeading}>About Me</Text>
-
-          <TouchableOpacity activeOpacity={0.7}>
-            <Text style={styles.addBioPlaceholder}>
-              + Add a short bio or leadership quote...
-            </Text>
-          </TouchableOpacity>
-
-          <View style={styles.infoMetaRow}>
-            <Text style={styles.metaIcon}>📍</Text>
-            <Text style={styles.metaValue}>{userCity}</Text>
+          <View style={styles.aboutHeaderRow}>
+            <Text style={styles.aboutHeading}>About Me</Text>
+            <TouchableOpacity onPress={() => setEditModalOpen(true)}>
+              <Feather name="edit-2" size={15} color="#5321E8" />
+            </TouchableOpacity>
           </View>
 
-          <View style={styles.infoMetaRow}>
-            <Text style={styles.metaIcon}>✉️</Text>
-            <Text style={styles.metaValue}>{userEmail}</Text>
-          </View>
+          {userBio ? (
+            <Text style={styles.bioText}>{userBio}</Text>
+          ) : (
+            <TouchableOpacity onPress={() => setEditModalOpen(true)} activeOpacity={0.7}>
+              <Text style={styles.addBioPlaceholder}>
+                + Add a short bio or leadership quote...
+              </Text>
+            </TouchableOpacity>
+          )}
+
+          {userCity ? (
+            <View style={styles.infoMetaRow}>
+              <Text style={styles.metaIcon}>📍</Text>
+              <Text style={styles.metaValue}>{userCity}</Text>
+            </View>
+          ) : null}
+
+          {userEmail ? (
+            <View style={styles.infoMetaRow}>
+              <Text style={styles.metaIcon}>✉️</Text>
+              <Text style={styles.metaValue}>{userEmail}</Text>
+            </View>
+          ) : null}
+
+          {/* Mobile number if available */}
+          {(profileUser?.mobileNumber || profileUser?.mobile_number) ? (
+            <View style={styles.infoMetaRow}>
+              <Text style={styles.metaIcon}>📱</Text>
+              <Text style={styles.metaValue}>{profileUser.mobileNumber || profileUser.mobile_number}</Text>
+            </View>
+          ) : null}
 
           <View style={styles.sectionDivider} />
 
           {/* Skills */}
-          <Text style={styles.subHeading}>Skills</Text>
-          <TouchableOpacity
-            style={styles.addSkillBtn}
-            onPress={() => Alert.alert('Add Skills', 'Add your key professional skills')}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.addSkillText}>+ Add Skills</Text>
-          </TouchableOpacity>
-
-          <View style={styles.sectionDivider} />
-
-          {/* My Achievements */}
-          <Text style={styles.subHeading}>My Achievements</Text>
-          <View style={styles.achieveRow}>
-            <View style={styles.achievePill}>
-              <View style={styles.achieveDot} />
-              <Text style={styles.achieveText}>Top performer</Text>
-            </View>
-            <View style={styles.achievePill}>
-              <View style={styles.achieveDot} />
-              <Text style={styles.achieveText}>Community Star</Text>
-            </View>
+          <View style={styles.aboutHeaderRow}>
+            <Text style={styles.subHeading}>Skills & Expertise</Text>
+            <TouchableOpacity onPress={() => setEditModalOpen(true)}>
+              <Feather name="plus-circle" size={15} color="#5321E8" />
+            </TouchableOpacity>
           </View>
+
+          {skills.length > 0 ? (
+            <View style={styles.skillsChipsWrap}>
+              {skills.map((s, idx) => (
+                <View key={idx} style={styles.skillPill}>
+                  <Text style={styles.skillPillText}>{s}</Text>
+                </View>
+              ))}
+            </View>
+          ) : (
+            <TouchableOpacity
+              style={styles.addSkillBtn}
+              onPress={() => setEditModalOpen(true)}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.addSkillText}>+ Add Skills</Text>
+            </TouchableOpacity>
+          )}
+
+          {/* Social Links */}
+          {(profileUser?.socialLinks?.linkedin || profileUser?.socialLinks?.instagram || profileUser?.websiteSocial) ? (
+            <>
+              <View style={styles.sectionDivider} />
+              <Text style={styles.subHeading}>Social Links</Text>
+              <View style={styles.socialLinksRow}>
+                {profileUser?.socialLinks?.linkedin ? (
+                  <View style={styles.socialLinkPill}>
+                    <Ionicons name="logo-linkedin" size={14} color="#0A66C2" />
+                    <Text style={styles.socialLinkText} numberOfLines={1}>LinkedIn</Text>
+                  </View>
+                ) : null}
+                {profileUser?.socialLinks?.instagram ? (
+                  <View style={styles.socialLinkPill}>
+                    <Ionicons name="logo-instagram" size={14} color="#E1306C" />
+                    <Text style={styles.socialLinkText}>Instagram</Text>
+                  </View>
+                ) : null}
+                {profileUser?.websiteSocial ? (
+                  <View style={styles.socialLinkPill}>
+                    <Feather name="globe" size={14} color="#5321E8" />
+                    <Text style={styles.socialLinkText} numberOfLines={1}>Website</Text>
+                  </View>
+                ) : null}
+              </View>
+            </>
+          ) : null}
         </View>
 
         {/* 6. Posts Section with Tabs */}
@@ -216,33 +366,94 @@ export default function ProfileScreen({
 
           <View style={styles.postsTabDivider} />
 
-          {/* Empty State */}
-          <View style={styles.postsEmptyState}>
-            <LinearGradient colors={['#F5F3FF', '#EDE9FE']} style={styles.postsEmptyIconBg}>
-              <Feather name="edit-3" size={32} color="#8B5CF6" />
-            </LinearGradient>
-            <Text style={styles.postsEmptyTitle}>No posts published yet</Text>
-            <Text style={styles.postsEmptySubtitle}>
-              Share your ideas, success stories and{'\n'}updates with your network
-            </Text>
-            <TouchableOpacity
-              style={styles.createPostDashBtn}
-              onPress={() => Alert.alert('Create Post', 'Go to Dashboard to create a post')}
-              activeOpacity={0.85}
-            >
-              <LinearGradient
-                colors={['#DC3AEE', '#5321E8']}
-                style={styles.createPostDashGradient}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-              >
-                <Feather name="layout" size={14} color="#fff" />
-                <Text style={styles.createPostDashText}>Create a Post on Dashboard →</Text>
+          {/* Posts List or Empty */}
+          {postsLoading ? (
+            <ActivityIndicator size="small" color="#5321E8" style={{ marginVertical: 32 }} />
+          ) : filteredPosts.length > 0 ? (
+            filteredPosts.map((post) => (
+              <View key={post.id} style={styles.postItem}>
+                {post.media_url ? (
+                  <Image source={{ uri: post.media_url }} style={styles.postThumb} />
+                ) : null}
+                <View style={styles.postItemBody}>
+                  <Text style={styles.postItemText} numberOfLines={3}>
+                    {post.content || post.text || ''}
+                  </Text>
+                  <View style={styles.postItemMeta}>
+                    <Text style={styles.postItemTime}>{timeAgo(post.created_at)}</Text>
+                    <View style={styles.postItemStats}>
+                      <Ionicons name="heart" size={12} color="#EF4444" />
+                      <Text style={styles.postItemStatText}>{post.likes_count || 0}</Text>
+                      <Feather name="message-circle" size={12} color="#6B7280" style={{ marginLeft: 8 }} />
+                      <Text style={styles.postItemStatText}>{post.comments_count || 0}</Text>
+                    </View>
+                  </View>
+                </View>
+              </View>
+            ))
+          ) : (
+            <View style={styles.postsEmptyState}>
+              <LinearGradient colors={['#F5F3FF', '#EDE9FE']} style={styles.postsEmptyIconBg}>
+                <Feather name="edit-3" size={32} color="#8B5CF6" />
               </LinearGradient>
+              <Text style={styles.postsEmptyTitle}>No posts published yet</Text>
+              <Text style={styles.postsEmptySubtitle}>
+                Share your ideas, success stories and{'\n'}updates with your network
+              </Text>
+              <TouchableOpacity
+                style={styles.createPostDashBtn}
+                onPress={() => Alert.alert('Create Post', 'Go to Dashboard tab to create a post')}
+                activeOpacity={0.85}
+              >
+                <LinearGradient
+                  colors={['#DC3AEE', '#5321E8']}
+                  style={styles.createPostDashGradient}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                >
+                  <Feather name="layout" size={14} color="#fff" />
+                  <Text style={styles.createPostDashText}>Create a Post on Dashboard →</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
+
+        {/* 7. Quick Actions */}
+        <View style={styles.quickActionsRow}>
+          {onNavigateToSettings && (
+            <TouchableOpacity style={styles.quickActionBtn} onPress={onNavigateToSettings} activeOpacity={0.8}>
+              <Feather name="settings" size={16} color="#5321E8" />
+              <Text style={styles.quickActionText}>Settings</Text>
             </TouchableOpacity>
-          </View>
+          )}
+          <TouchableOpacity style={styles.quickActionBtn} onPress={() => setEditModalOpen(true)} activeOpacity={0.8}>
+            <Feather name="edit" size={16} color="#5321E8" />
+            <Text style={styles.quickActionText}>Edit Profile</Text>
+          </TouchableOpacity>
+          {onLogout && (
+            <TouchableOpacity
+              style={[styles.quickActionBtn, styles.logoutBtn]}
+              onPress={() => Alert.alert('Logout', 'Are you sure you want to logout?', [
+                { text: 'Cancel', style: 'cancel' },
+                { text: 'Logout', style: 'destructive', onPress: onLogout },
+              ])}
+              activeOpacity={0.8}
+            >
+              <Feather name="log-out" size={16} color="#EF4444" />
+              <Text style={[styles.quickActionText, { color: '#EF4444' }]}>Logout</Text>
+            </TouchableOpacity>
+          )}
         </View>
       </ScrollView>
+
+      {/* ─── EDIT PROFILE MODAL ─── */}
+      <EditProfileModal
+        visible={editModalOpen}
+        onClose={() => setEditModalOpen(false)}
+        user={profileUser}
+        onProfileUpdated={handleProfileUpdated}
+      />
     </View>
   );
 }
@@ -254,6 +465,9 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     paddingBottom: 28,
     gap: 10,
+    maxWidth: 600,
+    width: '100%',
+    alignSelf: 'center',
   },
 
   /* Cover Banner Card */
@@ -283,7 +497,7 @@ const styles = StyleSheet.create({
   editProfileBtn: {
     position: 'absolute',
     top: 14,
-    right: 14,
+    right: 56,
     backgroundColor: '#FFFFFF',
     borderRadius: 6,
     paddingHorizontal: 10,
@@ -294,6 +508,18 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   editProfileText: { fontSize: 11, fontWeight: '700', color: '#1E1B4B' },
+  settingsBtn: {
+    position: 'absolute',
+    top: 14,
+    right: 14,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderRadius: 20,
+    width: 32,
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 10,
+  },
 
   avatarWrap: { position: 'relative', width: 68, height: 68, marginBottom: 10, marginTop: 8 },
   avatarRing: { width: 68, height: 68, borderRadius: 34, padding: 2.5, alignItems: 'center', justifyContent: 'center' },
@@ -306,7 +532,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderWidth: 2,
     borderColor: '#fff',
+    overflow: 'hidden',
   },
+  avatarRealImg: { width: '100%', height: '100%' },
   avatarInitial: { fontSize: 24, fontWeight: '900', color: '#fff' },
   verifiedTick: {
     position: 'absolute',
@@ -391,6 +619,23 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   aboutHeading: { fontSize: 16, fontWeight: '800', color: '#111827', marginBottom: 2 },
+  aboutHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
+  bioText: { fontSize: 13, color: '#334155', lineHeight: 18, marginBottom: 6 },
+  skillsChipsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 4 },
+  skillPill: {
+    backgroundColor: '#F3F0FF',
+    borderColor: '#DDD6FE',
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 14,
+  },
+  skillPillText: { fontSize: 12, color: '#5321E8', fontWeight: '600' },
   addBioPlaceholder: { fontSize: 12.5, fontStyle: 'italic', color: '#64748B', marginBottom: 6 },
   infoMetaRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   metaIcon: { fontSize: 13 },
@@ -405,18 +650,19 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
   },
   addSkillText: { fontSize: 11.5, fontWeight: '700', color: '#6D28D9' },
-  achieveRow: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
-  achievePill: {
+  socialLinksRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 4 },
+  socialLinkPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F5F3FF',
-    borderRadius: 16,
+    gap: 5,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 10,
     paddingHorizontal: 10,
     paddingVertical: 5,
-    gap: 6,
   },
-  achieveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#7C3AED' },
-  achieveText: { fontSize: 11.5, fontWeight: '600', color: '#6D28D9' },
+  socialLinkText: { fontSize: 12, color: '#334155', fontWeight: '500' },
 
   /* Posts Section */
   postsSectionCard: {
@@ -426,11 +672,7 @@ const styles = StyleSheet.create({
     borderColor: '#E5E7EB',
     overflow: 'hidden',
   },
-  postsTabContent: {
-    paddingHorizontal: 4,
-    paddingTop: 4,
-    flexDirection: 'row',
-  },
+  postsTabContent: { paddingHorizontal: 4, paddingTop: 4, flexDirection: 'row' },
   postsTab: {
     paddingHorizontal: 14,
     paddingVertical: 12,
@@ -450,6 +692,28 @@ const styles = StyleSheet.create({
   },
   postsTabDivider: { height: 1, backgroundColor: '#F3F4F6' },
 
+  /* Post List Item */
+  postItem: {
+    flexDirection: 'row',
+    padding: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+    gap: 10,
+    alignItems: 'flex-start',
+  },
+  postThumb: {
+    width: 72,
+    height: 72,
+    borderRadius: 8,
+    backgroundColor: '#E5E7EB',
+  },
+  postItemBody: { flex: 1 },
+  postItemText: { fontSize: 13, color: '#111827', lineHeight: 18, marginBottom: 6 },
+  postItemMeta: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  postItemTime: { fontSize: 11, color: '#9CA3AF' },
+  postItemStats: { flexDirection: 'row', alignItems: 'center', gap: 3 },
+  postItemStatText: { fontSize: 11, color: '#6B7280', marginLeft: 2 },
+
   /* Posts Empty State */
   postsEmptyState: {
     alignItems: 'center',
@@ -466,12 +730,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   postsEmptyTitle: { fontSize: 16, fontWeight: '700', color: '#1E1B4B' },
-  postsEmptySubtitle: {
-    fontSize: 13,
-    color: '#6B7280',
-    textAlign: 'center',
-    lineHeight: 20,
-  },
+  postsEmptySubtitle: { fontSize: 13, color: '#6B7280', textAlign: 'center', lineHeight: 20 },
   createPostDashBtn: { borderRadius: 25, overflow: 'hidden', marginTop: 6 },
   createPostDashGradient: {
     flexDirection: 'row',
@@ -481,4 +740,26 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   createPostDashText: { fontSize: 13, fontWeight: '700', color: '#fff' },
+
+  /* Quick Actions */
+  quickActionsRow: {
+    flexDirection: 'row',
+    gap: 10,
+    flexWrap: 'wrap',
+  },
+  quickActionBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 10,
+    paddingVertical: 12,
+    minWidth: 100,
+  },
+  quickActionText: { fontSize: 13, fontWeight: '600', color: '#5321E8' },
+  logoutBtn: { borderColor: '#FEE2E2', backgroundColor: '#FFF5F5' },
 });

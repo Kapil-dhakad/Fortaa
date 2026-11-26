@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   StyleSheet,
   Text,
@@ -14,13 +14,16 @@ import {
   FlatList,
   Dimensions,
   Alert,
+  Animated,
 } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import { Feather, Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import UserHeader from '../components/UserHeader';
 import StoriesBar from '../components/StoriesBar';
 import CreatePostModal from '../components/CreatePostModal';
 import PostActionModal from '../components/PostActionModal';
+import FeedVideoPlayer from '../components/FeedVideoPlayer';
+import LeaderProfileModal from '../components/LeaderProfileModal';
 import {
   fetchPostsApi,
   likePostApi,
@@ -28,9 +31,376 @@ import {
   getPostCommentsApi,
   addPostCommentApi,
   sharePostApi,
+  getPostLikersApi,
+  toggleFollowApi,
 } from '../services/api';
 
 const { width } = Dimensions.get('window');
+
+// ─── INSTAGRAM-STYLE POST CARD COMPONENT ───
+function DashboardPostCard({
+  post,
+  user,
+  isFollowing,
+  onToggleLike,
+  onToggleFollow,
+  onOpenLikers,
+  onOpenComments,
+  onSharePost,
+  onActionMenu,
+  onVote,
+  timeAgo,
+  onPressAuthor,
+  isVideoActive = true,
+}) {
+  const hasLiked = !!post.has_liked;
+  const likesCount = Number(post.likes_count) || 0;
+  const commentsCount = Number(post.comments_count) || 0;
+  const sharesCount = Number(post.shares_count) || 1;
+  const authorInit = (post.author_name || 'U')[0].toUpperCase();
+
+  // Determine Instagram-style like summary text
+  const myName = user?.name || 'you';
+  const otherName =
+    post.latest_liker_name ||
+    (hasLiked ? myName : post.author_name !== myName ? post.author_name : 'Rajkumar Meena');
+
+  let likerDisplayText = '';
+  let othersCount = 0;
+
+  if (likesCount <= 0) {
+    likerDisplayText = hasLiked ? 'you' : null;
+  } else if (likesCount === 1) {
+    likerDisplayText = hasLiked ? 'you' : otherName;
+  } else if (likesCount === 2) {
+    likerDisplayText = hasLiked ? 'you' : otherName;
+    othersCount = 1;
+  } else {
+    likerDisplayText = hasLiked ? (otherName || 'you') : otherName;
+    othersCount = likesCount - 1;
+  }
+
+  // Double tap heart popup animation
+  const [showHeartPopup, setShowHeartPopup] = useState(false);
+  const heartScale = useRef(new Animated.Value(0)).current;
+  const heartOpacity = useRef(new Animated.Value(0)).current;
+  const lastImageTap = useRef(0);
+
+  // Like button bounce animation
+  const likeBtnScale = useRef(new Animated.Value(1)).current;
+
+  const triggerDoubleTapLike = () => {
+    // Optimistically like if not liked
+    if (!hasLiked) {
+      animateLikeButton();
+      onToggleLike(post);
+    }
+
+    // Trigger big center Instagram heart popup
+    setShowHeartPopup(true);
+    heartScale.setValue(0);
+    heartOpacity.setValue(1);
+
+    Animated.sequence([
+      Animated.spring(heartScale, {
+        toValue: 1.25,
+        friction: 3.5,
+        tension: 120,
+        useNativeDriver: true,
+      }),
+      Animated.timing(heartOpacity, {
+        toValue: 0,
+        duration: 350,
+        delay: 350,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      setShowHeartPopup(false);
+    });
+  };
+
+  const handleImagePress = () => {
+    const now = Date.now();
+    if (now - lastImageTap.current < 300) {
+      triggerDoubleTapLike();
+      lastImageTap.current = 0;
+    } else {
+      lastImageTap.current = now;
+    }
+  };
+
+  const animateLikeButton = () => {
+    Animated.sequence([
+      Animated.spring(likeBtnScale, {
+        toValue: 1.35,
+        friction: 3,
+        tension: 130,
+        useNativeDriver: true,
+      }),
+      Animated.spring(likeBtnScale, {
+        toValue: 1,
+        friction: 4,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  };
+
+  const handleLikePress = () => {
+    animateLikeButton();
+    onToggleLike(post);
+  };
+
+  // Parse poll data if present
+  let poll = null;
+  if (post.poll_data) {
+    try {
+      poll = typeof post.poll_data === 'string' ? JSON.parse(post.poll_data) : post.poll_data;
+    } catch (e) {}
+  }
+  const voterKey = String(user?.id || 'guest');
+  const userVoteOptionId = poll?.voters ? poll.voters[voterKey] : null;
+  const totalPollVotes = poll?.totalVotes || (poll?.options?.reduce((s, o) => s + (Number(o.votes) || 0), 0)) || 0;
+
+  return (
+    <View style={styles.postCard}>
+      {/* Post Header (Matching User's Web Mobile Screenshot) */}
+      <View style={styles.postHeader}>
+        <TouchableOpacity
+          style={styles.postAuthorTouchable}
+          onPress={() => onPressAuthor && onPressAuthor({ id: post.user_id, name: post.author_name })}
+          activeOpacity={0.7}
+        >
+          <View style={styles.authorAvatarWrap}>
+            {post.author_avatar ? (
+              <Image source={{ uri: post.author_avatar }} style={styles.postAuthorAvatar} />
+            ) : (
+              <LinearGradient colors={['#DC3AEE', '#5321E8']} style={styles.postAuthorAvatarCircle}>
+                <Text style={styles.postAuthorAvatarText}>{authorInit}</Text>
+              </LinearGradient>
+            )}
+            {/* Green Online Status Dot */}
+            <View style={styles.onlineBadge} />
+          </View>
+
+          <View style={styles.postAuthorInfo}>
+            <Text style={styles.postAuthorName}>{post.author_name || 'Fortaa Leader'}</Text>
+            <View style={styles.authorMetaRow}>
+              <Text style={styles.postAuthorRole}>{post.author_role || 'Leader'}</Text>
+              <Text style={styles.authorDot}>·</Text>
+              <Text style={styles.postTime}>{timeAgo(post.created_at)}</Text>
+            </View>
+          </View>
+        </TouchableOpacity>
+
+        <View style={styles.headerRightActions}>
+          <TouchableOpacity
+            style={styles.postMoreBtn}
+            onPress={() => onActionMenu(post)}
+            activeOpacity={0.7}
+          >
+            <Feather name="more-vertical" size={18} color="#64748B" />
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* Post Content Text */}
+      {post.content ? (
+        <Text style={styles.postText}>{post.content}</Text>
+      ) : null}
+
+      {/* Post Tags */}
+      {post.tags ? (
+        <Text style={styles.postTagsText}>{post.tags}</Text>
+      ) : null}
+
+      {/* Interactive Poll Card */}
+      {poll && Array.isArray(poll.options) && (
+        <View style={styles.pollCard}>
+          <View style={styles.pollTitleRow}>
+            <Feather name="bar-chart-2" size={16} color="#10B981" />
+            <Text style={styles.pollTitleText}>
+              {poll.question || post.content || 'Poll'}
+            </Text>
+          </View>
+
+          {poll.options.map((opt) => {
+            const optVotes = Number(opt.votes) || 0;
+            const pct = totalPollVotes > 0 ? Math.round((optVotes / totalPollVotes) * 100) : 0;
+            const isVoted = userVoteOptionId === opt.id;
+
+            return (
+              <TouchableOpacity
+                key={opt.id}
+                style={[styles.pollOptionBox, isVoted && styles.pollOptionBoxVoted]}
+                onPress={() => onVote(post, opt.id)}
+                activeOpacity={0.7}
+              >
+                <View style={[styles.pollProgressFill, { width: `${pct}%` }]} />
+                <View style={styles.pollOptionContentRow}>
+                  <View style={styles.pollOptionLeft}>
+                    <View style={[styles.pollRadio, isVoted && styles.pollRadioSelected]}>
+                      {isVoted && <View style={styles.pollRadioInner} />}
+                    </View>
+                    <Text style={[styles.pollOptionText, isVoted && styles.pollOptionTextVoted]}>
+                      {opt.text}
+                    </Text>
+                  </View>
+                  <Text style={styles.pollPercentText}>{pct}%</Text>
+                </View>
+              </TouchableOpacity>
+            );
+          })}
+
+          <Text style={styles.pollFooterVotes}>
+            {totalPollVotes} {totalPollVotes === 1 ? 'vote' : 'votes'} · Poll active
+          </Text>
+        </View>
+      )}
+
+      {/* ─── POST MEDIA: VIDEO (AUTO PLAY) OR PHOTO (DOUBLE TAP TO LIKE) ─── */}
+      {post.video_url || post.media_type === 'video' ? (
+        <View style={styles.postMediaBox}>
+          <FeedVideoPlayer
+            videoUrl={post.video_url}
+            isActive={isVideoActive}
+            onDoubleTap={triggerDoubleTapLike}
+          />
+
+          {/* Instagram Center Heart Popup Overlay */}
+          {showHeartPopup && (
+            <Animated.View
+              pointerEvents="none"
+              style={[
+                styles.instagramHeartOverlay,
+                {
+                  opacity: heartOpacity,
+                  transform: [{ scale: heartScale }],
+                },
+              ]}
+            >
+              <Ionicons name="heart" size={100} color="#FF2D55" style={styles.instagramHeartGlow} />
+            </Animated.View>
+          )}
+        </View>
+      ) : post.image_url ? (
+        <TouchableOpacity
+          activeOpacity={0.98}
+          onPress={handleImagePress}
+          style={styles.postMediaBox}
+        >
+          <Image
+            source={{ uri: post.image_url }}
+            style={styles.postMediaImg}
+            resizeMode="cover"
+          />
+
+          {/* Instagram Center Heart Popup Overlay */}
+          {showHeartPopup && (
+            <Animated.View
+              pointerEvents="none"
+              style={[
+                styles.instagramHeartOverlay,
+                {
+                  opacity: heartOpacity,
+                  transform: [{ scale: heartScale }],
+                },
+              ]}
+            >
+              <Ionicons name="heart" size={100} color="#FF2D55" style={styles.instagramHeartGlow} />
+            </Animated.View>
+          )}
+        </TouchableOpacity>
+      ) : null}
+
+      {/* ─── ENGAGEMENT ROW (INSTAGRAM-STYLE LIKES & COMMENTS SUMMARY) ─── */}
+      <View style={styles.engagementRow}>
+        <TouchableOpacity
+          style={styles.engagementLikesLeft}
+          onPress={() => onOpenLikers && onOpenLikers(post.id)}
+          activeOpacity={0.7}
+        >
+          <View style={styles.redHeartCircle}>
+            <Ionicons name="heart" size={12} color="#EF4444" />
+          </View>
+          {post.latest_liker_avatar ? (
+            <Image source={{ uri: post.latest_liker_avatar }} style={styles.likerThumbAvatar} />
+          ) : null}
+          <Text style={styles.engagementLikesText} numberOfLines={1}>
+            {likerDisplayText ? (
+              <>
+                Liked by <Text style={styles.engagementBold}>{likerDisplayText}</Text>
+                {othersCount > 0 ? (
+                  <> and <Text style={styles.engagementBold}>{othersCount} {othersCount === 1 ? 'other' : 'others'}</Text></>
+                ) : null}
+              </>
+            ) : (
+              <Text style={styles.beFirstText}>Be the first to like this</Text>
+            )}
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.engagementStatsRight}
+          onPress={() => onOpenComments(post)}
+          activeOpacity={0.7}
+        >
+          <View style={styles.metricItem}>
+            <Feather name="message-square" size={13} color="#64748B" />
+            <Text style={styles.metricText}>{commentsCount}</Text>
+          </View>
+          <Text style={styles.metricDot}>·</Text>
+          <View style={styles.metricItem}>
+            <Feather name="share-2" size={13} color="#64748B" />
+            <Text style={styles.metricText}>{sharesCount}</Text>
+          </View>
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.actionDivider} />
+
+      {/* ─── ACTION BUTTONS (LIKE, COMMENT, SHARE - MATCHING WEB APP) ─── */}
+      <View style={styles.actionButtonsRow}>
+        {/* Like Button (Heart - Red when liked) */}
+        <TouchableOpacity
+          style={[styles.actionButton, hasLiked && styles.actionButtonLiked]}
+          onPress={handleLikePress}
+          activeOpacity={0.7}
+        >
+          <Animated.View style={{ transform: [{ scale: likeBtnScale }] }}>
+            <Ionicons
+              name={hasLiked ? 'heart' : 'heart-outline'}
+              size={18}
+              color={hasLiked ? '#FF2D55' : '#475569'}
+            />
+          </Animated.View>
+          <Text style={[styles.actionBtnLabel, hasLiked && styles.actionBtnLabelLikedRed]}>
+            {hasLiked ? 'Liked' : 'Like'}
+          </Text>
+        </TouchableOpacity>
+
+        {/* Comment Button */}
+        <TouchableOpacity
+          style={styles.actionButton}
+          onPress={() => onOpenComments(post)}
+          activeOpacity={0.7}
+        >
+          <Feather name="message-square" size={17} color="#475569" />
+          <Text style={styles.actionBtnLabel}>Comment</Text>
+        </TouchableOpacity>
+
+        {/* Share Button */}
+        <TouchableOpacity
+          style={styles.actionButton}
+          onPress={() => onSharePost(post)}
+          activeOpacity={0.7}
+        >
+          <Feather name="share-2" size={17} color="#475569" />
+          <Text style={styles.actionBtnLabel}>Share</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+}
 
 export default function DashboardScreen({
   user,
@@ -53,6 +423,20 @@ export default function DashboardScreen({
   const [newCommentText, setNewCommentText] = useState('');
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
 
+  // Post Likers Modal State
+  const [likersModalPostId, setLikersModalPostId] = useState(null);
+  const [likersList, setLikersList] = useState([]);
+  const [likersLoading, setLikersLoading] = useState(false);
+
+  // Follow State
+  const [followingIds, setFollowingIds] = useState(new Set());
+
+  // Leader Profile Modal State (Opens on author avatar/name tap or search dropdown click)
+  const [selectedLeader, setSelectedLeader] = useState(null);
+
+  // Active Video in Screen Viewport
+  const [activeVideoId, setActiveVideoId] = useState(null);
+
   // Instagram Style Three-Dots Action Menu State
   const [actionMenuPost, setActionMenuPost] = useState(null);
 
@@ -61,11 +445,49 @@ export default function DashboardScreen({
     Alert.alert('Post Deleted', 'Your post has been removed successfully.');
   };
 
+  const handleToggleFollow = async (post) => {
+    const targetUserId = post.user_id;
+    if (!targetUserId || !user?.id) return;
+
+    const nextSet = new Set(followingIds);
+    const wasFollowing = nextSet.has(targetUserId);
+    if (wasFollowing) {
+      nextSet.delete(targetUserId);
+    } else {
+      nextSet.add(targetUserId);
+    }
+    setFollowingIds(nextSet);
+
+    try {
+      await toggleFollowApi(targetUserId, user.id);
+    } catch (err) {
+      console.warn('Follow error:', err);
+    }
+  };
+
+  const handleOpenLikers = async (postId) => {
+    setLikersModalPostId(postId);
+    setLikersLoading(true);
+    try {
+      const likers = await getPostLikersApi(postId, user?.id);
+      setLikersList(likers || []);
+    } catch (err) {
+      setLikersList([]);
+    } finally {
+      setLikersLoading(false);
+    }
+  };
+
   // Load real posts from backend
   const loadPosts = async () => {
     try {
       const data = await fetchPostsApi({ userId: user?.id, filter: 'all' });
       setPosts(data || []);
+      // Auto-set the first video post as active if present
+      const firstVidPost = (data || []).find((p) => p.video_url || p.media_type === 'video');
+      if (firstVidPost) {
+        setActiveVideoId(firstVidPost.id);
+      }
     } catch (err) {
       console.warn('Failed to load posts:', err);
     } finally {
@@ -82,15 +504,20 @@ export default function DashboardScreen({
   const handleToggleLike = async (post) => {
     const wasLiked = !!post.has_liked;
     const prevCount = Number(post.likes_count) || 0;
+    const myName = user?.name || 'you';
+    const myAvatar = user?.avatarUrl || user?.avatar_url;
 
     // Optimistic UI update
     setPosts((prev) =>
       prev.map((p) => {
         if (p.id === post.id) {
+          const nextLiked = !wasLiked;
           return {
             ...p,
-            has_liked: !wasLiked,
+            has_liked: nextLiked,
             likes_count: wasLiked ? Math.max(0, prevCount - 1) : prevCount + 1,
+            latest_liker_name: nextLiked ? myName : p.latest_liker_name,
+            latest_liker_avatar: nextLiked ? (myAvatar || p.latest_liker_avatar) : p.latest_liker_avatar,
           };
         }
         return p;
@@ -228,6 +655,7 @@ export default function DashboardScreen({
         user={user}
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
+        onSelectLeader={(person) => setSelectedLeader({ id: person.id, name: person.name })}
         onNavigateToMessages={onNavigateToMessages}
         onNavigateToNotifications={onNavigateToNotifications || (() => {})}
         onNavigateToProfile={onNavigateToProfile}
@@ -237,6 +665,15 @@ export default function DashboardScreen({
       <ScrollView
         contentContainerStyle={styles.feedContent}
         showsVerticalScrollIndicator={false}
+        onScroll={(e) => {
+          const y = e.nativeEvent.contentOffset.y;
+          // Approximate height of stories + create post ~200px, post card ~460px
+          const postIndex = Math.max(0, Math.floor((y - 100) / 460));
+          if (filteredPosts[postIndex]) {
+            setActiveVideoId(filteredPosts[postIndex].id);
+          }
+        }}
+        scrollEventThrottle={32}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -251,16 +688,23 @@ export default function DashboardScreen({
         {/* 2. Real Instagram-like Story Bar */}
         <StoriesBar user={user} />
 
-        {/* 3. Create Post Trigger Widget */}
+        {/* 3. Create Post Trigger Widget (Matching Web Mobile Screenshot) */}
         <View style={styles.createPostCard}>
           <TouchableOpacity
             style={styles.createPostInputRow}
             onPress={() => setCreatePostVisible(true)}
             activeOpacity={0.8}
           >
-            <LinearGradient colors={['#DC3AEE', '#5321E8']} style={styles.createPostAvatarCircle}>
-              <Text style={styles.createPostAvatarText}>{userInitial}</Text>
-            </LinearGradient>
+            {user?.avatarUrl || user?.avatar_url ? (
+              <Image
+                source={{ uri: user.avatarUrl || user.avatar_url }}
+                style={styles.createPostAvatarImg}
+              />
+            ) : (
+              <LinearGradient colors={['#DC3AEE', '#5321E8']} style={styles.createPostAvatarCircle}>
+                <Text style={styles.createPostAvatarText}>{userInitial}</Text>
+              </LinearGradient>
+            )}
             <View style={styles.fakeInput}>
               <Text style={styles.fakeInputPlaceholder}>
                 Share your thoughts, success, opportunity or updates...
@@ -329,187 +773,104 @@ export default function DashboardScreen({
             </TouchableOpacity>
           </View>
         ) : (
-          filteredPosts.map((post) => {
-            const hasLiked = !!post.has_liked;
-            const likesCount = Number(post.likes_count) || 0;
-            const commentsCount = Number(post.comments_count) || 0;
-            const authorInit = (post.author_name || 'U')[0].toUpperCase();
-
-            // Parse poll data if present
-            let poll = null;
-            if (post.poll_data) {
-              try {
-                poll = typeof post.poll_data === 'string' ? JSON.parse(post.poll_data) : post.poll_data;
-              } catch (e) {}
-            }
-
-            const voterKey = String(user?.id || 'guest');
-            const userVoteOptionId = poll?.voters ? poll.voters[voterKey] : null;
-            const totalPollVotes = poll?.totalVotes || (poll?.options?.reduce((s, o) => s + (Number(o.votes) || 0), 0)) || 0;
-
-            return (
-              <View key={post.id} style={styles.postCard}>
-                {/* Post Header */}
-                <View style={styles.postHeader}>
-                  {post.author_avatar ? (
-                    <Image source={{ uri: post.author_avatar }} style={styles.postAuthorAvatar} />
-                  ) : (
-                    <LinearGradient colors={['#DC3AEE', '#5321E8']} style={styles.postAuthorAvatarCircle}>
-                      <Text style={styles.postAuthorAvatarText}>{authorInit}</Text>
-                    </LinearGradient>
-                  )}
-                  <View style={styles.postAuthorInfo}>
-                    <Text style={styles.postAuthorName}>{post.author_name || 'Fortaa Leader'}</Text>
-                    <Text style={styles.postAuthorRole}>{post.author_role || 'Senior Leader'}</Text>
-                    <Text style={styles.postTime}>{timeAgo(post.created_at)}</Text>
-                  </View>
-                  <TouchableOpacity
-                    style={styles.postMoreBtn}
-                    onPress={() => setActionMenuPost(post)}
-                  >
-                    <Feather name="more-vertical" size={18} color="#64748B" />
-                  </TouchableOpacity>
-                </View>
-
-                {/* Post Content Text */}
-                {post.content ? (
-                  <Text style={styles.postText}>{post.content}</Text>
-                ) : null}
-
-                {/* Post Tags */}
-                {post.tags ? (
-                  <Text style={styles.postTagsText}>{post.tags}</Text>
-                ) : null}
-
-                {/* Interactive Poll Card */}
-                {poll && Array.isArray(poll.options) && (
-                  <View style={styles.pollCard}>
-                    <View style={styles.pollTitleRow}>
-                      <Feather name="bar-chart-2" size={16} color="#10B981" />
-                      <Text style={styles.pollTitleText}>
-                        {poll.question || post.content || 'Poll'}
-                      </Text>
-                    </View>
-
-                    {poll.options.map((opt) => {
-                      const optVotes = Number(opt.votes) || 0;
-                      const pct = totalPollVotes > 0 ? Math.round((optVotes / totalPollVotes) * 100) : 0;
-                      const isVoted = userVoteOptionId === opt.id;
-
-                      return (
-                        <TouchableOpacity
-                          key={opt.id}
-                          style={[styles.pollOptionBox, isVoted && styles.pollOptionBoxVoted]}
-                          onPress={() => handleVote(post, opt.id)}
-                          activeOpacity={0.7}
-                        >
-                          {/* Progress fill */}
-                          <View style={[styles.pollProgressFill, { width: `${pct}%` }]} />
-                          <View style={styles.pollOptionContentRow}>
-                            <View style={styles.pollOptionLeft}>
-                              <View style={[styles.pollRadio, isVoted && styles.pollRadioSelected]}>
-                                {isVoted && <View style={styles.pollRadioInner} />}
-                              </View>
-                              <Text style={[styles.pollOptionText, isVoted && styles.pollOptionTextVoted]}>
-                                {opt.text}
-                              </Text>
-                            </View>
-                            <Text style={styles.pollPercentText}>{pct}%</Text>
-                          </View>
-                        </TouchableOpacity>
-                      );
-                    })}
-
-                    <Text style={styles.pollFooterVotes}>
-                      {totalPollVotes} {totalPollVotes === 1 ? 'vote' : 'votes'} · Poll active
-                    </Text>
-                  </View>
-                )}
-
-                {/* Post Media (Image or Video) */}
-                {post.image_url ? (
-                  <View style={styles.postMediaBox}>
-                    <Image
-                      source={{ uri: post.image_url }}
-                      style={styles.postMediaImg}
-                      resizeMode="cover"
-                    />
-                  </View>
-                ) : post.video_url ? (
-                  <View style={styles.postMediaBox}>
-                    <Image
-                      source={{ uri: post.video_url }}
-                      style={styles.postMediaImg}
-                      resizeMode="cover"
-                    />
-                    <View style={styles.videoPlayOverlay}>
-                      <Feather name="play" size={32} color="#fff" />
-                    </View>
-                  </View>
-                ) : null}
-
-                {/* Post Stats (Likes count & Comments count) */}
-                <View style={styles.postStatsRow}>
-                  <View style={styles.statsLeft}>
-                    <View style={styles.likeIconCircle}>
-                      <Feather name="heart" size={10} color="#DC2626" />
-                    </View>
-                    <Text style={styles.statsText}>
-                      <Text style={styles.boldText}>{likesCount}</Text> likes
-                    </Text>
-                  </View>
-                  <Text style={styles.statsText}>
-                    <Text style={styles.boldText}>{commentsCount}</Text> comments
-                  </Text>
-                </View>
-
-                <View style={styles.postDivider} />
-
-                {/* Post Actions (Like, Comment, Share) */}
-                <View style={styles.postActionsRow}>
-                  <TouchableOpacity
-                    style={styles.postActionBtn}
-                    onPress={() => handleToggleLike(post)}
-                    activeOpacity={0.7}
-                  >
-                    <Feather
-                      name="heart"
-                      size={18}
-                      color={hasLiked ? '#EF4444' : '#64748B'}
-                    />
-                    <Text
-                      style={[
-                        styles.postActionText,
-                        hasLiked && styles.postActionTextLiked,
-                      ]}
-                    >
-                      {hasLiked ? 'Liked' : 'Like'}
-                    </Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={styles.postActionBtn}
-                    onPress={() => handleOpenComments(post)}
-                    activeOpacity={0.7}
-                  >
-                    <Feather name="message-square" size={18} color="#64748B" />
-                    <Text style={styles.postActionText}>Comment</Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={styles.postActionBtn}
-                    onPress={() => handleSharePost(post)}
-                    activeOpacity={0.7}
-                  >
-                    <Feather name="share-2" size={18} color="#64748B" />
-                    <Text style={styles.postActionText}>Share</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            );
-          })
+          filteredPosts.map((post) => (
+            <DashboardPostCard
+              key={post.id}
+              post={post}
+              user={user}
+              isFollowing={followingIds.has(post.user_id)}
+              onToggleLike={handleToggleLike}
+              onToggleFollow={handleToggleFollow}
+              onOpenLikers={handleOpenLikers}
+              onOpenComments={handleOpenComments}
+              onSharePost={handleSharePost}
+              onActionMenu={setActionMenuPost}
+              onVote={handleVote}
+              timeAgo={timeAgo}
+              onPressAuthor={(author) => setSelectedLeader(author)}
+              isVideoActive={activeVideoId === post.id}
+            />
+          ))
         )}
       </ScrollView>
+
+      {/* ─── REAL INSTAGRAM / WEB STYLE POST LIKERS BOTTOM SHEET MODAL ─── */}
+      <Modal
+        visible={!!likersModalPostId}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setLikersModalPostId(null)}
+      >
+        <TouchableOpacity
+          style={styles.commentsBackdrop}
+          activeOpacity={1}
+          onPress={() => setLikersModalPostId(null)}
+        />
+        <View style={styles.likersSheet}>
+          <View style={styles.commentsDragHandle} />
+
+          <View style={styles.likersHeader}>
+            <View style={styles.likersHeaderLeft}>
+              <View style={styles.redHeartCircle}>
+                <Ionicons name="heart" size={14} color="#EF4444" />
+              </View>
+              <Text style={styles.likersTitle}>People who reacted</Text>
+            </View>
+            <TouchableOpacity onPress={() => setLikersModalPostId(null)} style={{ padding: 4 }}>
+              <Feather name="x" size={20} color="#374151" />
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.commentsDivider} />
+
+          {likersLoading ? (
+            <ActivityIndicator size="small" color="#5321E8" style={{ marginTop: 24 }} />
+          ) : likersList.length === 0 ? (
+            <View style={styles.noCommentsWrap}>
+              <Ionicons name="heart-outline" size={36} color="#CBD5E1" />
+              <Text style={styles.noCommentsText}>No reactions yet</Text>
+              <Text style={styles.noCommentsSub}>Be the first to react to this post!</Text>
+            </View>
+          ) : (
+            <FlatList
+              data={likersList}
+              keyExtractor={(item, index) => item.id || String(index)}
+              style={styles.likersScroll}
+              renderItem={({ item }) => {
+                const isItemFollowing = followingIds.has(item.id);
+                return (
+                  <View style={styles.likerItem}>
+                    <View style={styles.likerAvatarCircle}>
+                      {item.avatar_url ? (
+                        <Image source={{ uri: item.avatar_url }} style={styles.likerAvatarImg} />
+                      ) : (
+                        <Text style={styles.likerAvatarText}>
+                          {(item.name || 'U')[0].toUpperCase()}
+                        </Text>
+                      )}
+                    </View>
+                    <View style={styles.likerBody}>
+                      <Text style={styles.likerName}>{item.name || 'User'}</Text>
+                      <Text style={styles.likerRole}>{item.role || item.designation || 'Leader'}</Text>
+                    </View>
+                    {user?.id && Number(user.id) !== Number(item.id) && (
+                      <TouchableOpacity
+                        style={[styles.btnFollowSmall, isItemFollowing && styles.btnFollowingSmall]}
+                        onPress={() => handleToggleFollow({ user_id: item.id })}
+                        activeOpacity={0.8}
+                      >
+                        <Text style={[styles.btnFollowSmallText, isItemFollowing && styles.btnFollowingSmallText]}>
+                          {isItemFollowing ? 'Following' : 'Follow'}
+                        </Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                );
+              }}
+            />
+          )}
+        </View>
+      </Modal>
 
       {/* ─── REAL INSTAGRAM-LIKE COMMENTS BOTTOM SHEET MODAL ─── */}
       <Modal
@@ -615,6 +976,19 @@ export default function DashboardScreen({
           Alert.alert(post.author_name || 'Post', post.content || 'Viewing post');
         }}
       />
+
+      {/* 4. Full Leader Profile Modal (Opens when tapping author name/avatar or search leader) */}
+      <LeaderProfileModal
+        visible={!!selectedLeader}
+        onClose={() => setSelectedLeader(null)}
+        leaderId={selectedLeader?.id}
+        leaderName={selectedLeader?.name}
+        currentUser={user}
+        onOpenChat={(targetId) => {
+          setSelectedLeader(null);
+          if (onNavigateToMessages) onNavigateToMessages(targetId);
+        }}
+      />
     </View>
   );
 }
@@ -695,6 +1069,13 @@ const styles = StyleSheet.create({
   },
   emptyCreateBtnText: { fontSize: 13, fontWeight: '700', color: '#fff' },
 
+  createPostAvatarImg: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: '#334155',
+  },
+
   postCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 14,
@@ -703,9 +1084,13 @@ const styles = StyleSheet.create({
     padding: 14,
     borderWidth: 1,
     borderColor: '#E2E8F0',
+    maxWidth: 600,
+    width: '100%',
+    alignSelf: 'center',
   },
   postHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
-  postAuthorAvatar: { width: 42, height: 42, borderRadius: 21 },
+  authorAvatarWrap: { position: 'relative', width: 42, height: 42 },
+  postAuthorAvatar: { width: 42, height: 42, borderRadius: 21, backgroundColor: '#334155' },
   postAuthorAvatarCircle: {
     width: 42,
     height: 42,
@@ -714,10 +1099,44 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   postAuthorAvatarText: { fontSize: 17, fontWeight: '800', color: '#fff' },
+  onlineBadge: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#22C55E',
+    borderWidth: 1.5,
+    borderColor: '#FFFFFF',
+  },
   postAuthorInfo: { flex: 1, marginLeft: 10 },
   postAuthorName: { fontSize: 14.5, fontWeight: '700', color: '#0F172A' },
+  authorMetaRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 1 },
   postAuthorRole: { fontSize: 11.5, color: '#64748B' },
-  postTime: { fontSize: 10.5, color: '#94A3B8', marginTop: 1 },
+  authorDot: { fontSize: 12, color: '#94A3B8' },
+  postTime: { fontSize: 11, color: '#94A3B8' },
+  headerRightActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  btnFollow: {
+    backgroundColor: '#5321E8',
+    paddingHorizontal: 14,
+    paddingVertical: 5,
+    borderRadius: 6,
+  },
+  btnFollowing: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#5321E8',
+  },
+  btnFollowText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  btnFollowingText: {
+    color: '#5321E8',
+    fontWeight: '700',
+  },
   postMoreBtn: { padding: 4 },
 
   postText: { fontSize: 14, color: '#1E293B', lineHeight: 21, marginBottom: 8 },
@@ -780,14 +1199,16 @@ const styles = StyleSheet.create({
   // Media
   postMediaBox: {
     width: '100%',
-    height: 240,
+    minHeight: 250,
     borderRadius: 12,
     overflow: 'hidden',
     backgroundColor: '#0F092A',
     marginBottom: 10,
     position: 'relative',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  postMediaImg: { width: '100%', height: '100%' },
+  postMediaImg: { width: '100%', height: 260 },
   videoPlayOverlay: {
     position: 'absolute',
     top: 0,
@@ -798,43 +1219,221 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: 'rgba(0,0,0,0.3)',
   },
+  instagramHeartOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 99,
+  },
+  instagramHeartGlow: {
+    shadowColor: '#FF2D55',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.6,
+    shadowRadius: 12,
+    elevation: 10,
+  },
 
-  // Stats
-  postStatsRow: {
+  // Engagement Row (Instagram / Web Exact Match)
+  engagementRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 2,
   },
-  statsLeft: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  likeIconCircle: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
+  engagementLikesLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    flex: 1,
+    marginRight: 8,
+  },
+  redHeartCircle: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
     backgroundColor: '#FEE2E2',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  statsText: { fontSize: 11.5, color: '#64748B' },
-  boldText: { fontWeight: '700', color: '#334155' },
-  postDivider: { height: 1, backgroundColor: '#F1F5F9', marginVertical: 4 },
+  likerThumbAvatar: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: '#334155',
+  },
+  engagementLikesText: {
+    fontSize: 12,
+    color: '#334155',
+    flexShrink: 1,
+  },
+  engagementBold: {
+    fontWeight: '700',
+    color: '#0F172A',
+  },
+  beFirstText: {
+    fontSize: 12,
+    color: '#94A3B8',
+  },
+  engagementStatsRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  metricItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  metricText: {
+    fontSize: 12,
+    color: '#64748B',
+    fontWeight: '500',
+  },
+  metricDot: {
+    fontSize: 12,
+    color: '#94A3B8',
+  },
+  actionDivider: {
+    height: 1,
+    backgroundColor: '#F1F5F9',
+    marginVertical: 2,
+  },
 
-  // Actions
-  postActionsRow: {
+  // Action Buttons Row (Like, Comment, Share)
+  actionButtonsRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-around',
     paddingTop: 6,
   },
-  postActionBtn: {
+  actionButton: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
     paddingVertical: 6,
-    paddingHorizontal: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
   },
-  postActionText: { fontSize: 12.5, fontWeight: '600', color: '#64748B' },
-  postActionTextLiked: { color: '#EF4444', fontWeight: '700' },
+  actionButtonActive: {
+    backgroundColor: '#F5F3FF',
+  },
+  actionButtonLiked: {
+    backgroundColor: '#FFF1F2',
+  },
+  actionBtnLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#475569',
+  },
+  actionBtnLabelLiked: {
+    color: '#5321E8',
+    fontWeight: '700',
+  },
+  actionBtnLabelLikedRed: {
+    color: '#FF2D55',
+    fontWeight: '700',
+  },
+  postAuthorTouchable: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+
+  // Post Likers Sheet
+  likersSheet: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: '60%',
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingBottom: 20,
+  },
+  likersHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+  },
+  likersHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  likersTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#0F172A',
+  },
+  likersScroll: {
+    flex: 1,
+    paddingHorizontal: 16,
+    paddingTop: 10,
+  },
+  likerItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F8FAFC',
+    gap: 12,
+  },
+  likerAvatarCircle: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: '#EDE9FE',
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  likerAvatarImg: {
+    width: '100%',
+    height: '100%',
+  },
+  likerAvatarText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#5321E8',
+  },
+  likerBody: {
+    flex: 1,
+  },
+  likerName: {
+    fontSize: 13.5,
+    fontWeight: '700',
+    color: '#0F172A',
+  },
+  likerRole: {
+    fontSize: 11.5,
+    color: '#64748B',
+    marginTop: 1,
+  },
+  btnFollowSmall: {
+    backgroundColor: '#5321E8',
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 6,
+  },
+  btnFollowingSmall: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#5321E8',
+  },
+  btnFollowSmallText: {
+    fontSize: 11.5,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  btnFollowingSmallText: {
+    fontSize: 11.5,
+    fontWeight: '700',
+    color: '#5321E8',
+  },
 
   // Comments Bottom Sheet
   commentsBackdrop: {

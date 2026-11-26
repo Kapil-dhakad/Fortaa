@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   StyleSheet,
   Text,
@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { getLeadersApi } from '../services/api';
 
 export default function UserHeader({
   user,
@@ -19,12 +20,33 @@ export default function UserHeader({
   onNavigateToMessages,
   onNavigateToNotifications,
   onNavigateToProfile,
+  onNavigateToSettings,
   onLogout,
+  onSelectLeader,
+  onViewAllLeaders,
 }) {
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
+  const [leadersList, setLeadersList] = useState([]);
+
+  useEffect(() => {
+    getLeadersApi().then((data) => {
+      if (Array.isArray(data)) setLeadersList(data);
+    });
+  }, []);
+
+  const searchResults = useMemo(() => {
+    if (!searchQuery.trim()) return [];
+    const q = searchQuery.toLowerCase().trim();
+    return leadersList.filter((l) =>
+      (l.name || '').toLowerCase().includes(q) ||
+      (l.designation || l.role || '').toLowerCase().includes(q) ||
+      (l.company_brand || l.business_name || '').toLowerCase().includes(q)
+    );
+  }, [searchQuery, leadersList]);
 
   const displayName = user?.name || 'Nilesh';
   const displayRole = user?.designation || user?.accountType || 'Marketing';
+  const displayAvatar = user?.avatarUrl || user?.avatar_url;
 
   return (
     <View style={styles.headerContainer}>
@@ -102,6 +124,73 @@ export default function UserHeader({
             </TouchableOpacity>
           ) : null}
         </View>
+
+        {/* Search Results Dropdown (Matching User's Screenshot 2) */}
+        {searchQuery.trim().length > 0 && (
+          <View style={styles.searchDropdownCard}>
+            {searchResults.length > 0 ? (
+              <>
+                <View style={styles.searchDropdownHeader}>
+                  <Text style={styles.searchDropdownHeaderText}>PEOPLE & LEADERS</Text>
+                  <Text style={styles.searchDropdownCount}>{searchResults.length} found</Text>
+                </View>
+
+                <View style={styles.searchDropdownDivider} />
+
+                {searchResults.slice(0, 5).map((person) => (
+                  <TouchableOpacity
+                    key={person.id}
+                    style={styles.searchDropdownItem}
+                    onPress={() => {
+                      if (onSearchChange) onSearchChange('');
+                      if (onSelectLeader) onSelectLeader(person);
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <View style={styles.searchItemAvatarCircle}>
+                      {person.avatar_url ? (
+                        <Image source={{ uri: person.avatar_url }} style={styles.searchItemAvatar} />
+                      ) : (
+                        <Text style={styles.searchItemInitial}>
+                          {(person.name || 'U')[0].toUpperCase()}
+                        </Text>
+                      )}
+                    </View>
+
+                    <View style={styles.searchItemInfo}>
+                      <Text style={styles.searchItemName}>{person.name}</Text>
+                      <Text style={styles.searchItemRole}>
+                        {person.role || person.designation || 'Leader'}
+                        {person.company_brand || person.business_name ? ` • ${person.company_brand || person.business_name}` : ''}
+                      </Text>
+                    </View>
+
+                    <Feather name="arrow-right" size={16} color="#64748B" />
+                  </TouchableOpacity>
+                ))}
+
+                <View style={styles.searchDropdownDivider} />
+
+                <TouchableOpacity
+                  style={styles.searchDropdownFooter}
+                  onPress={() => {
+                    if (onViewAllLeaders) onViewAllLeaders(searchQuery);
+                    if (onSearchChange) onSearchChange('');
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.searchDropdownFooterText}>
+                    View all leaders matching "{searchQuery}" →
+                  </Text>
+                </TouchableOpacity>
+              </>
+            ) : (
+              <View style={styles.searchEmptyBox}>
+                <Text style={styles.searchEmptyText}>No leaders matching "{searchQuery}"</Text>
+              </View>
+            )}
+          </View>
+        )}
       </LinearGradient>
 
       {/* Profile Dropdown Menu (Screenshot 5 Match) */}
@@ -142,6 +231,7 @@ export default function UserHeader({
               style={styles.dropdownItem}
               onPress={() => {
                 setProfileDropdownOpen(false);
+                if (onNavigateToSettings) onNavigateToSettings();
               }}
               activeOpacity={0.7}
             >
@@ -353,5 +443,99 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
     color: '#DC2626',
+  },
+
+  /* Search Dropdown Styles (Screenshot 2 Match) */
+  searchDropdownCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    marginTop: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.18,
+    shadowRadius: 10,
+    elevation: 8,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    overflow: 'hidden',
+  },
+  searchDropdownHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingTop: 12,
+    paddingBottom: 8,
+  },
+  searchDropdownHeaderText: {
+    fontSize: 11.5,
+    fontWeight: '700',
+    color: '#64748B',
+    letterSpacing: 0.5,
+  },
+  searchDropdownCount: {
+    fontSize: 11.5,
+    color: '#64748B',
+  },
+  searchDropdownDivider: {
+    height: 1,
+    backgroundColor: '#F1F5F9',
+  },
+  searchDropdownItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    gap: 12,
+  },
+  searchItemAvatarCircle: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: '#EDE9FE',
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  searchItemAvatar: {
+    width: '100%',
+    height: '100%',
+  },
+  searchItemInitial: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#5321E8',
+  },
+  searchItemInfo: {
+    flex: 1,
+  },
+  searchItemName: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#0F172A',
+  },
+  searchItemRole: {
+    fontSize: 11.5,
+    color: '#64748B',
+    marginTop: 1,
+  },
+  searchDropdownFooter: {
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    alignItems: 'center',
+    backgroundColor: '#FAF5FF',
+  },
+  searchDropdownFooterText: {
+    fontSize: 12.5,
+    fontWeight: '700',
+    color: '#5321E8',
+  },
+  searchEmptyBox: {
+    padding: 16,
+    alignItems: 'center',
+  },
+  searchEmptyText: {
+    fontSize: 13,
+    color: '#64748B',
   },
 });

@@ -13,7 +13,7 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import { Feather, Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
 import {
@@ -22,6 +22,8 @@ import {
   recordStoryViewApi,
   toggleStoryLikeApi,
   uploadMediaApi,
+  deleteStoryApi,
+  fetchStoryViewersApi,
 } from '../services/api';
 
 const { width, height } = Dimensions.get('window');
@@ -45,6 +47,13 @@ export default function StoriesBar({ user }) {
   const [activeStoryIndex, setActiveStoryIndex] = useState(0);
   const [isLiked, setIsLiked] = useState(false);
   const [replyText, setReplyText] = useState('');
+
+  // Owner Story Options & Viewers Sheet States (Screenshot 1 parity)
+  const [showDeletePopover, setShowDeletePopover] = useState(false);
+  const [showViewersSheet, setShowViewersSheet] = useState(false);
+  const [viewersList, setViewersList] = useState([]);
+  const [viewersLoading, setViewersLoading] = useState(false);
+  const [viewersLikesCount, setViewersLikesCount] = useState(0);
 
   // Add Story Modal State
   const [addStoryModalVisible, setAddStoryModalVisible] = useState(false);
@@ -136,6 +145,86 @@ export default function StoriesBar({ user }) {
     progressAnim.stopAnimation();
     setActiveGroupIndex(null);
     setActiveStoryIndex(0);
+    setShowDeletePopover(false);
+    setShowViewersSheet(false);
+  };
+
+  // Direct gallery picker on + tap (Instagram-style)
+  const handleDirectGalleryStory = async () => {
+    try {
+      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permission.granted) {
+        Alert.alert('Permission Denied', 'Please allow gallery access to upload stories.');
+        return;
+      }
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images', 'videos'],
+        allowsEditing: true,
+        quality: 0.85,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const asset = result.assets[0];
+        setPickedMedia(asset.uri);
+        setPickedMediaType(asset.type === 'video' ? 'video' : 'photo');
+        setAddStoryModalVisible(true);
+      }
+    } catch (err) {
+      console.warn('Gallery picker error:', err);
+    }
+  };
+
+  // Open Story Viewers Bottom Sheet (Screenshot 1)
+  const handleOpenStoryViews = async () => {
+    progressAnim.stopAnimation();
+    setShowViewersSheet(true);
+    setViewersLoading(true);
+    const grp = storyGroups[activeGroupIndex];
+    const curStory = grp?.stories[activeStoryIndex];
+    if (!curStory?.id) {
+      setViewersLoading(false);
+      return;
+    }
+    try {
+      const viewers = await fetchStoryViewersApi(curStory.id);
+      setViewersList(Array.isArray(viewers) ? viewers : []);
+      setViewersLikesCount(viewers.likesCount || (Array.isArray(viewers) ? viewers.filter((v) => v.has_liked).length : 0));
+    } catch (err) {
+      console.warn('Load story viewers error:', err);
+      setViewersList([]);
+    } finally {
+      setViewersLoading(false);
+    }
+  };
+
+  // Delete Story Handler (Screenshot 1)
+  const handleDeleteCurrentStory = () => {
+    setShowDeletePopover(false);
+    const grp = storyGroups[activeGroupIndex];
+    const curStory = grp?.stories[activeStoryIndex];
+    if (!curStory?.id || !user?.id) return;
+
+    Alert.alert(
+      'Delete Story',
+      'Are you sure you want to delete this story?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deleteStoryApi(curStory.id, user.id);
+              handleCloseViewer();
+              loadStories();
+              Alert.alert('Story Deleted', 'Your story has been deleted successfully.');
+            } catch (err) {
+              console.warn('Delete story error:', err);
+            }
+          },
+        },
+      ]
+    );
   };
 
   const handleToggleLike = async () => {
@@ -218,6 +307,8 @@ export default function StoriesBar({ user }) {
   };
 
   const userInitial = (user?.name || 'Y')[0].toUpperCase();
+  const myAvatar = user?.avatarUrl || user?.avatar_url;
+  const myGroupIndex = storyGroups.findIndex((g) => Number(g.userId) === Number(user?.id));
 
   // Active Story Group and current story item
   const currentGroup = activeGroupIndex !== null ? storyGroups[activeGroupIndex] : null;
@@ -236,54 +327,77 @@ export default function StoriesBar({ user }) {
           if (item.isAdd) {
             return (
               <TouchableOpacity
-                style={styles.storyItem}
-                onPress={() => setAddStoryModalVisible(true)}
+                style={styles.storyCard}
+                onPress={() => {
+                  if (myGroupIndex !== -1) {
+                    handleOpenGroup(myGroupIndex);
+                  } else {
+                    handleDirectGalleryStory();
+                  }
+                }}
                 activeOpacity={0.85}
               >
-                <LinearGradient colors={['#F3F0FF', '#EDE9FE']} style={styles.addStoryRing}>
-                  <LinearGradient colors={['#DC3AEE', '#5321E8']} style={styles.storyCircle}>
-                    <Text style={styles.addStoryInitial}>{userInitial}</Text>
-                  </LinearGradient>
+                <LinearGradient
+                  colors={['#181A4E', '#101239']}
+                  style={styles.storyCardGrad}
+                >
+                  <View style={styles.storyAvatarWrap}>
+                    {myAvatar ? (
+                      <Image source={{ uri: myAvatar }} style={styles.storyCardAvatarImg} />
+                    ) : (
+                      <LinearGradient colors={['#DC3AEE', '#5321E8']} style={styles.storyCardAvatarFallback}>
+                        <Text style={styles.storyCardInitial}>{userInitial}</Text>
+                      </LinearGradient>
+                    )}
+                    <TouchableOpacity
+                      style={styles.storyAddBadge}
+                      onPress={handleDirectGalleryStory}
+                      activeOpacity={0.8}
+                    >
+                      <Feather name="plus" size={11} color="#FFFFFF" />
+                    </TouchableOpacity>
+                  </View>
+                  <Text style={styles.storyCardLabel} numberOfLines={1}>Your Story</Text>
                 </LinearGradient>
-                <View style={styles.plusBadge}>
-                  <Feather name="plus" size={10} color="#fff" />
-                </View>
-                <Text style={styles.storyLabel} numberOfLines={1}>Add Story</Text>
               </TouchableOpacity>
             );
           }
 
+          const realIndex = index - 1;
+          if (user?.id && Number(item.userId) === Number(user.id)) return null;
+
           const hasUnviewed = item.hasUnviewed;
-          const grad = GRADIENT_PRESETS[(index - 1) % GRADIENT_PRESETS.length];
 
           return (
             <TouchableOpacity
-              style={styles.storyItem}
-              onPress={() => handleOpenGroup(index - 1)}
+              style={styles.storyCard}
+              onPress={() => handleOpenGroup(realIndex)}
               activeOpacity={0.85}
             >
               <LinearGradient
-                colors={hasUnviewed ? grad : ['#D1D5DB', '#9CA3AF']}
-                style={styles.storyRing}
+                colors={['#181A4E', '#101239']}
+                style={styles.storyCardGrad}
               >
-                <View style={styles.storyInnerRing}>
-                  {item.userAvatar ? (
-                    <Image source={{ uri: item.userAvatar }} style={styles.storyAvatarImg} />
-                  ) : (
-                    <LinearGradient
-                      colors={[grad[0] + '33', grad[1] + '55']}
-                      style={styles.storyCircle}
-                    >
-                      <Text style={styles.storyInitial}>
-                        {(item.userName || 'U')[0].toUpperCase()}
-                      </Text>
-                    </LinearGradient>
-                  )}
+                <View style={styles.storyAvatarWrap}>
+                  <LinearGradient
+                    colors={hasUnviewed ? ['#F59E0B', '#EC4899', '#8B5CF6'] : ['rgba(255,255,255,0.25)', 'rgba(255,255,255,0.25)']}
+                    style={styles.storyRainbowRing}
+                  >
+                    {item.userAvatar ? (
+                      <Image source={{ uri: item.userAvatar }} style={styles.storyCardAvatarImgRinged} />
+                    ) : (
+                      <View style={styles.storyCardAvatarFallbackRinged}>
+                        <Text style={styles.storyCardInitialRinged}>
+                          {(item.userName || 'U')[0].toUpperCase()}
+                        </Text>
+                      </View>
+                    )}
+                  </LinearGradient>
                 </View>
+                <Text style={styles.storyCardLabel} numberOfLines={1}>
+                  {item.userName ? item.userName.split(' ')[0] : 'Leader'}
+                </Text>
               </LinearGradient>
-              <Text style={styles.storyLabel} numberOfLines={1}>
-                {item.userName ? item.userName.split(' ')[0] : 'Leader'}
-              </Text>
             </TouchableOpacity>
           );
         }}
@@ -362,9 +476,13 @@ export default function StoriesBar({ user }) {
             <View style={styles.viewerHeader}>
               <View style={styles.authorRow}>
                 <View style={styles.authorAvatar}>
-                  <Text style={styles.authorInitial}>
-                    {(currentGroup.userName || 'U')[0].toUpperCase()}
-                  </Text>
+                  {currentGroup.userAvatar ? (
+                    <Image source={{ uri: currentGroup.userAvatar }} style={styles.authorAvatarImg} />
+                  ) : (
+                    <Text style={styles.authorInitial}>
+                      {(currentGroup.userName || 'U')[0].toUpperCase()}
+                    </Text>
+                  )}
                 </View>
                 <View>
                   <Text style={styles.authorName}>{currentGroup.userName}</Text>
@@ -374,10 +492,33 @@ export default function StoriesBar({ user }) {
                 </View>
               </View>
 
-              <TouchableOpacity onPress={handleCloseViewer} style={styles.viewerCloseBtn}>
-                <Feather name="x" size={22} color="#fff" />
-              </TouchableOpacity>
+              <View style={styles.viewerHeaderRight}>
+                {user?.id && Number(currentGroup.userId) === Number(user.id) && (
+                  <TouchableOpacity
+                    onPress={() => setShowDeletePopover((prev) => !prev)}
+                    style={styles.viewerHeaderIconBtn}
+                    activeOpacity={0.8}
+                  >
+                    <Feather name="more-horizontal" size={22} color="#fff" />
+                  </TouchableOpacity>
+                )}
+                <TouchableOpacity onPress={handleCloseViewer} style={styles.viewerHeaderIconBtn}>
+                  <Feather name="x" size={22} color="#fff" />
+                </TouchableOpacity>
+              </View>
             </View>
+
+            {/* White Delete Story Popover Pill (Screenshot 1) */}
+            {showDeletePopover && user?.id && Number(currentGroup.userId) === Number(user.id) && (
+              <TouchableOpacity
+                style={styles.deleteStoryPopover}
+                onPress={handleDeleteCurrentStory}
+                activeOpacity={0.9}
+              >
+                <Feather name="trash-2" size={14} color="#EF4444" />
+                <Text style={styles.deleteStoryPopoverText}>Delete Story</Text>
+              </TouchableOpacity>
+            )}
 
             {/* If story has overlay text on top of media */}
             {currentStory.media_url && currentStory.text_content && (
@@ -386,38 +527,154 @@ export default function StoriesBar({ user }) {
               </View>
             )}
 
-            {/* Bottom Instagram Action Bar */}
-            <View style={styles.bottomBar}>
-              <View style={styles.replyInputWrap}>
-                <TextInput
-                  style={styles.replyInput}
-                  placeholder={`Reply to ${currentGroup.userName.split(' ')[0]}...`}
-                  placeholderTextColor="rgba(255,255,255,0.7)"
-                  value={replyText}
-                  onChangeText={setReplyText}
-                  onSubmitEditing={handleSendReply}
-                />
-                {replyText.trim().length > 0 && (
-                  <TouchableOpacity onPress={handleSendReply}>
-                    <Feather name="send" size={18} color="#fff" />
-                  </TouchableOpacity>
-                )}
+            {/* Bottom Bar: Owner views badge (Screenshot 1) vs Viewer reply & like */}
+            {user?.id && Number(currentGroup.userId) === Number(user.id) ? (
+              <View style={styles.ownerBottomBar}>
+                <TouchableOpacity
+                  style={styles.viewsBadgePill}
+                  onPress={handleOpenStoryViews}
+                  activeOpacity={0.85}
+                >
+                  <Feather name="eye" size={13} color="#FFFFFF" />
+                  <Text style={styles.viewsBadgeText}>
+                    {currentStory.views_count || currentStory.viewers_count || 0} views
+                  </Text>
+                </TouchableOpacity>
               </View>
+            ) : (
+              <View style={styles.bottomBar}>
+                <View style={styles.replyInputWrap}>
+                  <TextInput
+                    style={styles.replyInput}
+                    placeholder={`Reply to ${currentGroup.userName.split(' ')[0]}...`}
+                    placeholderTextColor="rgba(255,255,255,0.7)"
+                    value={replyText}
+                    onChangeText={setReplyText}
+                    onSubmitEditing={handleSendReply}
+                  />
+                  {replyText.trim().length > 0 && (
+                    <TouchableOpacity onPress={handleSendReply}>
+                      <Feather name="send" size={18} color="#fff" />
+                    </TouchableOpacity>
+                  )}
+                </View>
 
-              <TouchableOpacity
-                style={styles.heartBtn}
-                onPress={handleToggleLike}
-                activeOpacity={0.8}
-              >
-                <Feather
-                  name="heart"
-                  size={24}
-                  color={isLiked ? '#EF4444' : '#fff'}
-                />
-              </TouchableOpacity>
-            </View>
+                <TouchableOpacity
+                  style={styles.heartBtn}
+                  onPress={handleToggleLike}
+                  activeOpacity={0.8}
+                >
+                  <Feather
+                    name="heart"
+                    size={24}
+                    color={isLiked ? '#EF4444' : '#fff'}
+                  />
+                </TouchableOpacity>
+              </View>
+            )}
           </View>
         )}
+      </Modal>
+
+      {/* ─── STORY VIEWS BOTTOM SHEET MODAL (Screenshot 1) ─── */}
+      <Modal
+        visible={showViewersSheet}
+        animationType="slide"
+        transparent
+        onRequestClose={() => {
+          setShowViewersSheet(false);
+          startStoryProgress(activeGroupIndex, activeStoryIndex);
+        }}
+      >
+        <TouchableOpacity
+          style={styles.viewersBackdrop}
+          activeOpacity={1}
+          onPress={() => {
+            setShowViewersSheet(false);
+            startStoryProgress(activeGroupIndex, activeStoryIndex);
+          }}
+        />
+        <View style={styles.viewersSheetContainer}>
+          <View style={styles.viewersDragHandle} />
+
+          <View style={styles.viewersHeader}>
+            <View style={styles.viewersHeaderLeft}>
+              <Feather name="eye" size={16} color="#5321E8" />
+              <Text style={styles.viewersTitle}>Story Views</Text>
+              <View style={styles.viewersCountPill}>
+                <Text style={styles.viewersCountText}>{viewersList.length}</Text>
+              </View>
+              {viewersLikesCount > 0 && (
+                <View style={[styles.viewersCountPill, { backgroundColor: '#FEE2E2', marginLeft: 4 }]}>
+                  <Ionicons name="heart" size={11} color="#EF4444" />
+                  <Text style={[styles.viewersCountText, { color: '#EF4444', marginLeft: 3 }]}>{viewersLikesCount}</Text>
+                </View>
+              )}
+            </View>
+            <TouchableOpacity
+              onPress={() => {
+                setShowViewersSheet(false);
+                startStoryProgress(activeGroupIndex, activeStoryIndex);
+              }}
+              style={{ padding: 4 }}
+            >
+              <Feather name="x" size={20} color="#64748B" />
+            </TouchableOpacity>
+          </View>
+
+          {viewersLoading ? (
+            <View style={styles.viewersLoadingBox}>
+              <ActivityIndicator size="small" color="#5321E8" />
+              <Text style={styles.viewersLoadingText}>Loading viewers...</Text>
+            </View>
+          ) : viewersList.length === 0 ? (
+            <View style={styles.noViewersBox}>
+              <Feather name="users" size={32} color="#CBD5E1" />
+              <Text style={styles.noViewersTitle}>No views yet</Text>
+              <Text style={styles.noViewersSub}>
+                When leaders view your story, they will appear here.
+              </Text>
+            </View>
+          ) : (
+            <FlatList
+              data={viewersList}
+              keyExtractor={(item, index) => item.id || item.viewer_id || String(index)}
+              style={styles.viewersList}
+              renderItem={({ item }) => (
+                <View style={styles.viewerItemRow}>
+                  <View style={styles.viewerItemLeft}>
+                    {item.viewer_avatar || item.avatar_url ? (
+                      <Image
+                        source={{ uri: item.viewer_avatar || item.avatar_url }}
+                        style={styles.viewerItemAvatar}
+                      />
+                    ) : (
+                      <LinearGradient
+                        colors={['#DC3AEE', '#5321E8']}
+                        style={styles.viewerItemFallbackAvatar}
+                      >
+                        <Text style={styles.viewerItemInitial}>
+                          {(item.viewer_name || item.name || 'U')[0].toUpperCase()}
+                        </Text>
+                      </LinearGradient>
+                    )}
+                    <View style={styles.viewerItemMeta}>
+                      <Text style={styles.viewerItemName}>{item.viewer_name || item.name || 'Fortaa Leader'}</Text>
+                      <Text style={styles.viewerItemRole}>
+                        {item.viewer_role || item.role || item.designation || 'Leader'}
+                      </Text>
+                    </View>
+                  </View>
+
+                  {/* Red Heart if viewer liked this story */}
+                  {item.has_liked && (
+                    <Ionicons name="heart" size={18} color="#FF2D55" />
+                  )}
+                </View>
+              )}
+            />
+          )}
+        </View>
       </Modal>
 
       {/* ─── ADD STORY CREATOR MODAL ─── */}
@@ -521,62 +778,108 @@ export default function StoriesBar({ user }) {
 }
 
 const styles = StyleSheet.create({
-  storiesList: { backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#EEE9FF' },
-  storiesContainer: { paddingHorizontal: 12, paddingVertical: 10, gap: 12, flexDirection: 'row' },
-  storyItem: { alignItems: 'center', width: STORY_SIZE },
-
-  // Add Story Button
-  addStoryRing: {
-    width: STORY_SIZE,
-    height: STORY_SIZE,
-    borderRadius: STORY_SIZE / 2,
-    padding: 2,
+  storiesList: { backgroundColor: '#F8FAFC', borderBottomWidth: 1, borderBottomColor: '#E2E8F0' },
+  storiesContainer: { paddingHorizontal: 12, paddingVertical: 10, gap: 10, flexDirection: 'row' },
+  storyCard: {
+    width: 76,
+    height: 90,
+    borderRadius: 14,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.18,
+    shadowRadius: 5,
+    elevation: 3,
+  },
+  storyCardGrad: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 8,
+    paddingHorizontal: 4,
+  },
+  storyAvatarWrap: {
+    position: 'relative',
+    width: 46,
+    height: 46,
     alignItems: 'center',
     justifyContent: 'center',
+    marginTop: 2,
   },
-  storyCircle: {
-    width: STORY_SIZE - 6,
-    height: STORY_SIZE - 6,
-    borderRadius: (STORY_SIZE - 6) / 2,
-    alignItems: 'center',
-    justifyContent: 'center',
+  storyCardAvatarImg: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+    backgroundColor: '#334155',
   },
-  addStoryInitial: { fontSize: 22, fontWeight: '800', color: '#fff' },
-  plusBadge: {
-    position: 'absolute',
-    bottom: 16,
-    right: 2,
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: '#5321E8',
+  storyCardAvatarFallback: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
-    borderColor: '#fff',
+    borderColor: '#FFFFFF',
   },
-
-  // Real Story Ring
-  storyRing: {
-    width: STORY_SIZE,
-    height: STORY_SIZE,
-    borderRadius: STORY_SIZE / 2,
-    padding: 2.5,
+  storyCardInitial: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
+  storyAddBadge: {
+    position: 'absolute',
+    bottom: -1,
+    right: -1,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: '#5A2CE4',
+    borderWidth: 1.5,
+    borderColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  storyInnerRing: {
-    width: STORY_SIZE - 7,
-    height: STORY_SIZE - 7,
-    borderRadius: (STORY_SIZE - 7) / 2,
-    backgroundColor: '#fff',
-    overflow: 'hidden',
+  storyRainbowRing: {
+    padding: 2,
+    borderRadius: 24,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  storyAvatarImg: { width: '100%', height: '100%' },
-  storyInitial: { fontSize: 20, fontWeight: '800', color: '#5321E8' },
-  storyLabel: { fontSize: 10, color: '#374151', marginTop: 4, fontWeight: '500', textAlign: 'center' },
+  storyCardAvatarImgRinged: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 1.5,
+    borderColor: '#101239',
+    backgroundColor: '#334155',
+  },
+  storyCardAvatarFallbackRinged: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#5321E8',
+    borderWidth: 1.5,
+    borderColor: '#101239',
+  },
+  storyCardInitialRinged: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
+  storyCardLabel: {
+    fontSize: 10.5,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    textAlign: 'center',
+    letterSpacing: 0.2,
+    marginBottom: 2,
+  },
 
   // ─── INSTAGRAM STORY VIEWER ───
   viewerContainer: { flex: 1, backgroundColor: '#000' },
@@ -622,11 +925,207 @@ const styles = StyleSheet.create({
     borderColor: '#fff',
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  authorAvatarImg: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 19,
   },
   authorInitial: { fontSize: 16, fontWeight: '800', color: '#fff' },
   authorName: { fontSize: 14, fontWeight: '700', color: '#fff' },
   authorTime: { fontSize: 11, color: 'rgba(255,255,255,0.75)' },
   viewerCloseBtn: { padding: 4 },
+
+  viewerHeaderRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  viewerHeaderIconBtn: {
+    padding: 6,
+  },
+  deleteStoryPopover: {
+    position: 'absolute',
+    top: 92,
+    right: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#FFFFFF',
+    paddingVertical: 9,
+    paddingHorizontal: 16,
+    borderRadius: 22,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 8,
+    zIndex: 99,
+  },
+  deleteStoryPopoverText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#EF4444',
+  },
+
+  ownerBottomBar: {
+    position: 'absolute',
+    bottom: 24,
+    left: 16,
+    zIndex: 20,
+  },
+  viewsBadgePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.25)',
+  },
+  viewsBadgeText: {
+    fontSize: 12.5,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+
+  // ─── STORY VIEWERS BOTTOM SHEET ───
+  viewersBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+  },
+  viewersSheetContainer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: '55%',
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingBottom: 20,
+  },
+  viewersDragHandle: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#CBD5E1',
+    alignSelf: 'center',
+    marginTop: 8,
+    marginBottom: 8,
+  },
+  viewersHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+  },
+  viewersHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  viewersTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#0F172A',
+  },
+  viewersCountPill: {
+    backgroundColor: '#F3E8FF',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 12,
+  },
+  viewersCountText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#5321E8',
+  },
+  viewersLoadingBox: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 40,
+    gap: 8,
+  },
+  viewersLoadingText: {
+    fontSize: 13,
+    color: '#64748B',
+  },
+  noViewersBox: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 40,
+    paddingHorizontal: 30,
+    gap: 8,
+  },
+  noViewersTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1E1B4B',
+  },
+  noViewersSub: {
+    fontSize: 12.5,
+    color: '#64748B',
+    textAlign: 'center',
+    lineHeight: 18,
+  },
+  viewersList: {
+    flex: 1,
+    paddingHorizontal: 16,
+  },
+  viewerItemRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F8FAFC',
+  },
+  viewerItemLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flex: 1,
+  },
+  viewerItemAvatar: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: '#334155',
+  },
+  viewerItemFallbackAvatar: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  viewerItemInitial: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  viewerItemMeta: {
+    flex: 1,
+  },
+  viewerItemName: {
+    fontSize: 13.5,
+    fontWeight: '700',
+    color: '#0F172A',
+  },
+  viewerItemRole: {
+    fontSize: 11.5,
+    color: '#64748B',
+    marginTop: 1,
+  },
 
   captionBox: {
     position: 'absolute',

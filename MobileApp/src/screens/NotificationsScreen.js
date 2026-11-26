@@ -3,343 +3,367 @@ import {
   StyleSheet,
   Text,
   View,
-  ScrollView,
   TouchableOpacity,
   FlatList,
   ActivityIndicator,
   Alert,
   Dimensions,
   Modal,
+  Image,
   TouchableWithoutFeedback,
 } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import { Feather, Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import UserHeader from '../components/UserHeader';
-import { BASE_URL } from '../services/api';
+import LeaderProfileModal from '../components/LeaderProfileModal';
+import {
+  fetchNotificationsApi,
+  markNotificationsReadApi,
+  deleteNotificationApi,
+} from '../services/api';
 
 const { width } = Dimensions.get('window');
 
-const API_BASE = `${BASE_URL}/api`;
-
-const MOCK_NOTIFICATIONS = [
+// Curated Fortaa notifications matching Screenshot 3
+const INITIAL_NOTIFICATIONS = [
   {
-    id: '1',
+    id: 'n1',
+    actor_id: 12,
+    actor: 'RAKESH SINGH',
+    actor_avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150',
     type: 'like',
-    actor: 'Kapil Dhakad',
-    message: 'liked your post',
-    detail: '"Exciting opportunity for network marketing..."',
-    time: '2 min ago',
+    message: 'liked your story',
+    detail: 'Tecnical Achivers • rcm business',
+    time: '19h',
     read: false,
-    icon: 'heart',
-    iconBg: '#FEE2E2',
-    iconColor: '#EF4444',
+    badgeType: 'story_like',
   },
   {
-    id: '2',
-    type: 'comment',
-    actor: 'Priya Sharma',
-    message: 'commented on your post',
-    detail: '"Great insight! Totally agree with this..."',
-    time: '15 min ago',
-    read: false,
-    icon: 'message-circle',
-    iconBg: '#DBEAFE',
-    iconColor: '#3B82F6',
+    id: 'n2',
+    actor_id: 15,
+    actor: 'Kapil',
+    actor_avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150',
+    type: 'like',
+    message: 'liked your story',
+    detail: 'Team Leader • Forever Living',
+    time: '1w',
+    read: true,
+    badgeType: 'story_like',
   },
   {
-    id: '3',
+    id: 'n3',
+    actor_id: 15,
+    actor: 'Kapil',
+    actor_avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150',
+    type: 'reply',
+    message: 'replied to your story: "Nice"',
+    detail: 'Team Leader • Forever Living',
+    time: '1w',
+    read: false,
+    badgeType: 'story_reply',
+  },
+  {
+    id: 'n4',
+    actor_id: 15,
+    actor: 'Kapil',
+    actor_avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150',
+    type: 'like',
+    message: 'liked your story',
+    detail: 'Team Leader • Forever Living',
+    time: '1w',
+    read: true,
+    badgeType: 'story_like',
+  },
+  {
+    id: 'n5',
+    actor_id: 18,
+    actor: 'Ankit Jain',
+    actor_avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
     type: 'follow',
-    actor: 'Rahul Verma',
-    message: 'started following you',
-    detail: 'Team Leader · Bhopal',
-    time: '1 hour ago',
-    read: false,
-    icon: 'user-plus',
-    iconBg: '#D1FAE5',
-    iconColor: '#10B981',
-  },
-  {
-    id: '4',
-    type: 'share',
-    actor: 'Anita Singh',
-    message: 'shared your post',
-    detail: '"Fortaa network is growing fast..."',
-    time: '3 hours ago',
+    message: 'started following you.',
+    detail: 'Team Leader • Forever Living Products (FLP)',
+    time: '1w',
     read: true,
-    icon: 'share-2',
-    iconBg: '#EDE9FE',
-    iconColor: '#5321E8',
+    badgeType: 'follow',
   },
   {
-    id: '5',
+    id: 'n6',
+    actor_id: 20,
+    actor: 'Rajkumar Meena',
+    actor_avatar: 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=150',
+    type: 'follow',
+    message: 'started following you.',
+    detail: 'Leader • Ranax Tech',
+    time: '1w',
+    read: true,
+    badgeType: 'follow',
+  },
+  {
+    id: 'n7',
+    actor_id: 15,
+    actor: 'Kapil',
+    actor_avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150',
     type: 'connect',
-    actor: 'Vikram Joshi',
-    message: 'sent you a connection request',
-    detail: 'Gold Leader · Jaipur',
-    time: '5 hours ago',
+    message: 'sent you a follow request.',
+    detail: 'Team Leader • Forever Living',
+    time: '1w',
     read: true,
-    icon: 'link',
-    iconBg: '#FEF3C7',
-    iconColor: '#F59E0B',
-  },
-  {
-    id: '6',
-    type: 'story',
-    actor: 'Sunita Patel',
-    message: 'viewed your story',
-    detail: 'Silver Leader',
-    time: '8 hours ago',
-    read: true,
-    icon: 'eye',
-    iconBg: '#FCE7F3',
-    iconColor: '#EC4899',
-  },
-  {
-    id: '7',
-    type: 'system',
-    actor: 'Fortaa',
-    message: 'Your profile was viewed 24 times',
-    detail: 'This week — 3x more than last week',
-    time: '1 day ago',
-    read: true,
-    icon: 'trending-up',
-    iconBg: '#D1FAE5',
-    iconColor: '#059669',
-  },
-  {
-    id: '8',
-    type: 'like',
-    actor: 'Deepak Mehra',
-    message: 'liked your comment',
-    detail: '"Absolutely! Network is everything..."',
-    time: '2 days ago',
-    read: true,
-    icon: 'thumbs-up',
-    iconBg: '#FEE2E2',
-    iconColor: '#DC2626',
+    badgeType: 'connect',
   },
 ];
 
-export default function NotificationsScreen({ user, onNavigateToMessages, onNavigateToProfile, onLogout }) {
-  const [notifications, setNotifications] = useState(MOCK_NOTIFICATIONS);
-  const [activeFilter, setActiveFilter] = useState('All');
+export default function NotificationsScreen({
+  user,
+  onNavigateBack,
+  onNavigateTab,
+  onNavigateToMessages,
+  onNavigateToProfile,
+  onLogout,
+}) {
+  const [notifications, setNotifications] = useState(INITIAL_NOTIFICATIONS);
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [actionStates, setActionStates] = useState({});
   const [selectedNotifAction, setSelectedNotifAction] = useState(null);
+  const [selectedLeader, setSelectedLeader] = useState(null);
 
-  const filters = ['All', 'Unread', 'Likes', 'Comments', 'Follows'];
+  // Fetch real notifications from backend
+  const loadNotifications = async () => {
+    if (!user?.id) return;
+    try {
+      setLoading(true);
+      const data = await fetchNotificationsApi(user.id);
+      if (Array.isArray(data) && data.length > 0) {
+        const formatted = data.map((item) => ({
+          id: String(item.id),
+          actor_id: item.actor_id || item.ref_id,
+          actor: item.actor_name || 'Fortaa Leader',
+          actor_avatar: item.actor_avatar || null,
+          type: item.type || 'system',
+          message:
+            item.message?.replace(item.actor_name || '', '').trim() ||
+            (item.type === 'follow_request'
+              ? 'sent you a follow request.'
+              : item.type === 'new_follower'
+              ? 'started following you.'
+              : 'interacted with your profile.'),
+          detail: item.actor_role
+            ? `${item.actor_role}${item.actor_company ? ` • ${item.actor_company}` : ''}`
+            : 'Business Leader',
+          time: formatTimeAgo(item.created_at),
+          read: !!item.is_read,
+          badgeType: item.type,
+        }));
+        setNotifications(formatted);
+      }
+    } catch (err) {
+      console.warn('Failed to load notifications:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadNotifications();
+  }, [user]);
+
+  const formatTimeAgo = (dateStr) => {
+    if (!dateStr) return 'now';
+    const diff = Math.floor((new Date() - new Date(dateStr)) / 1000);
+    if (diff < 60) return 'Just now';
+    if (diff < 3600) return `${Math.floor(diff / 60)}m`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)}h`;
+    if (diff < 604800) return `${Math.floor(diff / 86400)}d`;
+    return `${Math.floor(diff / 604800)}w`;
+  };
 
   const unreadCount = notifications.filter((n) => !n.read).length;
 
-  const filteredNotifications = notifications.filter((n) => {
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      const matchActor = (n.actor || '').toLowerCase().includes(q);
-      const matchMsg = (n.message || '').toLowerCase().includes(q);
-      const matchDetail = (n.detail || '').toLowerCase().includes(q);
-      if (!matchActor && !matchMsg && !matchDetail) return false;
-    }
-    if (activeFilter === 'Unread') return !n.read;
-    if (activeFilter === 'Likes') return n.type === 'like';
-    if (activeFilter === 'Comments') return n.type === 'comment';
-    if (activeFilter === 'Follows') return n.type === 'follow' || n.type === 'connect';
-    return true;
-  });
-
-  const markAllRead = () => {
+  const markAllRead = async () => {
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
-    Alert.alert('All Read ✨', 'All notifications marked as read.');
+    if (user?.id) {
+      await markNotificationsReadApi(user.id);
+    }
   };
 
-  const markRead = (id) => {
+  const handleItemClick = (item) => {
+    // Mark as read optimistically
     setNotifications((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, read: true } : n))
+      prev.map((n) => (n.id === item.id ? { ...n, read: true } : n))
     );
+
+    // If tapping leader or follow/connect, open leader profile
+    if (item.actor_id) {
+      setSelectedLeader({ id: item.actor_id, name: item.actor });
+    } else if (item.type === 'message' && onNavigateToMessages) {
+      onNavigateToMessages();
+    } else if (onNavigateTab) {
+      onNavigateTab('dashboard');
+    }
   };
 
-  const toggleReadState = (id) => {
-    setNotifications((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, read: !n.read } : n))
-    );
+  const handleDeleteNotif = async (notifId) => {
+    setNotifications((prev) => prev.filter((n) => n.id !== notifId));
     setSelectedNotifAction(null);
+    if (user?.id) {
+      await deleteNotificationApi(notifId, user.id);
+    }
   };
 
-  const deleteNotification = (id) => {
-    setNotifications((prev) => prev.filter((n) => n.id !== id));
-    setSelectedNotifAction(null);
+  const getBadgeConfig = (badgeType) => {
+    switch (badgeType) {
+      case 'story_like':
+      case 'like':
+        return { icon: 'heart', color: '#FFFFFF', bgColor: '#EF4444' };
+      case 'story_reply':
+      case 'comment':
+      case 'message':
+        return { icon: 'notifications', color: '#FFFFFF', bgColor: '#8B5CF6' };
+      case 'follow':
+      case 'connect':
+        return { icon: 'star', color: '#FFFFFF', bgColor: '#10B981' };
+      default:
+        return { icon: 'notifications', color: '#FFFFFF', bgColor: '#3B82F6' };
+    }
   };
 
-  const handleAcceptRequest = (item) => {
-    setActionStates((prev) => ({ ...prev, [item.id]: 'accepted' }));
-    markRead(item.id);
-    Alert.alert('Connection Accepted 🎉', `You and ${item.actor} are now connected!`);
-  };
-
-  const handleDeclineRequest = (item) => {
-    setActionStates((prev) => ({ ...prev, [item.id]: 'declined' }));
-    markRead(item.id);
-  };
-
-  const renderNotification = ({ item }) => {
-    const actionStatus = actionStates[item.id];
+  const renderItem = ({ item }) => {
+    const badge = getBadgeConfig(item.badgeType || item.type);
 
     return (
       <TouchableOpacity
-        style={[styles.notifCard, !item.read && styles.notifCardUnread]}
-        onPress={() => markRead(item.id)}
-        activeOpacity={0.85}
+        style={[styles.itemCard, !item.read && styles.itemCardUnread]}
+        onPress={() => handleItemClick(item)}
+        activeOpacity={0.8}
       >
-        {/* Unread dot */}
-        {!item.read && <View style={styles.unreadDot} />}
-
-        {/* Icon */}
-        <View style={[styles.notifIcon, { backgroundColor: item.iconBg }]}>
-          <Feather name={item.icon} size={18} color={item.iconColor} />
+        {/* Far-left Blue Unread Dot (Screenshot 3) */}
+        <View style={styles.unreadDotCol}>
+          {!item.read && <View style={styles.blueUnreadDot} />}
         </View>
 
-        {/* Content */}
-        <View style={styles.notifContent}>
-          <Text style={styles.notifText} numberOfLines={2}>
-            <Text style={styles.notifActor}>{item.actor} </Text>
-            <Text style={styles.notifMessage}>{item.message}</Text>
-          </Text>
-          {item.detail ? (
-            <Text style={styles.notifDetail} numberOfLines={1}>{item.detail}</Text>
-          ) : null}
-          <Text style={styles.notifTime}>{item.time}</Text>
-
-          {/* Action for follow/connect request */}
-          {(item.type === 'follow' || item.type === 'connect') && (
-            <View style={styles.notifActions}>
-              {actionStatus === 'accepted' ? (
-                <View style={styles.statusPillAccepted}>
-                  <Feather name="check" size={12} color="#059669" />
-                  <Text style={styles.statusPillAcceptedText}>Connected</Text>
-                </View>
-              ) : actionStatus === 'declined' ? (
-                <View style={styles.statusPillDeclined}>
-                  <Text style={styles.statusPillDeclinedText}>Declined</Text>
-                </View>
-              ) : (
-                <View style={styles.requestBtnsRow}>
-                  <TouchableOpacity
-                    style={styles.acceptBtn}
-                    onPress={() => handleAcceptRequest(item)}
-                    activeOpacity={0.75}
-                  >
-                    <Text style={styles.acceptBtnText}>Accept</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={styles.declineBtn}
-                    onPress={() => handleDeclineRequest(item)}
-                    activeOpacity={0.75}
-                  >
-                    <Text style={styles.declineBtnText}>Decline</Text>
-                  </TouchableOpacity>
-                </View>
-              )}
-            </View>
-          )}
-        </View>
-
-        {/* 3-Dots Action button */}
+        {/* Left: Avatar with bottom-right badge */}
         <TouchableOpacity
-          style={styles.notifMoreBtn}
-          onPress={() => setSelectedNotifAction(item)}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          style={styles.avatarWrap}
+          onPress={() => item.actor_id && setSelectedLeader({ id: item.actor_id, name: item.actor })}
+          activeOpacity={0.8}
         >
-          <Feather name="more-horizontal" size={18} color="#94A3B8" />
+          {item.actor_avatar ? (
+            <Image source={{ uri: item.actor_avatar }} style={styles.avatarImg} />
+          ) : (
+            <LinearGradient colors={['#DC3AEE', '#5321E8']} style={styles.avatarFallback}>
+              <Text style={styles.avatarInitial}>{(item.actor || 'U')[0].toUpperCase()}</Text>
+            </LinearGradient>
+          )}
+          <View style={[styles.avatarBadgeCircle, { backgroundColor: badge.bgColor }]}>
+            <Ionicons name={badge.icon} size={9} color={badge.color} />
+          </View>
         </TouchableOpacity>
+
+        {/* Middle: Content */}
+        <View style={styles.contentCol}>
+          <Text style={styles.messageText} numberOfLines={2}>
+            <Text
+              style={styles.actorNameText}
+              onPress={() => item.actor_id && setSelectedLeader({ id: item.actor_id, name: item.actor })}
+            >
+              {item.actor}{' '}
+            </Text>
+            <Text style={styles.actionDescText}>{item.message}</Text>
+          </Text>
+          <Text style={styles.metaText} numberOfLines={1}>
+            {item.detail}
+          </Text>
+        </View>
+
+        {/* Right: Time, Purple [View] button & 3-Dots Menu */}
+        <View style={styles.rightActionsCol}>
+          <Text style={styles.timeText}>{item.time}</Text>
+
+          <TouchableOpacity
+            style={styles.btnView}
+            onPress={() => handleItemClick(item)}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.btnViewText}>View</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.moreIconBtn}
+            onPress={() => setSelectedNotifAction(item)}
+            activeOpacity={0.7}
+          >
+            <Feather name="more-horizontal" size={16} color="#64748B" />
+          </TouchableOpacity>
+        </View>
       </TouchableOpacity>
     );
   };
 
   return (
     <View style={styles.container}>
+      {/* 1. Global Purple Header */}
       <UserHeader
         user={user}
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
+        onSelectLeader={(person) => setSelectedLeader({ id: person.id, name: person.name })}
         onNavigateToMessages={onNavigateToMessages}
         onNavigateToNotifications={() => {}}
         onNavigateToProfile={onNavigateToProfile}
         onLogout={onLogout}
       />
 
-      {/* Notification Header */}
-      <View style={styles.pageHeader}>
-        <View>
-          <Text style={styles.pageTitle}>Notifications</Text>
+      {/* 2. Notifications Subheader (Screenshot 3 Parity) */}
+      <View style={styles.subHeader}>
+        <TouchableOpacity
+          style={styles.backCircleBtn}
+          onPress={onNavigateBack || (() => onNavigateTab && onNavigateTab('dashboard'))}
+          activeOpacity={0.7}
+        >
+          <Feather name="arrow-left" size={18} color="#1E1B4B" />
+        </TouchableOpacity>
+
+        <View style={styles.titleWithBadge}>
+          <Text style={styles.subHeaderTitle}>Notifications</Text>
           {unreadCount > 0 && (
-            <Text style={styles.pageSubtitle}>{unreadCount} unread notifications</Text>
+            <View style={styles.newBadgePill}>
+              <Text style={styles.newBadgeText}>{unreadCount} new</Text>
+            </View>
           )}
         </View>
-        {unreadCount > 0 && (
-          <TouchableOpacity style={styles.markAllBtn} onPress={markAllRead}>
-            <Feather name="check-circle" size={14} color="#5321E8" />
-            <Text style={styles.markAllText}>Mark all read</Text>
-          </TouchableOpacity>
-        )}
+
+        <TouchableOpacity
+          style={styles.refreshCircleBtn}
+          onPress={loadNotifications}
+          activeOpacity={0.7}
+        >
+          <Feather name="refresh-cw" size={15} color="#475569" />
+        </TouchableOpacity>
       </View>
 
-      {/* Filter Tabs */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.filterScroll}
-        contentContainerStyle={styles.filterContent}
-      >
-        {filters.map((f) => (
-          <TouchableOpacity
-            key={f}
-            style={[styles.filterTab, activeFilter === f && styles.filterTabActive]}
-            onPress={() => setActiveFilter(f)}
-          >
-            {f === 'Unread' && unreadCount > 0 ? (
-              <View style={styles.filterWithBadge}>
-                <Text style={[styles.filterTabText, activeFilter === f && styles.filterTabTextActive]}>
-                  {f}
-                </Text>
-                <View style={styles.badgeCount}>
-                  <Text style={styles.badgeCountText}>{unreadCount}</Text>
-                </View>
-              </View>
-            ) : (
-              <Text style={[styles.filterTabText, activeFilter === f && styles.filterTabTextActive]}>
-                {f}
-              </Text>
-            )}
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
-
-      {/* Notifications List */}
+      {/* 3. Notification Items List */}
       {loading ? (
-        <ActivityIndicator size="large" color="#5321E8" style={{ marginTop: 40 }} />
+        <View style={styles.centerBox}>
+          <ActivityIndicator size="large" color="#5321E8" />
+          <Text style={styles.loadingText}>Updating notifications...</Text>
+        </View>
       ) : (
         <FlatList
-          data={filteredNotifications}
+          data={notifications}
           keyExtractor={(item) => item.id}
-          renderItem={renderNotification}
+          renderItem={renderItem}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
-          ItemSeparatorComponent={() => <View style={styles.separator} />}
           ListEmptyComponent={
-            <View style={styles.emptyWrap}>
-              <View style={styles.emptyIconWrap}>
-                <LinearGradient colors={['#F3F0FF', '#EDE9FE']} style={styles.emptyIconBg}>
-                  <Feather name="bell-off" size={36} color="#C4B5FD" />
-                </LinearGradient>
-              </View>
+            <View style={styles.emptyBox}>
+              <Feather name="bell-off" size={40} color="#C4B5FD" />
               <Text style={styles.emptyTitle}>All caught up!</Text>
-              <Text style={styles.emptySubtitle}>No notifications in this category</Text>
+              <Text style={styles.emptySub}>You have no unread notifications.</Text>
             </View>
           }
         />
       )}
 
-      {/* 3-Dots Notification Action Modal */}
+      {/* 3-Dots Action Modal */}
       <Modal
         visible={!!selectedNotifAction}
         transparent
@@ -347,277 +371,280 @@ export default function NotificationsScreen({ user, onNavigateToMessages, onNavi
         onRequestClose={() => setSelectedNotifAction(null)}
       >
         <TouchableWithoutFeedback onPress={() => setSelectedNotifAction(null)}>
-          <View style={styles.modalOverlay}>
-            <TouchableWithoutFeedback>
-              <View style={styles.notifActionCard}>
-                {selectedNotifAction && (
-                  <>
-                    <TouchableOpacity
-                      style={styles.notifActionItem}
-                      onPress={() => toggleReadState(selectedNotifAction.id)}
-                    >
-                      <Feather
-                        name={selectedNotifAction.read ? 'circle' : 'check-circle'}
-                        size={18}
-                        color="#4F46E5"
-                        style={styles.notifActionIcon}
-                      />
-                      <Text style={styles.notifActionText}>
-                        {selectedNotifAction.read ? 'Mark as unread' : 'Mark as read'}
-                      </Text>
-                    </TouchableOpacity>
+          <View style={styles.modalBackdrop}>
+            <View style={styles.modalSheet}>
+              <TouchableOpacity
+                style={styles.modalOption}
+                onPress={() => {
+                  if (selectedNotifAction) {
+                    setNotifications((prev) =>
+                      prev.map((n) =>
+                        n.id === selectedNotifAction.id ? { ...n, read: !n.read } : n
+                      )
+                    );
+                    setSelectedNotifAction(null);
+                  }
+                }}
+              >
+                <Feather
+                  name={selectedNotifAction?.read ? 'mail' : 'check'}
+                  size={16}
+                  color="#5321E8"
+                />
+                <Text style={styles.modalOptionText}>
+                  {selectedNotifAction?.read ? 'Mark as unread' : 'Mark as read'}
+                </Text>
+              </TouchableOpacity>
 
-                    <View style={styles.notifActionDivider} />
-
-                    <TouchableOpacity
-                      style={styles.notifActionItem}
-                      onPress={() => deleteNotification(selectedNotifAction.id)}
-                    >
-                      <Feather
-                        name="trash-2"
-                        size={18}
-                        color="#EF4444"
-                        style={styles.notifActionIcon}
-                      />
-                      <Text style={[styles.notifActionText, styles.textDanger]}>
-                        Delete notification
-                      </Text>
-                    </TouchableOpacity>
-
-                    <View style={styles.notifActionThickDivider} />
-
-                    <TouchableOpacity
-                      style={styles.notifActionCancel}
-                      onPress={() => setSelectedNotifAction(null)}
-                    >
-                      <Text style={styles.notifActionCancelText}>Cancel</Text>
-                    </TouchableOpacity>
-                  </>
-                )}
-              </View>
-            </TouchableWithoutFeedback>
+              <TouchableOpacity
+                style={styles.modalOption}
+                onPress={() => selectedNotifAction && handleDeleteNotif(selectedNotifAction.id)}
+              >
+                <Feather name="trash-2" size={16} color="#EF4444" />
+                <Text style={[styles.modalOptionText, { color: '#EF4444' }]}>Delete notification</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </TouchableWithoutFeedback>
       </Modal>
+
+      {/* Leader Profile Modal */}
+      <LeaderProfileModal
+        visible={!!selectedLeader}
+        onClose={() => setSelectedLeader(null)}
+        leaderId={selectedLeader?.id}
+        leaderName={selectedLeader?.name}
+        currentUser={user}
+        onOpenChat={(targetId) => {
+          setSelectedLeader(null);
+          if (onNavigateToMessages) onNavigateToMessages(targetId);
+        }}
+      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FAF8FE' },
+  container: {
+    flex: 1,
+    backgroundColor: '#F3F4F6',
+  },
 
-  pageHeader: {
+  // Subheader (Screenshot 3)
+  subHeader: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
     paddingHorizontal: 16,
-    paddingVertical: 14,
-    backgroundColor: '#fff',
+    paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#EEE9FF',
+    borderBottomColor: '#E2E8F0',
   },
-  pageTitle: { fontSize: 18, fontWeight: '700', color: '#1E1B4B' },
-  pageSubtitle: { fontSize: 12, color: '#6B7280', marginTop: 2 },
-  markAllBtn: {
+  backCircleBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: '#F1F5F9',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  titleWithBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: 20,
-    backgroundColor: '#F5F3FF',
-    borderWidth: 1,
-    borderColor: '#DDD6FE',
+    gap: 8,
   },
-  markAllText: { fontSize: 12, fontWeight: '600', color: '#5321E8' },
-
-  filterScroll: {
-    maxHeight: 50,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#EEE9FF',
+  subHeaderTitle: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: '#0F172A',
   },
-  filterContent: { paddingHorizontal: 12, paddingVertical: 9, gap: 8, flexDirection: 'row' },
-  filterTab: {
-    paddingHorizontal: 14,
-    paddingVertical: 5,
-    borderRadius: 20,
-    backgroundColor: '#F3F0FF',
-    borderWidth: 1,
-    borderColor: '#E8E0FF',
-  },
-  filterTabActive: { backgroundColor: '#5321E8', borderColor: '#5321E8' },
-  filterTabText: { fontSize: 12, color: '#6B7280', fontWeight: '500' },
-  filterTabTextActive: { color: '#fff', fontWeight: '700' },
-  filterWithBadge: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  badgeCount: {
-    backgroundColor: '#EF4444',
-    borderRadius: 10,
-    paddingHorizontal: 6,
-    paddingVertical: 1,
-    minWidth: 18,
-    alignItems: 'center',
-  },
-  badgeCountText: { fontSize: 10, fontWeight: '700', color: '#fff' },
-
-  listContent: { paddingBottom: 20 },
-  separator: { height: 1, backgroundColor: '#F3F4F6' },
-
-  notifCard: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    padding: 16,
-    backgroundColor: '#fff',
-    position: 'relative',
-  },
-  notifCardUnread: { backgroundColor: '#FAFAFF' },
-  unreadDot: {
-    position: 'absolute',
-    top: 20,
-    left: 6,
-    width: 7,
-    height: 7,
-    borderRadius: 3.5,
+  newBadgePill: {
     backgroundColor: '#5321E8',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 12,
   },
-  notifIcon: {
+  newBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  refreshCircleBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: '#F1F5F9',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  listContent: {
+    paddingVertical: 6,
+    paddingBottom: 40,
+  },
+
+  // Notification Item Card (Screenshot 3 Parity)
+  itemCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+  },
+  itemCardUnread: {
+    backgroundColor: '#F8FAFC',
+  },
+
+  unreadDotCol: {
+    width: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  blueUnreadDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#2563EB',
+  },
+
+  avatarWrap: {
+    position: 'relative',
+    width: 44,
+    height: 44,
+    marginRight: 12,
+  },
+  avatarImg: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#334155',
+  },
+  avatarFallback: {
     width: 44,
     height: 44,
     borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 12,
-    flexShrink: 0,
   },
-  notifContent: { flex: 1 },
-  notifText: { fontSize: 14, color: '#1F2937', lineHeight: 20 },
-  notifActor: { fontWeight: '700', color: '#1E1B4B' },
-  notifMessage: { fontWeight: '400' },
-  notifDetail: { fontSize: 12, color: '#6B7280', marginTop: 3, fontStyle: 'italic' },
-  notifTime: { fontSize: 11, color: '#9CA3AF', marginTop: 4, fontWeight: '500' },
-
-  notifActions: { marginTop: 6, flexShrink: 0 },
-  requestBtnsRow: {
-    flexDirection: 'row',
+  avatarInitial: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
+  avatarBadgeCircle: {
+    position: 'absolute',
+    bottom: -1,
+    right: -1,
+    width: 17,
+    height: 17,
+    borderRadius: 9,
+    borderWidth: 1.5,
+    borderColor: '#FFFFFF',
     alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  contentCol: {
+    flex: 1,
+    marginRight: 8,
+  },
+  messageText: {
+    fontSize: 13,
+    lineHeight: 18,
+    color: '#334155',
+  },
+  actorNameText: {
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  actionDescText: {
+    color: '#334155',
+  },
+  metaText: {
+    fontSize: 11.5,
+    color: '#64748B',
+    marginTop: 2,
+  },
+
+  rightActionsCol: {
+    alignItems: 'flex-end',
+    gap: 6,
+  },
+  timeText: {
+    fontSize: 11,
+    color: '#64748B',
+    fontWeight: '500',
+  },
+  btnView: {
+    backgroundColor: '#F3E8FF',
+    paddingHorizontal: 14,
+    paddingVertical: 4,
+    borderRadius: 14,
+  },
+  btnViewText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#5321E8',
+  },
+  moreIconBtn: {
+    padding: 2,
+  },
+
+  centerBox: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 50,
+    gap: 10,
+  },
+  loadingText: {
+    fontSize: 13,
+    color: '#64748B',
+  },
+
+  emptyBox: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
     gap: 8,
   },
-  acceptBtn: {
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderRadius: 8,
-    backgroundColor: '#5321E8',
-  },
-  acceptBtnText: { fontSize: 12, fontWeight: '700', color: '#fff' },
-  declineBtn: {
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderRadius: 8,
-    backgroundColor: '#F1F5F9',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-  },
-  declineBtnText: { fontSize: 12, fontWeight: '600', color: '#64748B' },
-  statusPillAccepted: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: '#ECFDF5',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-    alignSelf: 'flex-start',
-  },
-  statusPillAcceptedText: {
-    fontSize: 11,
+  emptyTitle: {
+    fontSize: 16,
     fontWeight: '700',
-    color: '#059669',
+    color: '#1E1B4B',
   },
-  statusPillDeclined: {
-    backgroundColor: '#F1F5F9',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-    alignSelf: 'flex-start',
-  },
-  statusPillDeclinedText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#94A3B8',
-  },
-  notifMoreBtn: {
-    padding: 6,
-    marginLeft: 4,
+  emptySub: {
+    fontSize: 12.5,
+    color: '#64748B',
   },
 
-  /* Notification 3-Dots Action Modal */
-  modalOverlay: {
+  // Modal
+  modalBackdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.55)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 28,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'flex-end',
   },
-  notifActionCard: {
-    width: '100%',
-    maxWidth: 320,
+  modalSheet: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 18,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.2,
-    shadowRadius: 20,
-    elevation: 10,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    gap: 6,
   },
-  notifActionItem: {
+  modalOption: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 22,
-    gap: 14,
+    gap: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 10,
+    borderRadius: 10,
   },
-  notifActionIcon: {
-    width: 22,
-    textAlign: 'center',
-  },
-  notifActionText: {
-    fontSize: 15,
+  modalOptionText: {
+    fontSize: 14,
     fontWeight: '600',
     color: '#1E293B',
   },
-  textDanger: {
-    color: '#EF4444',
-  },
-  notifActionDivider: {
-    height: 1,
-    backgroundColor: '#F1F5F9',
-  },
-  notifActionThickDivider: {
-    height: 1,
-    backgroundColor: '#E2E8F0',
-  },
-  notifActionCancel: {
-    paddingVertical: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#FAFAFA',
-  },
-  notifActionCancelText: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#475569',
-  },
-
-  emptyWrap: { alignItems: 'center', paddingTop: 60 },
-  emptyIconWrap: { marginBottom: 16 },
-  emptyIconBg: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  emptyTitle: { fontSize: 18, fontWeight: '700', color: '#374151' },
-  emptySubtitle: { fontSize: 14, color: '#9CA3AF', marginTop: 6 },
 });

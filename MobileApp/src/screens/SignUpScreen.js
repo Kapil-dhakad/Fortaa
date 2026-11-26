@@ -676,6 +676,9 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     marginBottom: 10,
     position: 'relative',
+    maxWidth: 480,
+    width: '100%',
+    alignSelf: 'center',
   },
   backBtn: {
     width: 36,
@@ -741,6 +744,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 6,
     elevation: 2,
+    maxWidth: 480,
+    width: '100%',
+    alignSelf: 'center',
   },
   stepperNode: {
     alignItems: 'center',
@@ -786,6 +792,8 @@ const styles = StyleSheet.create({
   /* Step Content */
   stepContent: {
     width: '100%',
+    maxWidth: 480,
+    alignSelf: 'center',
   },
   titleSection: {
     marginBottom: 16,

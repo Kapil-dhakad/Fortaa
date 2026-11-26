@@ -314,9 +314,15 @@ export async function voteStoryPollApi(storyId, optionId, userId) {
 // 21. Upload Media
 export async function uploadMediaApi(uri, isVideo = false) {
   try {
-    const filename = uri.split('/').pop() || (isVideo ? 'upload.mp4' : 'upload.jpg');
+    let filename = uri.split('/').pop() || (isVideo ? 'upload.mp4' : 'upload.jpg');
+    if (isVideo && !filename.includes('.')) {
+      filename += '.mp4';
+    }
     const match = /\.(\w+)$/.exec(filename);
-    const type = match ? `${isVideo ? 'video' : 'image'}/${match[1]}` : (isVideo ? 'video/mp4' : 'image/jpeg');
+    const ext = match ? match[1].toLowerCase() : (isVideo ? 'mp4' : 'jpg');
+    const type = isVideo
+      ? (ext === 'mov' ? 'video/quicktime' : 'video/mp4')
+      : `image/${ext === 'png' ? 'png' : 'jpeg'}`;
 
     const formData = new FormData();
     formData.append('file', {
@@ -334,10 +340,241 @@ export async function uploadMediaApi(uri, isVideo = false) {
     if (data.success && data.url) {
       return data.url;
     }
+    console.warn('Upload API response missing url:', data);
     return uri;
   } catch (err) {
     console.warn('Upload fallback to local URI:', err);
     return uri;
   }
 }
+
+// 22. Fetch User Profile
+export async function fetchUserProfileApi(userId) {
+  try {
+    const res = await fetch(`${BASE_URL}/api/users/profile/${userId}`);
+    const data = await res.json();
+    if (data.success && data.profile) {
+      return data.profile;
+    }
+    return null;
+  } catch (err) {
+    console.warn('fetchUserProfileApi error:', err);
+    return null;
+  }
+}
+
+// 23. Update User Profile
+export async function updateUserProfileApi(userId, profileData) {
+  const res = await fetch(`${BASE_URL}/api/users/profile/${userId}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(profileData),
+  });
+  const data = await res.json();
+  if (!res.ok || !data.success) {
+    throw new Error(data.message || 'Failed to update profile');
+  }
+  return data.profile || data;
+}
+
+// 24. Change Password API
+export async function changePasswordApi({ currentPassword, newPassword, userId }) {
+  const res = await fetch(`${BASE_URL}/api/users/reset-password`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ currentPassword, newPassword, userId }),
+  });
+  const data = await res.json();
+  if (!res.ok || !data.success) {
+    throw new Error(data.message || 'Failed to update password');
+  }
+  return data;
+}
+
+// 25. Get Post Likers API
+export async function getPostLikersApi(postId, userId) {
+  try {
+    const res = await fetch(`${BASE_URL}/api/dashboard/posts/${postId}/likes?userId=${userId || 0}`);
+    const data = await res.json();
+    if (data.success && Array.isArray(data.likers)) {
+      return data.likers;
+    }
+    return [];
+  } catch (err) {
+    console.warn('getPostLikersApi error:', err);
+    return [];
+  }
+}
+
+// 26. Toggle Follow API
+export async function toggleFollowApi(targetUserId, currentUserId) {
+  try {
+    const res = await fetch(`${BASE_URL}/api/follow/toggle/${targetUserId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ followerId: currentUserId, userId: currentUserId }),
+    });
+    const data = await res.json();
+    return data;
+  } catch (err) {
+    console.warn('toggleFollowApi error:', err);
+    return { success: false };
+  }
+}
+
+// 27. Delete Story API
+export async function deleteStoryApi(storyId, userId) {
+  try {
+    const res = await fetch(`${BASE_URL}/api/stories/${storyId}`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId }),
+    });
+    return await res.json();
+  } catch (err) {
+    console.warn('deleteStoryApi error:', err);
+    return { success: false };
+  }
+}
+
+// 28. Fetch Story Viewers API
+export async function fetchStoryViewersApi(storyId) {
+  try {
+    const res = await fetch(`${BASE_URL}/api/stories/${storyId}/viewers`);
+    const data = await res.json();
+    const viewers = data?.viewers || [];
+    viewers.likesCount = data?.likesCount || 0;
+    return viewers;
+  } catch (err) {
+    console.warn('fetchStoryViewersApi error:', err);
+    return [];
+  }
+}
+
+// 29. Fetch Notifications API
+export async function fetchNotificationsApi(userId) {
+  try {
+    const res = await fetch(`${BASE_URL}/api/notifications/${userId}`);
+    const data = await res.json();
+    return data.notifications || [];
+  } catch (err) {
+    console.warn('fetchNotificationsApi error:', err);
+    return [];
+  }
+}
+
+// 30. Mark All Notifications Read API
+export async function markNotificationsReadApi(userId) {
+  try {
+    const res = await fetch(`${BASE_URL}/api/notifications/mark-read`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId }),
+    });
+    return await res.json();
+  } catch (err) {
+    console.warn('markNotificationsReadApi error:', err);
+    return { success: false };
+  }
+}
+
+// 31. Delete Notification API
+export async function deleteNotificationApi(notifId, userId) {
+  try {
+    const res = await fetch(`${BASE_URL}/api/notifications/${notifId}`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId }),
+    });
+    return await res.json();
+  } catch (err) {
+    console.warn('deleteNotificationApi error:', err);
+    return { success: false };
+  }
+}
+
+// 32. Fetch User Follow Stats (followers, following, posts count)
+export async function fetchUserStatsApi(userId) {
+  try {
+    const res = await fetch(`${BASE_URL}/api/users/stats/${userId}`);
+    const data = await res.json();
+    if (data.success && data.stats) return data.stats;
+    // fallback: try profile endpoint
+    const res2 = await fetch(`${BASE_URL}/api/users/profile/${userId}`);
+    const data2 = await res2.json();
+    if (data2.success && data2.profile) {
+      return {
+        followers: data2.profile.followers_count || data2.profile.followersCount || 0,
+        following: data2.profile.following_count || data2.profile.followingCount || 0,
+        posts: data2.profile.posts_count || data2.profile.postsCount || 0,
+        network: data2.profile.network_count || data2.profile.networkCount || 0,
+      };
+    }
+    return { followers: 0, following: 0, posts: 0, network: 0 };
+  } catch (err) {
+    console.warn('fetchUserStatsApi error:', err);
+    return { followers: 0, following: 0, posts: 0, network: 0 };
+  }
+}
+
+// 33. Fetch User Posts
+export async function fetchUserPostsApi(userId) {
+  try {
+    const res = await fetch(`${BASE_URL}/api/dashboard/posts?userId=${userId}&filter=my&currentUserId=${userId}`);
+    const data = await res.json();
+    if (data.success && Array.isArray(data.posts)) return data.posts;
+    return [];
+  } catch (err) {
+    console.warn('fetchUserPostsApi error:', err);
+    return [];
+  }
+}
+
+// 34. Reply to Story (send message via chat API)
+export async function replyStoryApi(storyId, { senderId, receiverId, text }) {
+  try {
+    const res = await fetch(`${BASE_URL}/api/messages/send`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ senderId, receiverId, text: `[Story Reply] ${text}` }),
+    });
+    const data = await res.json();
+    return data;
+  } catch (err) {
+    console.warn('replyStoryApi error:', err);
+    return { success: false };
+  }
+}
+
+// 35. Accept/Decline Follow Request
+export async function handleFollowRequestApi(notificationId, action, userId) {
+  try {
+    const res = await fetch(`${BASE_URL}/api/follow/request/${notificationId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action, userId }), // action: 'accept' | 'decline'
+    });
+    return await res.json();
+  } catch (err) {
+    console.warn('handleFollowRequestApi error:', err);
+    return { success: false };
+  }
+}
+
+// 36. Search Users/Posts
+export async function searchApi(query, userId) {
+  try {
+    const res = await fetch(`${BASE_URL}/api/search?q=${encodeURIComponent(query)}&userId=${userId || 0}`);
+    const data = await res.json();
+    return {
+      leaders: data.leaders || data.users || [],
+      posts: data.posts || [],
+    };
+  } catch (err) {
+    console.warn('searchApi error:', err);
+    return { leaders: [], posts: [] };
+  }
+}
+
+
 
