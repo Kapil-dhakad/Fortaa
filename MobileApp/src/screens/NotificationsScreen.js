@@ -15,10 +15,11 @@ import {
 import { Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import UserHeader from '../components/UserHeader';
+import { BASE_URL } from '../services/api';
 
 const { width } = Dimensions.get('window');
 
-const API_BASE = 'http://10.198.121.199:3000/api';
+const API_BASE = `${BASE_URL}/api`;
 
 const MOCK_NOTIFICATIONS = [
   {

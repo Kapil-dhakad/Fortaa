@@ -70,23 +70,15 @@ export default function LoginScreen({ onNavigateToSignUp, onLoginSuccess }) {
   };
 
   const handleGoogleSignIn = () => {
-    const targetEmail = emailOrPhone.includes('@') ? emailOrPhone : 'kapildhakad1709@gmail.com';
-    Alert.alert(
-      'Continue with Google',
-      `Sign in with Google as ${targetEmail}?`,
-      [
-        {
-          text: 'Use other email',
-          onPress: () => {
-            Alert.alert('Google Sign-In', 'Please enter your Google email in the input box first, then tap Continue with Google.');
-          },
-        },
-        {
-          text: 'Continue',
-          onPress: () => performGoogleAuth(targetEmail),
-        },
-      ]
-    );
+    const trimmed = emailOrPhone.trim();
+    if (!trimmed || !trimmed.includes('@')) {
+      Alert.alert(
+        'Google Sign-In',
+        'Please enter your Google Email address in the box above, then tap "Continue with Google".'
+      );
+      return;
+    }
+    performGoogleAuth(trimmed);
   };
 
   return (

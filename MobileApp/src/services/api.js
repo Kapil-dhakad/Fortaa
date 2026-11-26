@@ -1,4 +1,4 @@
-export const BASE_URL = 'http://10.198.121.199:3000';
+export const BASE_URL = 'https://fortaa.com';
 
 // 1. Fetch Dynamic Account Types (Step 1)
 export async function getAccountTypes() {
