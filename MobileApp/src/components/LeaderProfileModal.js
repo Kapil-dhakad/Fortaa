@@ -43,18 +43,19 @@ export default function LeaderProfileModal({
           setProfile({
             id: leader.id,
             name: leader.name,
-            designation: leader.designation || leader.accountTypeName,
+            designation: leader.designation || leader.accountTypeName || leader.role,
             company_brand: leader.companyBrand || leader.company_brand,
             location: leader.city || leader.location,
             bio: leader.bio || '',
-            followers_count: leader.followers || leader.followers_count || 0,
-            following_count: leader.following || leader.following_count || 0,
-            posts_count: leader.posts || leader.posts_count || 0,
-            avatar_url: leader.avatarUrl || leader.avatar_url,
+            followers_count: leader.followers_count !== undefined ? leader.followers_count : (leader.followers ?? 0),
+            following_count: leader.following_count !== undefined ? leader.following_count : (leader.following ?? 0),
+            posts_count: leader.posts_count !== undefined ? leader.posts_count : (leader.posts ?? 0),
+            avatar_url: leader.avatarUrl || leader.avatar_url || leader.avatar,
+            cover_url: leader.cover_url || leader.cover,
             skills: leader.skills,
-            is_following: leader.is_following,
+            is_following: leader.is_following || leader.follow_status === 'accepted',
           });
-          setIsFollowing(!!leader.is_following);
+          setIsFollowing(!!(leader.is_following || leader.follow_status === 'accepted'));
         }
         loadProfile();
       }

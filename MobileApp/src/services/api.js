@@ -55,11 +55,18 @@ export async function registerApi(formData) {
   return data;
 }
 
-// 4. Get All Leaders / Users
-export async function getLeadersApi() {
+// 4. Get All Leaders / Users (Real Leader Profiles with Stats)
+export async function getLeadersApi(userId) {
   try {
-    const res = await fetch(`${BASE_URL}/api/users/all`);
+    const url = userId ? `${BASE_URL}/api/dashboard/leaders?userId=${userId}` : `${BASE_URL}/api/dashboard/leaders`;
+    const res = await fetch(url);
     const data = await res.json();
+    if (data.success && Array.isArray(data.leaders)) {
+      return data.leaders;
+    }
+    if (data.leaders && Array.isArray(data.leaders)) {
+      return data.leaders;
+    }
     if (data.success && Array.isArray(data.users)) {
       return data.users;
     }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   StyleSheet,
   Text,
@@ -8,47 +8,111 @@ import {
   ActivityIndicator,
   RefreshControl,
   Image,
-  Alert,
   Dimensions,
   ScrollView,
 } from 'react-native';
-import { Feather, Ionicons } from '@expo/vector-icons';
+import { Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { getLeadersApi, toggleFollowApi } from '../services/api';
 import UserHeader from '../components/UserHeader';
 import LeaderProfileModal from '../components/LeaderProfileModal';
 
 const { width } = Dimensions.get('window');
-const CARD_WIDTH = (width - 36) / 2;
+const CARD_WIDTH = (width - 32) / 2;
 
-const BADGE_COLORS = {
-  'Super Admin': { bg: '#FF6B35', text: '#fff' },
-  'Diamond Leader': { bg: '#00B4D8', text: '#fff' },
-  'Platinum Leader': { bg: '#7B2FBE', text: '#fff' },
-  'Gold Leader': { bg: '#F4A261', text: '#fff' },
-  'Silver Leader': { bg: '#8D99AE', text: '#fff' },
-  Member: { bg: '#4CAF50', text: '#fff' },
-  'Business / Company': { bg: '#E91E8C', text: '#fff' },
-  'Team Leader': { bg: '#5321E8', text: '#fff' },
-  'Individual / Professional': { bg: '#00897B', text: '#fff' },
-  default: { bg: '#5321E8', text: '#fff' },
-};
-
-const BG_COLORS = [
-  ['#1a1a2e', '#16213e'],
-  ['#0d1b2a', '#1b4332'],
-  ['#2d1b69', '#11998e'],
-  ['#1a1a2e', '#6114D6'],
-  ['#141e30', '#243b55'],
-  ['#200122', '#6f0000'],
-  ['#0f2027', '#2c5364'],
-  ['#360033', '#0b8793'],
+const CATEGORY_TABS = [
+  { id: 'all', label: 'All Leaders', icon: null },
+  { id: 'top', label: 'Top Leaders', icon: '👑' },
+  { id: 'diamond', label: 'Diamond', icon: '💎' },
+  { id: 'platinum', label: 'Platinum', icon: '⭐' },
+  { id: 'gold', label: 'Gold', icon: '🏆' },
+  { id: 'silver', label: 'Silver', icon: '🥈' },
+  { id: 'bronze', label: 'Bronze', icon: '🥉' },
 ];
 
+const SCENIC_BANNERS = [
+  'https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=600&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=600&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=600&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1519681393784-d120267933ba?w=600&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=600&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1432405972618-c60b0225b8f9?w=600&auto=format&fit=crop&q=80',
+];
+
+const getLeaderTierInfo = (u) => {
+  const roleText = `${u.role || ''} ${u.designation || ''} ${u.accountTypeName || ''}`.toLowerCase();
+  if (roleText.includes('diamond')) {
+    return {
+      key: 'diamond',
+      label: 'Diamond Leader',
+      icon: '💎',
+      gradient: ['#FF416C', '#FF4B2B'],
+    };
+  }
+  if (roleText.includes('platinum')) {
+    return {
+      key: 'platinum',
+      label: 'Platinum Leader',
+      icon: '⭐',
+      gradient: ['#4A00E0', '#8E2DE2'],
+    };
+  }
+  if (roleText.includes('gold')) {
+    return {
+      key: 'gold',
+      label: 'Gold Leader',
+      icon: '🏆',
+      gradient: ['#F59E0B', '#D97706'],
+    };
+  }
+  if (roleText.includes('silver')) {
+    return {
+      key: 'silver',
+      label: 'Silver Leader',
+      icon: '🥈',
+      gradient: ['#D946EF', '#9333EA'],
+    };
+  }
+  if (roleText.includes('bronze')) {
+    return {
+      key: 'bronze',
+      label: 'Bronze Leader',
+      icon: '🥉',
+      gradient: ['#B45309', '#78350F'],
+    };
+  }
+  if (roleText.includes('admin') || roleText.includes('super admin')) {
+    return {
+      key: 'admin',
+      label: u.designation || 'Admin',
+      icon: '🛡️',
+      gradient: ['#1E1B4B', '#3B82F6'],
+    };
+  }
+
+  const rawRole = (u.designation || u.role || u.accountTypeName || '').trim();
+  if (rawRole && rawRole.toLowerCase() !== 'user' && rawRole.toLowerCase() !== 'member') {
+    return {
+      key: 'leader',
+      label: rawRole,
+      icon: '⭐',
+      gradient: ['#6220FE', '#8B5CF6'],
+    };
+  }
+
+  return {
+    key: 'member',
+    label: 'Member',
+    icon: '👤',
+    gradient: ['#64748B', '#475569'],
+  };
+};
+
 const formatCount = (n) => {
-  if (!n || n === 0) return '0';
-  if (n >= 1000) return (n / 1000).toFixed(1) + 'k';
-  return String(n);
+  const num = typeof n === 'number' ? n : parseInt(n, 10);
+  if (isNaN(num) || num <= 0) return '0';
+  if (num >= 1000) return (num / 1000).toFixed(1) + 'k';
+  return String(num);
 };
 
 export default function LeadersScreen({
@@ -60,27 +124,34 @@ export default function LeadersScreen({
   onNavigateToNotifications,
 }) {
   const [leaders, setLeaders] = useState([]);
-  const [filteredLeaders, setFilteredLeaders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeFilter, setActiveFilter] = useState('All Leaders');
+  const [activeTab, setActiveTab] = useState('all');
   const [followingIds, setFollowingIds] = useState(new Set());
   const [dismissedIds, setDismissedIds] = useState(new Set());
-
-  // Leader Profile Modal
   const [selectedLeader, setSelectedLeader] = useState(null);
-
-  const filterTabs = ['All Leaders', 'Top Leaders', 'Diamond', 'Platinum', 'Team Leader'];
 
   const fetchLeaders = async () => {
     try {
-      const data = await getLeadersApi();
+      const data = await getLeadersApi(currentUser?.id);
       const list = (data || []).filter(
-        (u) => u.id !== currentUser?.id && u.email !== currentUser?.email
+        (u) =>
+          u.id !== currentUser?.id &&
+          String(u.id) !== String(currentUser?.id) &&
+          (!currentUser?.email || u.email?.toLowerCase() !== currentUser.email.toLowerCase())
       );
+
+      // Prepopulate follow status from API
+      const initFollowing = new Set();
+      list.forEach((u) => {
+        if (u.follow_status === 'accepted') {
+          initFollowing.add(u.id);
+          initFollowing.add(Number(u.id));
+        }
+      });
+      setFollowingIds(initFollowing);
       setLeaders(list);
-      applyFilter(list, searchQuery, activeFilter);
     } catch (err) {
       console.warn('Error fetching leaders:', err);
     } finally {
@@ -91,130 +162,203 @@ export default function LeadersScreen({
 
   useEffect(() => {
     fetchLeaders();
-  }, []);
+  }, [currentUser?.id]);
 
-  const applyFilter = (dataList, query, filter) => {
-    let result = dataList;
-    if (filter !== 'All Leaders' && filter !== 'All') {
+  const filteredLeaders = useMemo(() => {
+    let result = leaders.filter((u) => !dismissedIds.has(u.id) && !dismissedIds.has(Number(u.id)));
+
+    // Category Tab Filter
+    if (activeTab === 'top') {
+      result = [...result].sort((a, b) => {
+        const fA = typeof a.followers_count === 'number' ? a.followers_count : 0;
+        const fB = typeof b.followers_count === 'number' ? b.followers_count : 0;
+        return fB - fA;
+      });
+    } else if (activeTab !== 'all') {
       result = result.filter((u) => {
-        const type = (u.accountTypeName || u.designation || '').toLowerCase();
-        return type.includes(filter.toLowerCase());
+        const tier = getLeaderTierInfo(u);
+        const roleText = `${u.role || ''} ${u.designation || ''} ${u.accountTypeName || ''}`.toLowerCase();
+        return tier.key === activeTab || roleText.includes(activeTab.toLowerCase());
       });
     }
-    if (query.trim()) {
-      result = result.filter((u) =>
-        (u.name || '').toLowerCase().includes(query.toLowerCase()) ||
-        (u.designation || '').toLowerCase().includes(query.toLowerCase()) ||
-        (u.companyBrand || u.company_brand || '').toLowerCase().includes(query.toLowerCase())
+
+    // Search Query
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      result = result.filter(
+        (u) =>
+          (u.name || '').toLowerCase().includes(q) ||
+          (u.designation || '').toLowerCase().includes(q) ||
+          (u.role || '').toLowerCase().includes(q) ||
+          (u.company_brand || u.companyBrand || '').toLowerCase().includes(q) ||
+          (u.location || u.city || '').toLowerCase().includes(q)
       );
     }
-    setFilteredLeaders(result.filter((u) => !dismissedIds.has(u.id)));
-  };
 
-  useEffect(() => {
-    applyFilter(leaders, searchQuery, activeFilter);
-  }, [searchQuery, activeFilter, dismissedIds, leaders]);
+    return result;
+  }, [leaders, activeTab, searchQuery, dismissedIds]);
 
   const handleFollow = async (item) => {
     const id = item.id;
-    const wasFollowing = followingIds.has(id);
-    // Optimistic update
+    const wasFollowing = followingIds.has(id) || followingIds.has(Number(id));
+
+    // Optimistic toggle
     setFollowingIds((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
+      if (wasFollowing) {
+        next.delete(id);
+        next.delete(Number(id));
+      } else {
+        next.add(id);
+        next.add(Number(id));
+      }
       return next;
     });
+
+    // Optimistically update followers_count in leaders list
+    setLeaders((prev) =>
+      prev.map((l) => {
+        if (l.id === id || String(l.id) === String(id)) {
+          const currentCount = typeof l.followers_count === 'number' ? l.followers_count : 0;
+          return {
+            ...l,
+            followers_count: wasFollowing ? Math.max(0, currentCount - 1) : currentCount + 1,
+            follow_status: wasFollowing ? 'none' : 'accepted',
+          };
+        }
+        return l;
+      })
+    );
+
     try {
       await toggleFollowApi(id, currentUser?.id);
     } catch (err) {
       // Revert on error
       setFollowingIds((prev) => {
         const next = new Set(prev);
-        if (wasFollowing) next.add(id);
-        else next.delete(id);
+        if (wasFollowing) {
+          next.add(id);
+          next.add(Number(id));
+        } else {
+          next.delete(id);
+          next.delete(Number(id));
+        }
         return next;
       });
     }
   };
 
   const handleDismiss = (id) => {
-    setDismissedIds((prev) => new Set([...prev, id]));
+    setDismissedIds((prev) => {
+      const next = new Set(prev);
+      next.add(id);
+      next.add(Number(id));
+      return next;
+    });
   };
 
-  const getBadgeStyle = (type) => BADGE_COLORS[type] || BADGE_COLORS['default'];
-  const getBgColors = (index) => BG_COLORS[index % BG_COLORS.length];
-
   const renderLeaderCard = ({ item, index }) => {
-    const isFollowing = followingIds.has(item.id);
-    const badge = getBadgeStyle(item.accountTypeName || item.designation || 'Member');
-    const bgColors = getBgColors(index);
-    const followers = item.followers || item.followers_count || 0;
-    const following = item.following || item.following_count || 0;
-    const posts = item.posts || item.posts_count || 0;
-    const avatarUrl = item.avatarUrl || item.avatar_url;
+    const isFollowing = followingIds.has(item.id) || followingIds.has(Number(item.id)) || item.follow_status === 'accepted';
+    const tier = getLeaderTierInfo(item);
+
+    const followers = item.followers_count !== undefined ? item.followers_count : (item.followers ?? 0);
+    const following = item.following_count !== undefined ? item.following_count : (item.following ?? 0);
+    const posts = item.posts_count !== undefined ? item.posts_count : (item.posts ?? 0);
+
+    const defaultAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(item.name || 'User')}&background=6220FE&color=fff&size=150&bold=true`;
+    const avatarUrl =
+      item.avatar_url && !item.avatar_url.includes('user_avatar_rahul')
+        ? (item.avatar_url.startsWith('http') ? item.avatar_url : `https://fortaa.com${item.avatar_url}`)
+        : defaultAvatar;
+
+    const coverBanner =
+      item.cover_url && item.cover_url.startsWith('http')
+        ? item.cover_url
+        : SCENIC_BANNERS[index % SCENIC_BANNERS.length];
+
+    const roleName = item.designation || item.role || item.accountTypeName || tier.label;
+    const company = item.company_brand || item.companyBrand || '';
+    const location = item.location || item.city || '';
 
     return (
       <TouchableOpacity
         style={styles.leaderCard}
         onPress={() => setSelectedLeader(item)}
-        activeOpacity={0.9}
+        activeOpacity={0.92}
       >
-        {/* Cover Photo Background */}
-        <LinearGradient colors={bgColors} style={styles.cardCover}>
-          {/* Dismiss X Button */}
+        {/* Cover Photo Header */}
+        <View style={styles.cardCover}>
+          <Image
+            source={{ uri: coverBanner }}
+            style={styles.coverImage}
+            resizeMode="cover"
+          />
+          <LinearGradient
+            colors={['rgba(0,0,0,0.4)', 'rgba(0,0,0,0.05)', 'rgba(0,0,0,0.6)']}
+            style={StyleSheet.absoluteFillObject}
+          />
+
+          {/* Dismiss Button */}
           <TouchableOpacity
             style={styles.dismissBtn}
-            onPress={() => handleDismiss(item.id)}
+            onPress={(e) => {
+              e.stopPropagation();
+              handleDismiss(item.id);
+            }}
             hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
           >
-            <Feather name="x" size={12} color="#fff" />
+            <Feather name="x" size={13} color="#fff" />
           </TouchableOpacity>
 
-          {/* Role Badge */}
-          <View style={[styles.roleBadge, { backgroundColor: badge.bg }]}>
-            <Text style={[styles.roleBadgeText, { color: badge.text }]} numberOfLines={1}>
-              {(item.accountTypeName || item.designation || 'Member').length > 12
-                ? (item.accountTypeName || item.designation || 'Member').substring(0, 11) + '…'
-                : item.accountTypeName || item.designation || 'Member'}
+          {/* Tier Badge */}
+          <LinearGradient
+            colors={tier.gradient}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.roleBadge}
+          >
+            <Text style={styles.roleBadgeText} numberOfLines={1}>
+              {tier.icon} {tier.label}
             </Text>
-          </View>
+          </LinearGradient>
 
-          {/* Avatar overlapping cover bottom */}
+          {/* Avatar Ring overlapping cover bottom */}
           <View style={styles.avatarWrapper}>
             <View style={styles.avatarRing}>
-              {avatarUrl ? (
-                <Image source={{ uri: avatarUrl }} style={styles.avatarImg} />
-              ) : (
-                <View style={styles.avatarCircle}>
-                  <Text style={styles.avatarInitial}>
-                    {(item.name || 'U')[0].toUpperCase()}
-                  </Text>
-                </View>
-              )}
+              <Image source={{ uri: avatarUrl }} style={styles.avatarImg} />
             </View>
           </View>
-        </LinearGradient>
+        </View>
 
         {/* Card Body */}
         <View style={styles.cardBody}>
-          <Text style={styles.leaderName} numberOfLines={1}>{item.name || 'Leader'}</Text>
-          <Text style={styles.leaderRole} numberOfLines={1}>
-            {item.designation || item.accountTypeName || 'Member'}
+          <Text style={styles.leaderName} numberOfLines={1}>
+            {item.name || 'Fortaa Leader'}
           </Text>
-          {(item.companyBrand || item.company_brand) ? (
-            <Text style={styles.leaderCompany} numberOfLines={1}>
-              {item.companyBrand || item.company_brand}
-            </Text>
-          ) : null}
-          {(item.city || item.location) ? (
-            <View style={styles.locationRow}>
-              <Feather name="map-pin" size={9} color="#9CA3AF" />
-              <Text style={styles.locationText}>{item.city || item.location}</Text>
+
+          <Text style={styles.leaderRole} numberOfLines={1}>
+            {roleName}
+          </Text>
+
+          {company ? (
+            <View style={styles.metaRow}>
+              <Feather name="briefcase" size={10} color="#8B5CF6" />
+              <Text style={styles.leaderCompany} numberOfLines={1}>
+                {company}
+              </Text>
             </View>
           ) : null}
 
-          {/* Stats Row */}
+          {location ? (
+            <View style={styles.metaRow}>
+              <Feather name="map-pin" size={10} color="#9CA3AF" />
+              <Text style={styles.locationText} numberOfLines={1}>
+                {location}
+              </Text>
+            </View>
+          ) : null}
+
+          {/* Real Stats Row */}
           <View style={styles.statsRow}>
             <View style={styles.statItem}>
               <Text style={styles.statNum}>{formatCount(followers)}</Text>
@@ -227,34 +371,47 @@ export default function LeadersScreen({
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statItem}>
-              <Text style={styles.statNum}>{posts}</Text>
+              <Text style={styles.statNum}>{formatCount(posts)}</Text>
               <Text style={styles.statLabel}>Posts</Text>
             </View>
           </View>
 
-          {/* Action Buttons */}
+          {/* Actions */}
           <View style={styles.cardActions}>
             <TouchableOpacity
-              style={[styles.followBtn, isFollowing && styles.followingBtn]}
-              onPress={() => handleFollow(item)}
+              style={{ flex: 1 }}
+              onPress={(e) => {
+                e.stopPropagation();
+                handleFollow(item);
+              }}
               activeOpacity={0.85}
             >
               {isFollowing ? (
-                <>
+                <View style={[styles.followBtn, styles.followingBtn]}>
                   <Feather name="check" size={12} color="#5321E8" />
-                  <Text style={[styles.followBtnText, styles.followingBtnText]}> Following</Text>
-                </>
+                  <Text style={styles.followingBtnText}> Following</Text>
+                </View>
               ) : (
-                <Text style={styles.followBtnText}>+ Follow</Text>
+                <LinearGradient
+                  colors={['#6220FE', '#8B5CF6']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.followBtn}
+                >
+                  <Text style={styles.followBtnText}>+ Follow</Text>
+                </LinearGradient>
               )}
             </TouchableOpacity>
 
             <TouchableOpacity
               style={styles.msgBtn}
-              onPress={() => onOpenChat && onOpenChat(item)}
+              onPress={(e) => {
+                e.stopPropagation();
+                if (onOpenChat) onOpenChat(item);
+              }}
               activeOpacity={0.85}
             >
-              <Feather name="message-circle" size={13} color="#5321E8" />
+              <Feather name="message-circle" size={14} color="#5321E8" />
             </TouchableOpacity>
           </View>
         </View>
@@ -274,39 +431,77 @@ export default function LeadersScreen({
         onLogout={onLogout}
       />
 
-      {/* Filter Tabs */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.filterScroll}
-        contentContainerStyle={styles.filterContent}
-      >
-        {filterTabs.map((tab) => (
-          <TouchableOpacity
-            key={tab}
-            style={[styles.filterTab, activeFilter === tab && styles.filterTabActive]}
-            onPress={() => setActiveFilter(tab)}
-            activeOpacity={0.85}
-          >
-            <Text style={[styles.filterTabText, activeFilter === tab && styles.filterTabTextActive]}>
-              {tab}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
+      {/* Category Filter Tabs */}
+      <View style={styles.filterBar}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.filterContent}
+        >
+          {CATEGORY_TABS.map((tab) => {
+            const isActive = activeTab === tab.id;
+            return (
+              <TouchableOpacity
+                key={tab.id}
+                style={[styles.filterTab, isActive && styles.filterTabActive]}
+                onPress={() => setActiveTab(tab.id)}
+                activeOpacity={0.85}
+              >
+                {isActive ? (
+                  <LinearGradient
+                    colors={['#6220FE', '#8B5CF6']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.filterTabActiveGradient}
+                  >
+                    <Text style={styles.filterTabTextActive}>
+                      {tab.icon ? `${tab.icon} ` : ''}
+                      {tab.label}
+                    </Text>
+                  </LinearGradient>
+                ) : (
+                  <Text style={styles.filterTabText}>
+                    {tab.icon ? `${tab.icon} ` : ''}
+                    {tab.label}
+                  </Text>
+                )}
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+      </View>
 
-      {/* Section Title */}
+      {/* Section Header */}
       <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>
-          {filteredLeaders.length} Leaders Found
-        </Text>
-        <TouchableOpacity onPress={fetchLeaders} activeOpacity={0.7}>
-          <Feather name="refresh-cw" size={15} color="#5321E8" />
+        <View style={styles.sectionTitleRow}>
+          <Text style={styles.sectionTitle}>
+            {filteredLeaders.length} {filteredLeaders.length === 1 ? 'Leader' : 'Leaders'} Found
+          </Text>
+          {activeTab !== 'all' && (
+            <View style={styles.activeFilterPill}>
+              <Text style={styles.activeFilterPillText}>
+                {CATEGORY_TABS.find((t) => t.id === activeTab)?.label || activeTab}
+              </Text>
+            </View>
+          )}
+        </View>
+        <TouchableOpacity
+          onPress={() => {
+            setRefreshing(true);
+            fetchLeaders();
+          }}
+          style={styles.refreshBtn}
+          activeOpacity={0.7}
+        >
+          <Feather name="refresh-cw" size={14} color="#6220FE" />
         </TouchableOpacity>
       </View>
 
       {loading ? (
-        <ActivityIndicator style={{ marginTop: 40 }} size="large" color="#5321E8" />
+        <View style={styles.loadingWrap}>
+          <ActivityIndicator size="large" color="#6220FE" />
+          <Text style={styles.loadingText}>Loading leaders...</Text>
+        </View>
       ) : (
         <FlatList
           data={filteredLeaders}
@@ -323,20 +518,38 @@ export default function LeadersScreen({
                 setRefreshing(true);
                 fetchLeaders();
               }}
-              tintColor="#5321E8"
+              tintColor="#6220FE"
+              colors={['#6220FE']}
             />
           }
           ListEmptyComponent={
             <View style={styles.emptyWrap}>
-              <Feather name="users" size={48} color="#C4B5FD" />
-              <Text style={styles.emptyText}>No leaders found</Text>
-              <Text style={styles.emptySubText}>Try a different filter or search term</Text>
+              <View style={styles.emptyIconCircle}>
+                <Feather name="users" size={36} color="#8B5CF6" />
+              </View>
+              <Text style={styles.emptyText}>No Leaders Found</Text>
+              <Text style={styles.emptySubText}>
+                {searchQuery
+                  ? `No matches found for "${searchQuery}".`
+                  : 'Try selecting a different tier or refresh.'}
+              </Text>
+              {(activeTab !== 'all' || searchQuery) && (
+                <TouchableOpacity
+                  style={styles.resetFilterBtn}
+                  onPress={() => {
+                    setActiveTab('all');
+                    setSearchQuery('');
+                  }}
+                >
+                  <Text style={styles.resetFilterBtnText}>Show All Leaders</Text>
+                </TouchableOpacity>
+              )}
             </View>
           }
         />
       )}
 
-      {/* Leader Profile Modal — opens when card tapped */}
+      {/* Leader Profile Modal */}
       {selectedLeader && (
         <LeaderProfileModal
           visible={!!selectedLeader}
@@ -357,148 +570,334 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FAF8FE' },
 
   // Filter Tabs
-  filterScroll: { maxHeight: 52, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#EEE9FF' },
-  filterContent: { paddingHorizontal: 12, paddingVertical: 10, gap: 8, flexDirection: 'row' },
+  filterBar: {
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0EEF8',
+    paddingVertical: 8,
+  },
+  filterContent: {
+    paddingHorizontal: 12,
+    gap: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   filterTab: {
-    paddingHorizontal: 14,
-    paddingVertical: 6,
     borderRadius: 20,
     backgroundColor: '#F3F0FF',
     borderWidth: 1,
     borderColor: '#E8E0FF',
+    overflow: 'hidden',
   },
-  filterTabActive: { backgroundColor: '#5321E8', borderColor: '#5321E8' },
-  filterTabText: { fontSize: 12, color: '#6B7280', fontWeight: '500' },
-  filterTabTextActive: { color: '#fff', fontWeight: '700' },
+  filterTabActive: {
+    borderColor: 'transparent',
+    backgroundColor: 'transparent',
+  },
+  filterTabActiveGradient: {
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 20,
+  },
+  filterTabText: {
+    fontSize: 12,
+    color: '#6B7280',
+    fontWeight: '600',
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+  },
+  filterTabTextActive: {
+    fontSize: 12,
+    color: '#fff',
+    fontWeight: '700',
+  },
 
   // Section Header
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 14,
-    paddingVertical: 10,
+    paddingHorizontal: 16,
+    paddingTop: 14,
+    paddingBottom: 8,
   },
-  sectionTitle: { fontSize: 13, fontWeight: '600', color: '#374151' },
+  sectionTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  sectionTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#1E1B4B',
+  },
+  activeFilterPill: {
+    backgroundColor: '#EDE9FE',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 12,
+  },
+  activeFilterPillText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#6220FE',
+  },
+  refreshBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#F3F0FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 
   // Grid
-  listContent: { paddingHorizontal: 10, paddingBottom: 20 },
-  row: { justifyContent: 'space-between', marginBottom: 12 },
+  listContent: {
+    paddingHorizontal: 12,
+    paddingTop: 6,
+    paddingBottom: 28,
+  },
+  row: {
+    justifyContent: 'space-between',
+    marginBottom: 14,
+  },
 
   // Leader Card
   leaderCard: {
     width: CARD_WIDTH,
     backgroundColor: '#fff',
-    borderRadius: 16,
+    borderRadius: 18,
     overflow: 'hidden',
-    shadowColor: '#5321E8',
+    shadowColor: '#6220FE',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: '#F3EFFC',
   },
   cardCover: {
-    height: 90,
+    height: 95,
     position: 'relative',
-    justifyContent: 'flex-end',
-    paddingBottom: 20,
+    backgroundColor: '#1E1B4B',
+    overflow: 'hidden',
+  },
+  coverImage: {
+    width: '100%',
+    height: '100%',
   },
   dismissBtn: {
     position: 'absolute',
-    top: 8,
-    right: 8,
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: 'rgba(0,0,0,0.4)',
+    top: 7,
+    right: 7,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: 'rgba(0,0,0,0.5)',
     alignItems: 'center',
     justifyContent: 'center',
+    zIndex: 5,
   },
   roleBadge: {
     position: 'absolute',
-    top: 8,
-    left: 8,
-    paddingHorizontal: 7,
-    paddingVertical: 2,
-    borderRadius: 10,
-    maxWidth: CARD_WIDTH - 40,
+    top: 7,
+    left: 7,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 12,
+    maxWidth: CARD_WIDTH - 42,
+    zIndex: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 2,
   },
-  roleBadgeText: { fontSize: 9, fontWeight: '700', letterSpacing: 0.3 },
-  avatarWrapper: { position: 'absolute', bottom: -18, left: 10 },
+  roleBadgeText: {
+    fontSize: 9.5,
+    fontWeight: '800',
+    color: '#fff',
+    letterSpacing: 0.2,
+  },
+  avatarWrapper: {
+    position: 'absolute',
+    bottom: -18,
+    left: 12,
+    zIndex: 6,
+  },
   avatarRing: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    borderWidth: 2.5,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    borderWidth: 3,
     borderColor: '#fff',
-    backgroundColor: '#5321E8',
+    backgroundColor: '#6220FE',
     overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 3,
   },
-  avatarImg: { width: '100%', height: '100%' },
-  avatarCircle: {
+  avatarImg: {
     width: '100%',
     height: '100%',
-    backgroundColor: '#7C3AED',
-    alignItems: 'center',
-    justifyContent: 'center',
   },
-  avatarInitial: { fontSize: 16, fontWeight: '800', color: '#fff' },
 
   // Card Body
-  cardBody: { padding: 10, paddingTop: 24 },
-  leaderName: { fontSize: 13, fontWeight: '700', color: '#1E1B4B', marginBottom: 1 },
-  leaderRole: { fontSize: 10, color: '#6B7280', marginBottom: 2 },
-  leaderCompany: { fontSize: 9.5, color: '#9CA3AF', marginBottom: 2 },
-  locationRow: { flexDirection: 'row', alignItems: 'center', gap: 3, marginBottom: 6 },
-  locationText: { fontSize: 9, color: '#9CA3AF' },
+  cardBody: {
+    padding: 10,
+    paddingTop: 24,
+  },
+  leaderName: {
+    fontSize: 13.5,
+    fontWeight: '700',
+    color: '#0F172A',
+    marginBottom: 2,
+  },
+  leaderRole: {
+    fontSize: 10.5,
+    fontWeight: '600',
+    color: '#6220FE',
+    marginBottom: 4,
+  },
+  metaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginBottom: 3,
+  },
+  leaderCompany: {
+    fontSize: 10,
+    color: '#475569',
+    fontWeight: '500',
+    flex: 1,
+  },
+  locationText: {
+    fontSize: 9.5,
+    color: '#94A3B8',
+    flex: 1,
+  },
 
-  // Stats
+  // Real Stats
   statsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F5F3FF',
+    backgroundColor: '#F7F5FC',
     borderRadius: 10,
-    paddingVertical: 6,
+    paddingVertical: 7,
+    marginTop: 6,
     marginBottom: 10,
   },
-  statItem: { flex: 1, alignItems: 'center' },
-  statNum: { fontSize: 12, fontWeight: '700', color: '#5321E8' },
-  statLabel: { fontSize: 8, color: '#9CA3AF', fontWeight: '500' },
-  statDivider: { width: 1, height: 20, backgroundColor: '#E0D9FF' },
-
-  // Buttons
-  cardActions: { flexDirection: 'row', gap: 6, alignItems: 'center' },
-  followBtn: {
+  statItem: {
     flex: 1,
+    alignItems: 'center',
+  },
+  statNum: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#1E1B4B',
+  },
+  statLabel: {
+    fontSize: 8.5,
+    color: '#64748B',
+    fontWeight: '600',
+    marginTop: 1,
+  },
+  statDivider: {
+    width: 1,
+    height: 20,
+    backgroundColor: '#E5E1F2',
+  },
+
+  // Actions
+  cardActions: {
+    flexDirection: 'row',
+    gap: 6,
+    alignItems: 'center',
+  },
+  followBtn: {
     paddingVertical: 7,
     borderRadius: 20,
-    backgroundColor: '#5321E8',
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
   },
   followingBtn: {
     backgroundColor: '#F3F0FF',
-    borderWidth: 1,
-    borderColor: '#5321E8',
+    borderWidth: 1.5,
+    borderColor: '#6220FE',
   },
-  followBtnText: { fontSize: 11, fontWeight: '700', color: '#fff' },
-  followingBtnText: { color: '#5321E8' },
+  followBtnText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#fff',
+  },
+  followingBtnText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#6220FE',
+  },
   msgBtn: {
     width: 32,
     height: 32,
     borderRadius: 16,
     borderWidth: 1.5,
-    borderColor: '#5321E8',
+    borderColor: '#6220FE',
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#F5F3FF',
   },
 
-  // Empty
-  emptyWrap: { alignItems: 'center', paddingTop: 60 },
-  emptyText: { fontSize: 16, fontWeight: '700', color: '#374151', marginTop: 12 },
-  emptySubText: { fontSize: 13, color: '#9CA3AF', marginTop: 4 },
+  // Loading & Empty States
+  loadingWrap: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingTop: 80,
+    gap: 12,
+  },
+  loadingText: {
+    fontSize: 13,
+    color: '#64748B',
+    fontWeight: '500',
+  },
+  emptyWrap: {
+    alignItems: 'center',
+    paddingTop: 50,
+    paddingHorizontal: 24,
+  },
+  emptyIconCircle: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    backgroundColor: '#EDE9FE',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 14,
+  },
+  emptyText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1E1B4B',
+  },
+  emptySubText: {
+    fontSize: 12,
+    color: '#64748B',
+    textAlign: 'center',
+    marginTop: 4,
+    lineHeight: 18,
+  },
+  resetFilterBtn: {
+    marginTop: 16,
+    backgroundColor: '#6220FE',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  resetFilterBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#fff',
+  },
 });
