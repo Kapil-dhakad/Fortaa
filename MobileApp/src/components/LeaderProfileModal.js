@@ -151,7 +151,12 @@ export default function LeaderProfileModal({
               {/* Cover Banner Card */}
               <View style={styles.coverCard}>
                 <Image
-                  source={require('../../assets/dashboard/profile_cover_purple.png')}
+                  source={{
+                    uri:
+                      profile?.cover_url && profile.cover_url.startsWith('http')
+                        ? profile.cover_url
+                        : 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=800&auto=format&fit=crop&q=80',
+                  }}
                   style={styles.coverImg}
                   resizeMode="cover"
                 />
@@ -185,17 +190,23 @@ export default function LeaderProfileModal({
               {/* Stats Bar (Followers, Following, Posts) */}
               <View style={styles.statsBar}>
                 <View style={styles.statCol}>
-                  <Text style={styles.statNumber}>{profile?.followers_count || 142}</Text>
+                  <Text style={styles.statNumber}>
+                    {profile?.followers_count !== undefined ? profile.followers_count : 0}
+                  </Text>
                   <Text style={styles.statLabel}>Followers</Text>
                 </View>
                 <View style={styles.statDivider} />
                 <View style={styles.statCol}>
-                  <Text style={styles.statNumber}>{profile?.following_count || 88}</Text>
+                  <Text style={styles.statNumber}>
+                    {profile?.following_count !== undefined ? profile.following_count : 0}
+                  </Text>
                   <Text style={styles.statLabel}>Following</Text>
                 </View>
                 <View style={styles.statDivider} />
                 <View style={styles.statCol}>
-                  <Text style={styles.statNumber}>{profile?.posts_count || 24}</Text>
+                  <Text style={styles.statNumber}>
+                    {profile?.posts_count !== undefined ? profile.posts_count : 0}
+                  </Text>
                   <Text style={styles.statLabel}>Posts</Text>
                 </View>
               </View>

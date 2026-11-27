@@ -10,6 +10,7 @@ import {
   Image,
   Dimensions,
   ScrollView,
+  TextInput,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -18,7 +19,8 @@ import UserHeader from '../components/UserHeader';
 import LeaderProfileModal from '../components/LeaderProfileModal';
 
 const { width } = Dimensions.get('window');
-const CARD_WIDTH = (width - 32) / 2;
+// 2 columns with 10px screen padding on sides and 8px gap between cards
+const CARD_WIDTH = (width - 20 - 8) / 2;
 
 const CATEGORY_TABS = [
   { id: 'all', label: 'All Leaders', icon: null },
@@ -258,7 +260,8 @@ export default function LeadersScreen({
   };
 
   const renderLeaderCard = ({ item, index }) => {
-    const isFollowing = followingIds.has(item.id) || followingIds.has(Number(item.id)) || item.follow_status === 'accepted';
+    const isFollowing =
+      followingIds.has(item.id) || followingIds.has(Number(item.id)) || item.follow_status === 'accepted';
     const tier = getLeaderTierInfo(item);
 
     const followers = item.followers_count !== undefined ? item.followers_count : (item.followers ?? 0);
@@ -278,108 +281,99 @@ export default function LeadersScreen({
 
     const roleName = item.designation || item.role || item.accountTypeName || tier.label;
     const company = item.company_brand || item.companyBrand || '';
-    const location = item.location || item.city || '';
 
     return (
       <TouchableOpacity
-        style={styles.leaderCard}
+        style={styles.leadCard}
         onPress={() => setSelectedLeader(item)}
         activeOpacity={0.92}
       >
-        {/* Cover Photo Header */}
-        <View style={styles.cardCover}>
+        {/* Banner with Scenic Image & Overlay */}
+        <View style={styles.leadCardBanner}>
           <Image
             source={{ uri: coverBanner }}
-            style={styles.coverImage}
+            style={styles.leadBannerImg}
             resizeMode="cover"
           />
-          <LinearGradient
-            colors={['rgba(0,0,0,0.4)', 'rgba(0,0,0,0.05)', 'rgba(0,0,0,0.6)']}
-            style={StyleSheet.absoluteFillObject}
-          />
 
-          {/* Dismiss Button */}
+          {/* Tier Badge at top-left (e.g. ⭐ Crown Director, ⭐ Consultant, 💎 Diamond Leader) */}
+          <LinearGradient
+            colors={tier.gradient}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.leadLevelBadge}
+          >
+            <Text style={styles.leadBadgeIcon}>{tier.icon}</Text>
+            <Text style={styles.leadBadgeText} numberOfLines={1}>
+              {roleName.length > 15 ? roleName.substring(0, 14) + '…' : roleName}
+            </Text>
+          </LinearGradient>
+
+          {/* Dismiss X Button at top-right */}
           <TouchableOpacity
-            style={styles.dismissBtn}
+            style={styles.leadCardDismissBtn}
             onPress={(e) => {
               e.stopPropagation();
               handleDismiss(item.id);
             }}
             hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
           >
-            <Feather name="x" size={13} color="#fff" />
+            <Feather name="x" size={11} color="#FFFFFF" />
           </TouchableOpacity>
 
-          {/* Tier Badge */}
-          <LinearGradient
-            colors={tier.gradient}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.roleBadge}
-          >
-            <Text style={styles.roleBadgeText} numberOfLines={1}>
-              {tier.icon} {tier.label}
-            </Text>
-          </LinearGradient>
-
-          {/* Avatar Ring overlapping cover bottom */}
-          <View style={styles.avatarWrapper}>
-            <View style={styles.avatarRing}>
-              <Image source={{ uri: avatarUrl }} style={styles.avatarImg} />
-            </View>
+          {/* Circular Avatar (74px x 74px, top: 28px, left: 8px, 3px white border) */}
+          <View style={styles.leadCardAvatarWrap}>
+            <Image
+              source={{ uri: avatarUrl }}
+              style={styles.leadCardAvatarImg}
+              resizeMode="cover"
+            />
           </View>
         </View>
 
         {/* Card Body */}
-        <View style={styles.cardBody}>
-          <Text style={styles.leaderName} numberOfLines={1}>
+        <View style={styles.leadCardBody}>
+          {/* Leader Name */}
+          <Text style={styles.leadCardName} numberOfLines={1}>
             {item.name || 'Fortaa Leader'}
           </Text>
 
-          <Text style={styles.leaderRole} numberOfLines={1}>
-            {roleName}
-          </Text>
+          {/* Level & Company row with icon (e.g. ⭐ Consultant • Stream Energy) */}
+          <View style={styles.leadCardLevelRow}>
+            <Text style={styles.leadLevelIconSm}>{tier.icon}</Text>
+            <Text style={styles.leadCardLevelText} numberOfLines={1}>
+              {roleName}
+              {company ? ` • ${company}` : ''}
+            </Text>
+          </View>
 
-          {company ? (
-            <View style={styles.metaRow}>
-              <Feather name="briefcase" size={10} color="#8B5CF6" />
-              <Text style={styles.leaderCompany} numberOfLines={1}>
-                {company}
-              </Text>
+          {/* Stats Row (3 Columns: Followers, Following, Post) */}
+          <View style={styles.leadCardStatsRow}>
+            <View style={styles.leadCardStatCol}>
+              <Text style={styles.leadCardStatVal}>{formatCount(followers)}</Text>
+              <Text style={styles.leadCardStatLbl}>Followers</Text>
             </View>
-          ) : null}
-
-          {location ? (
-            <View style={styles.metaRow}>
-              <Feather name="map-pin" size={10} color="#9CA3AF" />
-              <Text style={styles.locationText} numberOfLines={1}>
-                {location}
-              </Text>
+            <View style={styles.leadCardStatCol}>
+              <Text style={styles.leadCardStatVal}>{formatCount(following)}</Text>
+              <Text style={styles.leadCardStatLbl}>Following</Text>
             </View>
-          ) : null}
-
-          {/* Real Stats Row */}
-          <View style={styles.statsRow}>
-            <View style={styles.statItem}>
-              <Text style={styles.statNum}>{formatCount(followers)}</Text>
-              <Text style={styles.statLabel}>Followers</Text>
-            </View>
-            <View style={styles.statDivider} />
-            <View style={styles.statItem}>
-              <Text style={styles.statNum}>{formatCount(following)}</Text>
-              <Text style={styles.statLabel}>Following</Text>
-            </View>
-            <View style={styles.statDivider} />
-            <View style={styles.statItem}>
-              <Text style={styles.statNum}>{formatCount(posts)}</Text>
-              <Text style={styles.statLabel}>Posts</Text>
+            <View style={styles.leadCardStatCol}>
+              <Text style={styles.leadCardStatVal}>{formatCount(posts)}</Text>
+              <Text style={styles.leadCardStatLbl}>Post</Text>
             </View>
           </View>
 
-          {/* Actions */}
-          <View style={styles.cardActions}>
+          {/* Optional Quote / Bio */}
+          {item.bio ? (
+            <Text style={styles.leadCardQuote} numberOfLines={1}>
+              “{item.bio}”
+            </Text>
+          ) : null}
+
+          {/* Actions: Follow & Message Side by Side */}
+          <View style={styles.leadCardActionsRow}>
             <TouchableOpacity
-              style={{ flex: 1 }}
+              style={styles.actionBtnWrap}
               onPress={(e) => {
                 e.stopPropagation();
                 handleFollow(item);
@@ -387,31 +381,32 @@ export default function LeadersScreen({
               activeOpacity={0.85}
             >
               {isFollowing ? (
-                <View style={[styles.followBtn, styles.followingBtn]}>
-                  <Feather name="check" size={12} color="#5321E8" />
-                  <Text style={styles.followingBtnText}> Following</Text>
+                <View style={[styles.leadBtnFollow, styles.leadBtnFollowing]}>
+                  <Text style={styles.leadBtnFollowingText}>Following ✓</Text>
                 </View>
               ) : (
                 <LinearGradient
-                  colors={['#6220FE', '#8B5CF6']}
+                  colors={['#9F21FE', '#4F24FF']}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 1 }}
-                  style={styles.followBtn}
+                  style={styles.leadBtnFollow}
                 >
-                  <Text style={styles.followBtnText}>+ Follow</Text>
+                  <Text style={styles.leadBtnFollowText}>Follow</Text>
                 </LinearGradient>
               )}
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={styles.msgBtn}
+              style={styles.actionBtnWrap}
               onPress={(e) => {
                 e.stopPropagation();
                 if (onOpenChat) onOpenChat(item);
               }}
               activeOpacity={0.85}
             >
-              <Feather name="message-circle" size={14} color="#5321E8" />
+              <View style={styles.leadBtnMessage}>
+                <Text style={styles.leadBtnMessageText}>Message</Text>
+              </View>
             </TouchableOpacity>
           </View>
         </View>
@@ -421,82 +416,78 @@ export default function LeadersScreen({
 
   return (
     <View style={styles.container}>
+      {/* Top Standard Header */}
       <UserHeader
         user={currentUser}
-        searchQuery={searchQuery}
-        onSearchChange={(q) => setSearchQuery(q)}
+        searchQuery=""
+        onSearchChange={() => {}}
         onNavigateToMessages={onNavigateToMessages}
         onNavigateToNotifications={onNavigateToNotifications || (() => {})}
         onNavigateToProfile={onNavigateToProfile}
         onLogout={onLogout}
       />
 
-      {/* Category Filter Tabs */}
-      <View style={styles.filterBar}>
+      {/* Category Filter Tabs (Pills) */}
+      <View style={styles.filterPillsWrap}>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.filterContent}
+          contentContainerStyle={styles.filterPillsContent}
         >
           {CATEGORY_TABS.map((tab) => {
             const isActive = activeTab === tab.id;
             return (
               <TouchableOpacity
                 key={tab.id}
-                style={[styles.filterTab, isActive && styles.filterTabActive]}
+                style={[styles.pillBtn, isActive && styles.pillBtnActive]}
                 onPress={() => setActiveTab(tab.id)}
                 activeOpacity={0.85}
               >
-                {isActive ? (
-                  <LinearGradient
-                    colors={['#6220FE', '#8B5CF6']}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={styles.filterTabActiveGradient}
-                  >
-                    <Text style={styles.filterTabTextActive}>
-                      {tab.icon ? `${tab.icon} ` : ''}
-                      {tab.label}
-                    </Text>
-                  </LinearGradient>
-                ) : (
-                  <Text style={styles.filterTabText}>
-                    {tab.icon ? `${tab.icon} ` : ''}
-                    {tab.label}
-                  </Text>
-                )}
+                <Text style={[styles.pillBtnText, isActive && styles.pillBtnTextActive]}>
+                  {tab.icon ? `${tab.icon} ` : ''}
+                  {tab.label}
+                </Text>
               </TouchableOpacity>
             );
           })}
         </ScrollView>
       </View>
 
-      {/* Section Header */}
-      <View style={styles.sectionHeader}>
-        <View style={styles.sectionTitleRow}>
-          <Text style={styles.sectionTitle}>
-            {filteredLeaders.length} {filteredLeaders.length === 1 ? 'Leader' : 'Leaders'} Found
-          </Text>
-          {activeTab !== 'all' && (
-            <View style={styles.activeFilterPill}>
-              <Text style={styles.activeFilterPillText}>
-                {CATEGORY_TABS.find((t) => t.id === activeTab)?.label || activeTab}
-              </Text>
-            </View>
-          )}
+      {/* Search & Filter Bar */}
+      <View style={styles.searchRow}>
+        <View style={styles.searchBox}>
+          <Feather name="search" size={15} color="#A0A5B9" />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search people, posts, companies, products, opportunities..."
+            placeholderTextColor="#A0A5B9"
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            returnKeyType="search"
+          />
+          {searchQuery ? (
+            <TouchableOpacity onPress={() => setSearchQuery('')} hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}>
+              <Feather name="x" size={14} color="#A0A5B9" />
+            </TouchableOpacity>
+          ) : null}
         </View>
+
+        {/* Filter Sliders Toggle Button */}
         <TouchableOpacity
+          style={styles.filterToggleBtn}
           onPress={() => {
-            setRefreshing(true);
-            fetchLeaders();
+            // Cycle through category tabs on toggle click
+            const currentIndex = CATEGORY_TABS.findIndex((t) => t.id === activeTab);
+            const nextIndex = (currentIndex + 1) % CATEGORY_TABS.length;
+            setActiveTab(CATEGORY_TABS[nextIndex].id);
           }}
-          style={styles.refreshBtn}
-          activeOpacity={0.7}
+          activeOpacity={0.8}
         >
-          <Feather name="refresh-cw" size={14} color="#6220FE" />
+          <Feather name="sliders" size={16} color="#6220FE" />
         </TouchableOpacity>
       </View>
 
+      {/* Main Grid Content */}
       {loading ? (
         <View style={styles.loadingWrap}>
           <ActivityIndicator size="large" color="#6220FE" />
@@ -525,7 +516,7 @@ export default function LeadersScreen({
           ListEmptyComponent={
             <View style={styles.emptyWrap}>
               <View style={styles.emptyIconCircle}>
-                <Feather name="users" size={36} color="#8B5CF6" />
+                <Feather name="users" size={32} color="#8B5CF6" />
               </View>
               <Text style={styles.emptyText}>No Leaders Found</Text>
               <Text style={styles.emptySubText}>
@@ -569,285 +560,293 @@ export default function LeadersScreen({
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FAF8FE' },
 
-  // Filter Tabs
-  filterBar: {
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0EEF8',
+  // Category Filter Pills
+  filterPillsWrap: {
+    backgroundColor: '#FFFFFF',
     paddingVertical: 8,
   },
-  filterContent: {
-    paddingHorizontal: 12,
+  filterPillsContent: {
+    paddingHorizontal: 10,
     gap: 8,
     flexDirection: 'row',
     alignItems: 'center',
   },
-  filterTab: {
-    borderRadius: 20,
-    backgroundColor: '#F3F0FF',
+  pillBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 18,
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#E8E0FF',
-    overflow: 'hidden',
+    borderColor: '#E5E7EB',
   },
-  filterTabActive: {
-    borderColor: 'transparent',
-    backgroundColor: 'transparent',
+  pillBtnActive: {
+    backgroundColor: '#6220FE',
+    borderColor: '#6220FE',
   },
-  filterTabActiveGradient: {
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-    borderRadius: 20,
-  },
-  filterTabText: {
+  pillBtnText: {
     fontSize: 12,
-    color: '#6B7280',
-    fontWeight: '600',
-    paddingHorizontal: 14,
-    paddingVertical: 7,
+    color: '#232356',
+    fontWeight: '500',
   },
-  filterTabTextActive: {
-    fontSize: 12,
-    color: '#fff',
+  pillBtnTextActive: {
+    color: '#FFFFFF',
     fontWeight: '700',
   },
 
-  // Section Header
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingTop: 14,
-    paddingBottom: 8,
-  },
-  sectionTitleRow: {
+  // Search & Filter Row
+  searchRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+    paddingHorizontal: 10,
+    paddingTop: 6,
+    paddingBottom: 8,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0EEF8',
   },
-  sectionTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#1E1B4B',
-  },
-  activeFilterPill: {
-    backgroundColor: '#EDE9FE',
+  searchBox: {
+    flex: 1,
+    height: 34,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#D9D9D9',
+    borderRadius: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 12,
+    gap: 6,
   },
-  activeFilterPillText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#6220FE',
+  searchInput: {
+    flex: 1,
+    fontSize: 11,
+    color: '#232356',
+    paddingVertical: 0,
   },
-  refreshBtn: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: '#F3F0FF',
+  filterToggleBtn: {
+    width: 34,
+    height: 34,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E4DFFD',
+    borderRadius: 6,
     alignItems: 'center',
     justifyContent: 'center',
   },
 
   // Grid
   listContent: {
-    paddingHorizontal: 12,
-    paddingTop: 6,
+    paddingHorizontal: 10,
+    paddingTop: 8,
     paddingBottom: 28,
   },
   row: {
     justifyContent: 'space-between',
-    marginBottom: 14,
+    marginBottom: 8,
   },
 
-  // Leader Card
-  leaderCard: {
+  // Card (Exact Web Frame 109 match: 195px x 268px)
+  leadCard: {
     width: CARD_WIDTH,
-    backgroundColor: '#fff',
-    borderRadius: 18,
-    overflow: 'hidden',
-    shadowColor: '#6220FE',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 10,
-    elevation: 3,
+    backgroundColor: '#F7FBFE',
+    borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#F3EFFC',
-  },
-  cardCover: {
-    height: 95,
-    position: 'relative',
-    backgroundColor: '#1E1B4B',
+    borderColor: '#ECE7F6',
     overflow: 'hidden',
+    shadowColor: '#232356',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 2,
   },
-  coverImage: {
+
+  // Banner (104px height, relative)
+  leadCardBanner: {
+    height: 104,
+    position: 'relative',
+    backgroundColor: '#E2E8F0',
+    overflow: 'visible',
+  },
+  leadBannerImg: {
     width: '100%',
     height: '100%',
   },
-  dismissBtn: {
+
+  // Tier Badge at top-left
+  leadLevelBadge: {
     position: 'absolute',
     top: 7,
-    right: 7,
+    left: 8,
+    height: 18,
+    borderRadius: 5,
+    paddingHorizontal: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    zIndex: 2,
+    maxWidth: CARD_WIDTH - 40,
+  },
+  leadBadgeIcon: {
+    fontSize: 9,
+    color: '#FFFFFF',
+  },
+  leadBadgeText: {
+    fontSize: 8.5,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+
+  // Dismiss X Button at top-right
+  leadCardDismissBtn: {
+    position: 'absolute',
+    top: 6,
+    right: 6,
     width: 22,
     height: 22,
     borderRadius: 11,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 5,
   },
-  roleBadge: {
+
+  // Avatar Wrap (74px x 74px, top: 28px, left: 8px, 3px white border)
+  leadCardAvatarWrap: {
     position: 'absolute',
-    top: 7,
-    left: 7,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 12,
-    maxWidth: CARD_WIDTH - 42,
-    zIndex: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  roleBadgeText: {
-    fontSize: 9.5,
-    fontWeight: '800',
-    color: '#fff',
-    letterSpacing: 0.2,
-  },
-  avatarWrapper: {
-    position: 'absolute',
-    bottom: -18,
-    left: 12,
-    zIndex: 6,
-  },
-  avatarRing: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    top: 28,
+    left: 8,
+    width: 74,
+    height: 74,
+    borderRadius: 37,
     borderWidth: 3,
-    borderColor: '#fff',
-    backgroundColor: '#6220FE',
+    borderColor: '#FFFFFF',
+    backgroundColor: '#FFFFFF',
     overflow: 'hidden',
-    alignItems: 'center',
-    justifyContent: 'center',
+    zIndex: 3,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
+    shadowOpacity: 0.2,
     shadowRadius: 4,
     elevation: 3,
   },
-  avatarImg: {
+  leadCardAvatarImg: {
     width: '100%',
     height: '100%',
   },
 
   // Card Body
-  cardBody: {
-    padding: 10,
-    paddingTop: 24,
+  leadCardBody: {
+    paddingHorizontal: 8,
+    paddingTop: 4,
+    paddingBottom: 10,
+    backgroundColor: '#F7FBFE',
+    gap: 3,
   },
-  leaderName: {
-    fontSize: 13.5,
-    fontWeight: '700',
-    color: '#0F172A',
-    marginBottom: 2,
+  leadCardName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#232356',
+    marginTop: 2,
   },
-  leaderRole: {
+
+  // Level & Company row (⭐ Crown Director • RoyalVanta Global)
+  leadCardLevelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+  },
+  leadLevelIconSm: {
+    fontSize: 10,
+    color: '#232356',
+  },
+  leadCardLevelText: {
+    fontSize: 10.5,
+    fontWeight: '500',
+    color: '#232356',
+    flex: 1,
+  },
+
+  // Stats Row (Followers, Following, Post)
+  leadCardStatsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 3,
+    borderTopWidth: 1,
+    borderTopColor: '#ECE7F6',
+    borderBottomWidth: 1,
+    borderBottomColor: '#ECE7F6',
+    marginVertical: 2,
+  },
+  leadCardStatCol: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  leadCardStatVal: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#232356',
+  },
+  leadCardStatLbl: {
+    fontSize: 9,
+    color: '#4B5563',
+  },
+
+  // Quote
+  leadCardQuote: {
+    fontSize: 11,
+    color: '#232356',
+    fontStyle: 'italic',
+    marginVertical: 1,
+  },
+
+  // Actions (Side by Side)
+  leadCardActionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 4,
+  },
+  actionBtnWrap: {
+    flex: 1,
+  },
+  leadBtnFollow: {
+    height: 24,
+    borderRadius: 5,
+    borderWidth: 1,
+    borderColor: '#8B17F8',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  leadBtnFollowing: {
+    backgroundColor: '#F3F0FF',
+    borderColor: '#8B17F8',
+  },
+  leadBtnFollowText: {
     fontSize: 10.5,
     fontWeight: '600',
-    color: '#6220FE',
-    marginBottom: 4,
+    color: '#FFFFFF',
   },
-  metaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    marginBottom: 3,
-  },
-  leaderCompany: {
+  leadBtnFollowingText: {
     fontSize: 10,
-    color: '#475569',
-    fontWeight: '500',
-    flex: 1,
-  },
-  locationText: {
-    fontSize: 9.5,
-    color: '#94A3B8',
-    flex: 1,
-  },
-
-  // Real Stats
-  statsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F7F5FC',
-    borderRadius: 10,
-    paddingVertical: 7,
-    marginTop: 6,
-    marginBottom: 10,
-  },
-  statItem: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  statNum: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: '#1E1B4B',
-  },
-  statLabel: {
-    fontSize: 8.5,
-    color: '#64748B',
     fontWeight: '600',
-    marginTop: 1,
+    color: '#8B17F8',
   },
-  statDivider: {
-    width: 1,
-    height: 20,
-    backgroundColor: '#E5E1F2',
-  },
-
-  // Actions
-  cardActions: {
-    flexDirection: 'row',
-    gap: 6,
-    alignItems: 'center',
-  },
-  followBtn: {
-    paddingVertical: 7,
-    borderRadius: 20,
+  leadBtnMessage: {
+    height: 24,
+    borderRadius: 5,
+    borderWidth: 1,
+    borderColor: '#8B17F8',
+    backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
-    flexDirection: 'row',
   },
-  followingBtn: {
-    backgroundColor: '#F3F0FF',
-    borderWidth: 1.5,
-    borderColor: '#6220FE',
-  },
-  followBtnText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#fff',
-  },
-  followingBtnText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#6220FE',
-  },
-  msgBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    borderWidth: 1.5,
-    borderColor: '#6220FE',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#F5F3FF',
+  leadBtnMessageText: {
+    fontSize: 10.5,
+    fontWeight: '500',
+    color: '#8B17F8',
   },
 
   // Loading & Empty States
@@ -868,16 +867,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   emptyIconCircle: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     backgroundColor: '#EDE9FE',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 14,
+    marginBottom: 12,
   },
   emptyText: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '700',
     color: '#1E1B4B',
   },
@@ -886,18 +885,17 @@ const styles = StyleSheet.create({
     color: '#64748B',
     textAlign: 'center',
     marginTop: 4,
-    lineHeight: 18,
   },
   resetFilterBtn: {
-    marginTop: 16,
+    marginTop: 14,
     backgroundColor: '#6220FE',
     paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
+    paddingVertical: 7,
+    borderRadius: 18,
   },
   resetFilterBtnText: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#fff',
+    color: '#FFFFFF',
   },
 });
