@@ -101,12 +101,12 @@ export async function getChatHistoryApi(userId, otherUserId) {
 }
 
 // 7. Send Message HTTP
-export async function sendMessageApi({ senderId, receiverId, text }) {
+export async function sendMessageApi({ senderId, receiverId, text, attachment, replyTo }) {
   try {
     const res = await fetch(`${BASE_URL}/api/messages/send`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ senderId, receiverId, text }),
+      body: JSON.stringify({ senderId, receiverId, text, attachment, replyTo }),
     });
     const data = await res.json();
     if (!res.ok) {
@@ -116,6 +116,61 @@ export async function sendMessageApi({ senderId, receiverId, text }) {
   } catch (err) {
     console.warn('API error sendMessageApi:', err);
     throw err;
+  }
+}
+
+// 7b. Delete Message HTTP
+export async function deleteChatMessageApi(messageId, userId, deleteForEveryone = false) {
+  try {
+    const res = await fetch(`${BASE_URL}/api/messages/delete/${messageId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId, deleteForEveryone }),
+    });
+    return await res.json();
+  } catch (err) {
+    console.warn('API error deleteChatMessageApi:', err);
+    return { success: false };
+  }
+}
+
+// 7c. Upload Chat Media (image, video, pdf, document)
+export async function uploadChatMediaApi(fileOrUri, mimeType = null, originalName = null) {
+  try {
+    const formData = new FormData();
+
+    if (typeof fileOrUri === 'string') {
+      // Local URI
+      let filename = originalName || fileOrUri.split('/').pop() || 'upload_file';
+      let type = mimeType || 'application/octet-stream';
+      if (!mimeType) {
+        if (filename.match(/\.(jpg|jpeg|png|webp)$/i)) type = 'image/jpeg';
+        else if (filename.match(/\.(mp4|mov|avi)$/i)) type = 'video/mp4';
+        else if (filename.match(/\.pdf$/i)) type = 'application/pdf';
+        else if (filename.match(/\.(doc|docx)$/i)) type = 'application/msword';
+      }
+      formData.append('file', {
+        uri: fileOrUri,
+        name: filename,
+        type,
+      });
+    } else {
+      // Direct File object (Web)
+      formData.append('file', fileOrUri);
+    }
+
+    const res = await fetch(`${BASE_URL}/api/messages/upload`, {
+      method: 'POST',
+      body: formData,
+    });
+    const data = await res.json();
+    if (data.success && data.url) {
+      return data;
+    }
+    return null;
+  } catch (err) {
+    console.warn('API error uploadChatMediaApi:', err);
+    return null;
   }
 }
 

@@ -12,16 +12,24 @@ import {
   StatusBar,
   ActivityIndicator,
   Modal,
-  TouchableWithoutFeedback,
   Alert,
+  Dimensions,
 } from 'react-native';
-import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
+import { Feather, MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as ImagePicker from 'expo-image-picker';
+import LeaderProfileModal from '../components/LeaderProfileModal';
 import {
   getConversationsApi,
   getChatHistoryApi,
   sendMessageApi,
+  deleteChatMessageApi,
+  uploadChatMediaApi,
 } from '../services/api';
+
+const { width } = Dimensions.get('window');
+
+const QUICK_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🙏'];
 
 export default function MessagesScreen({
   currentUser,
@@ -32,7 +40,7 @@ export default function MessagesScreen({
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState('All');
 
-  // Filter Popup State (Matches Web & Image 4)
+  // Filter Popup State
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
   const [filterRole, setFilterRole] = useState('All');
   const [filterStatus, setFilterStatus] = useState('All');
@@ -44,6 +52,16 @@ export default function MessagesScreen({
   const [sending, setSending] = useState(false);
   const [chatOptionsOpen, setChatOptionsOpen] = useState(false);
   const [groupMembersModalOpen, setGroupMembersModalOpen] = useState(false);
+  const [selectedLeaderProfile, setSelectedLeaderProfile] = useState(null);
+
+  // Attachment Menu State (+)
+  const [attachmentMenuOpen, setAttachmentMenuOpen] = useState(false);
+
+  // WhatsApp Style Message Action & Reactions State
+  const [selectedMsgForMenu, setSelectedMsgForMenu] = useState(null);
+  const [reactions, setReactions] = useState({}); // { [msgId]: emoji }
+  const [replyingTo, setReplyingTo] = useState(null);
+
   const flatListRef = useRef(null);
 
   const filterTabs = ['All', 'Unread', 'Direct', 'Group'];
@@ -135,21 +153,33 @@ export default function MessagesScreen({
     }
   }, [selectedPartner?.id, currentUser?.id]);
 
+  // Send Text Message
   const handleSend = async () => {
     const text = inputText.trim();
     if (!text || sending || !selectedPartner) return;
 
+    const myUserId = currentUser?.id || 999;
+    const currentReply = replyingTo
+      ? {
+          id: replyingTo.id,
+          text: replyingTo.text || (replyingTo.attachment ? `📎 ${replyingTo.attachment.name}` : ''),
+          name: replyingTo.sender_id === myUserId ? 'You' : selectedPartner.name,
+        }
+      : null;
+
     const tempMsg = {
       id: String(Date.now()),
-      sender_id: currentUser?.id || 999,
+      sender_id: myUserId,
       receiver_id: selectedPartner.id,
       text,
+      replyTo: currentReply,
       created_at: new Date().toISOString(),
       is_read: false,
     };
 
     setMessages((prev) => [...prev, tempMsg]);
     setInputText('');
+    setReplyingTo(null);
     setSending(true);
 
     try {
@@ -158,6 +188,7 @@ export default function MessagesScreen({
           senderId: currentUser.id,
           receiverId: selectedPartner.id,
           text,
+          replyTo: currentReply,
         });
       }
     } catch (err) {
@@ -166,6 +197,205 @@ export default function MessagesScreen({
       setSending(false);
     }
   };
+
+  // Send Attachment (Image, Video, Document/PDF)
+  const sendAttachmentMessage = async (attachment) => {
+    setAttachmentMenuOpen(false);
+    if (!selectedPartner) return;
+
+    const myUserId = currentUser?.id || 999;
+    const currentReply = replyingTo
+      ? {
+          id: replyingTo.id,
+          text: replyingTo.text || (replyingTo.attachment ? `📎 ${replyingTo.attachment.name}` : ''),
+          name: replyingTo.sender_id === myUserId ? 'You' : selectedPartner.name,
+        }
+      : null;
+
+    const tempMsg = {
+      id: String(Date.now()),
+      sender_id: myUserId,
+      receiver_id: selectedPartner.id,
+      text: '',
+      attachment,
+      replyTo: currentReply,
+      created_at: new Date().toISOString(),
+      is_read: false,
+    };
+
+    setMessages((prev) => [...prev, tempMsg]);
+    setReplyingTo(null);
+
+    try {
+      if (currentUser?.id && selectedPartner.id) {
+        await sendMessageApi({
+          senderId: currentUser.id,
+          receiverId: selectedPartner.id,
+          text: '',
+          attachment,
+          replyTo: currentReply,
+        });
+      }
+    } catch (err) {
+      console.warn('send attachment error:', err);
+    }
+  };
+
+  // Handle Pick Attachment (Web + Native Universal)
+  const handlePickAttachment = async (category) => {
+    setAttachmentMenuOpen(false);
+
+    if (Platform.OS === 'web' && typeof document !== 'undefined') {
+      const input = document.createElement('input');
+      input.type = 'file';
+      if (category === 'image') input.accept = 'image/*';
+      else if (category === 'video') input.accept = 'video/*';
+      else input.accept = '.pdf,.doc,.docx,.txt,application/pdf';
+
+      input.onchange = async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        const sizeFormatted =
+          file.size > 1024 * 1024
+            ? (file.size / (1024 * 1024)).toFixed(1) + ' MB'
+            : (file.size / 1024).toFixed(0) + ' KB';
+
+        let fileUrl = '';
+        try {
+          const res = await uploadChatMediaApi(file);
+          if (res && res.url) fileUrl = res.url;
+        } catch (err) {}
+
+        if (!fileUrl) {
+          fileUrl = await new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onload = (ev) => resolve(ev.target?.result || '');
+            reader.readAsDataURL(file);
+          });
+        }
+
+        sendAttachmentMessage({
+          type: category,
+          url: fileUrl,
+          name: file.name,
+          size: sizeFormatted,
+        });
+      };
+      input.click();
+    } else {
+      // Native Mobile (ImagePicker)
+      try {
+        const mediaTypes = category === 'video' ? ['videos'] : ['images'];
+        const res = await ImagePicker.launchImageLibraryAsync({
+          mediaTypes,
+          quality: 0.8,
+        });
+        if (!res.canceled && res.assets && res.assets.length > 0) {
+          const asset = res.assets[0];
+          const filename = asset.fileName || (category === 'video' ? 'video.mp4' : 'photo.jpg');
+
+          let uploadedUrl = asset.uri;
+          try {
+            const apiRes = await uploadChatMediaApi(asset.uri, category === 'video' ? 'video/mp4' : 'image/jpeg', filename);
+            if (apiRes?.url) uploadedUrl = apiRes.url;
+          } catch (e) {}
+
+          sendAttachmentMessage({
+            type: category === 'video' ? 'video' : 'image',
+            url: uploadedUrl,
+            name: filename,
+            size: '1.5 MB',
+          });
+        }
+      } catch (err) {
+        Alert.alert('Error picking media', err.message);
+      }
+    }
+  };
+
+  // Toggle Emoji Reaction on a Message
+  const handleToggleReaction = (msgId, emoji) => {
+    setReactions((prev) => {
+      const cur = prev[msgId];
+      if (cur === emoji) {
+        const next = { ...prev };
+        delete next[msgId];
+        return next;
+      }
+      return { ...prev, [msgId]: emoji };
+    });
+    setSelectedMsgForMenu(null);
+  };
+
+  // Reply Message
+  const handleReplyMessage = (msg) => {
+    setReplyingTo(msg);
+    setSelectedMsgForMenu(null);
+  };
+
+  // Copy Message
+  const handleCopyMessage = (msg) => {
+    const textToCopy = msg.text || msg.attachment?.name || '';
+    if (textToCopy) {
+      if (Platform.OS === 'web' && navigator?.clipboard?.writeText) {
+        navigator.clipboard.writeText(textToCopy);
+      }
+      Alert.alert('Copied 📋', 'Message copied to clipboard');
+    }
+    setSelectedMsgForMenu(null);
+  };
+
+  // Delete Message (Delete for me / Delete for everyone)
+  const handleDeleteMessage = (msg, deleteForEveryone = false) => {
+    setSelectedMsgForMenu(null);
+    const myUserId = currentUser?.id || 999;
+
+    if (deleteForEveryone) {
+      setMessages((prev) =>
+        prev.map((m) =>
+          String(m.id) === String(msg.id)
+            ? { ...m, is_deleted: true, text: '🚫 This message was deleted', attachment: null }
+            : m
+        )
+      );
+      deleteChatMessageApi(msg.id, myUserId, true);
+      Alert.alert('Deleted', 'Message deleted for everyone');
+    } else {
+      setMessages((prev) => prev.filter((m) => String(m.id) !== String(msg.id)));
+      deleteChatMessageApi(msg.id, myUserId, false);
+      Alert.alert('Deleted', 'Message deleted for you');
+    }
+  };
+
+  // Filter Conversations List
+  const isFilterActive = filterRole !== 'All' || filterStatus !== 'All' || sortBy !== 'recent';
+
+  const filteredList = conversationList
+    .filter((item) => {
+      if (activeFilter === 'Unread' && !item.unread) return false;
+      if (activeFilter === 'Direct' && item.isGroup) return false;
+      if (activeFilter === 'Group' && !item.isGroup) return false;
+
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        const matchesName = (item.name || '').toLowerCase().includes(q);
+        const matchesMsg = (item.lastMessage || '').toLowerCase().includes(q);
+        if (!matchesName && !matchesMsg) return false;
+      }
+
+      if (filterRole !== 'All' && item.role !== filterRole) return false;
+      if (filterStatus === 'Online' && !item.isOnline) return false;
+      if (filterStatus === 'Unread' && !item.unread) return false;
+
+      return true;
+    })
+    .sort((a, b) => {
+      if (sortBy === 'name') {
+        return (a.name || '').localeCompare(b.name || '');
+      }
+      return 0;
+    });
 
   // ─────────────────────────────────────────────────────────────
   // RENDER: LIVE CHAT VIEW
@@ -189,7 +419,11 @@ export default function MessagesScreen({
             <Feather name="arrow-left" size={20} color="#1E1B4B" />
           </TouchableOpacity>
 
-          <View style={styles.chatHeaderAvatar}>
+          <TouchableOpacity
+            style={styles.chatHeaderAvatar}
+            onPress={() => setSelectedLeaderProfile(selectedPartner)}
+            activeOpacity={0.8}
+          >
             <Image
               source={
                 selectedPartner.avatarType === 'fortaa'
@@ -198,17 +432,22 @@ export default function MessagesScreen({
               }
               style={styles.chatHeaderAvatarImg}
             />
-          </View>
+          </TouchableOpacity>
 
-          <View style={styles.chatHeaderMeta}>
+          <TouchableOpacity
+            style={styles.chatHeaderMeta}
+            onPress={() => setSelectedLeaderProfile(selectedPartner)}
+            activeOpacity={0.8}
+          >
             <Text style={styles.chatPartnerName} numberOfLines={1}>
               {selectedPartner.name}
             </Text>
             <Text style={styles.chatPartnerRole}>
               {selectedPartner.role || 'Active Member'}
             </Text>
-          </View>
+          </TouchableOpacity>
 
+          {/* Three-dots Button (Opens Popover right near here) */}
           <TouchableOpacity
             style={styles.chatActionBtn}
             onPress={() => setChatOptionsOpen(true)}
@@ -228,6 +467,7 @@ export default function MessagesScreen({
           onLayout={() => flatListRef.current?.scrollToEnd({ animated: false })}
           renderItem={({ item }) => {
             const isMe = item.sender_id === (currentUser?.id || 999);
+            const msgReaction = reactions[item.id];
 
             return (
               <View
@@ -236,38 +476,246 @@ export default function MessagesScreen({
                   isMe ? styles.bubbleRowMe : styles.bubbleRowPartner,
                 ]}
               >
-                {isMe ? (
-                  <LinearGradient
-                    colors={['#BE84FC', '#6420D6']}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={styles.bubbleMe}
-                  >
-                    <Text style={styles.bubbleMeText}>{item.text}</Text>
-                    <View style={styles.bubbleTimeRow}>
-                      <Text style={styles.bubbleTimeMe}>Just now</Text>
-                      <Feather name="check" size={11} color="#FFFFFF" />
+                <TouchableOpacity
+                  activeOpacity={0.92}
+                  onLongPress={() => setSelectedMsgForMenu(item)}
+                  delayLongPress={250}
+                  style={[
+                    styles.bubbleContainer,
+                    isMe ? styles.bubbleMeContainer : styles.bubblePartnerContainer,
+                  ]}
+                >
+                  {isMe ? (
+                    <LinearGradient
+                      colors={['#BE84FC', '#6420D6']}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                      style={styles.bubbleMe}
+                    >
+                      {/* Quoted Reply Preview */}
+                      {item.replyTo ? (
+                        <View style={styles.quotedMsgBoxMe}>
+                          <Text style={styles.quotedSenderNameMe}>{item.replyTo.name}</Text>
+                          <Text style={styles.quotedTextMe} numberOfLines={2}>
+                            {item.replyTo.text}
+                          </Text>
+                        </View>
+                      ) : null}
+
+                      {/* Attachment Render */}
+                      {item.attachment ? (
+                        <View style={styles.attachmentWrapper}>
+                          {item.attachment.type === 'image' ? (
+                            <Image
+                              source={{ uri: item.attachment.url }}
+                              style={styles.attachmentImage}
+                              resizeMode="cover"
+                            />
+                          ) : item.attachment.type === 'video' ? (
+                            <View style={styles.attachmentVideoBox}>
+                              <Ionicons name="play-circle" size={40} color="#FFFFFF" />
+                              <Text style={styles.attachmentVideoText}>
+                                {item.attachment.name || 'Video'}
+                              </Text>
+                            </View>
+                          ) : (
+                            <View style={styles.attachmentDocBox}>
+                              <Feather name="file-text" size={24} color="#FFFFFF" />
+                              <View style={{ flex: 1 }}>
+                                <Text style={styles.attachmentDocName} numberOfLines={1}>
+                                  {item.attachment.name}
+                                </Text>
+                                <Text style={styles.attachmentDocSize}>
+                                  {item.attachment.size}
+                                </Text>
+                              </View>
+                            </View>
+                          )}
+                        </View>
+                      ) : null}
+
+                      {/* Text */}
+                      {item.text ? (
+                        <Text
+                          style={[
+                            styles.bubbleMeText,
+                            item.is_deleted && styles.deletedTextMe,
+                          ]}
+                        >
+                          {item.text}
+                        </Text>
+                      ) : null}
+
+                      <View style={styles.bubbleTimeRow}>
+                        <Text style={styles.bubbleTimeMe}>
+                          {item.created_at
+                            ? new Date(item.created_at).toLocaleTimeString([], {
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              })
+                            : 'Just now'}
+                        </Text>
+                        <Feather name="check" size={11} color="#FFFFFF" />
+                      </View>
+                    </LinearGradient>
+                  ) : (
+                    <View style={styles.bubblePartner}>
+                      {/* Quoted Reply Preview */}
+                      {item.replyTo ? (
+                        <View style={styles.quotedMsgBoxPartner}>
+                          <Text style={styles.quotedSenderNamePartner}>
+                            {item.replyTo.name}
+                          </Text>
+                          <Text style={styles.quotedTextPartner} numberOfLines={2}>
+                            {item.replyTo.text}
+                          </Text>
+                        </View>
+                      ) : null}
+
+                      {/* Attachment Render */}
+                      {item.attachment ? (
+                        <View style={styles.attachmentWrapper}>
+                          {item.attachment.type === 'image' ? (
+                            <Image
+                              source={{ uri: item.attachment.url }}
+                              style={styles.attachmentImage}
+                              resizeMode="cover"
+                            />
+                          ) : item.attachment.type === 'video' ? (
+                            <View style={[styles.attachmentVideoBox, { backgroundColor: '#475569' }]}>
+                              <Ionicons name="play-circle" size={40} color="#FFFFFF" />
+                              <Text style={styles.attachmentVideoText}>
+                                {item.attachment.name || 'Video'}
+                              </Text>
+                            </View>
+                          ) : (
+                            <View style={[styles.attachmentDocBox, { backgroundColor: '#F1F5F9' }]}>
+                              <Feather name="file-text" size={24} color="#EF4444" />
+                              <View style={{ flex: 1 }}>
+                                <Text
+                                  style={[styles.attachmentDocName, { color: '#0F172A' }]}
+                                  numberOfLines={1}
+                                >
+                                  {item.attachment.name}
+                                </Text>
+                                <Text style={[styles.attachmentDocSize, { color: '#64748B' }]}>
+                                  {item.attachment.size}
+                                </Text>
+                              </View>
+                            </View>
+                          )}
+                        </View>
+                      ) : null}
+
+                      {/* Text */}
+                      {item.text ? (
+                        <Text
+                          style={[
+                            styles.bubblePartnerText,
+                            item.is_deleted && styles.deletedTextPartner,
+                          ]}
+                        >
+                          {item.text}
+                        </Text>
+                      ) : null}
+
+                      <Text style={styles.bubbleTimePartner}>
+                        {item.created_at
+                          ? new Date(item.created_at).toLocaleTimeString([], {
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })
+                          : 'Just now'}
+                      </Text>
                     </View>
-                  </LinearGradient>
-                ) : (
-                  <View style={styles.bubblePartner}>
-                    <Text style={styles.bubblePartnerText}>{item.text}</Text>
-                    <Text style={styles.bubbleTimePartner}>Just now</Text>
-                  </View>
-                )}
+                  )}
+
+                  {/* Reaction Emoji Badge */}
+                  {msgReaction ? (
+                    <View
+                      style={[
+                        styles.reactionBadge,
+                        isMe ? styles.reactionBadgeMe : styles.reactionBadgePartner,
+                      ]}
+                    >
+                      <Text style={styles.reactionBadgeEmoji}>{msgReaction}</Text>
+                    </View>
+                  ) : null}
+                </TouchableOpacity>
               </View>
             );
           }}
         />
 
+        {/* Replying Preview Banner */}
+        {replyingTo && (
+          <View style={styles.replyBar}>
+            <View style={styles.replyIndicatorBar} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.replyingToName}>
+                Replying to{' '}
+                {replyingTo.sender_id === (currentUser?.id || 999)
+                  ? 'yourself'
+                  : selectedPartner.name}
+              </Text>
+              <Text style={styles.replyingToText} numberOfLines={1}>
+                {replyingTo.text ||
+                  (replyingTo.attachment ? `📎 ${replyingTo.attachment.name}` : 'Message')}
+              </Text>
+            </View>
+            <TouchableOpacity onPress={() => setReplyingTo(null)} style={styles.cancelReplyBtn}>
+              <Feather name="x" size={18} color="#64748B" />
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Attachment Options Popover Menu (+) */}
+        {attachmentMenuOpen && (
+          <View style={styles.attachmentSheetBox}>
+            <TouchableOpacity
+              style={styles.attachOptionItem}
+              onPress={() => handlePickAttachment('image')}
+            >
+              <View style={[styles.attachIconCircle, { backgroundColor: '#EDE9FE' }]}>
+                <Feather name="image" size={18} color="#7C3AED" />
+              </View>
+              <Text style={styles.attachOptionLabel}>Photos & Media</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.attachOptionItem}
+              onPress={() => handlePickAttachment('video')}
+            >
+              <View style={[styles.attachIconCircle, { backgroundColor: '#E0F2FE' }]}>
+                <Feather name="video" size={18} color="#0284C7" />
+              </View>
+              <Text style={styles.attachOptionLabel}>Video</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.attachOptionItem}
+              onPress={() => handlePickAttachment('document')}
+            >
+              <View style={[styles.attachIconCircle, { backgroundColor: '#FEE2E2' }]}>
+                <Feather name="file-text" size={18} color="#DC2626" />
+              </View>
+              <Text style={styles.attachOptionLabel}>Document / PDF</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
         {/* Bottom Input Bar */}
         <View style={styles.chatInputBar}>
           <TouchableOpacity
             style={styles.chatAttachBtn}
-            onPress={() => Alert.alert('Attach File', 'Select image or document to share')}
+            onPress={() => setAttachmentMenuOpen(!attachmentMenuOpen)}
             activeOpacity={0.7}
           >
-            <Feather name="plus-circle" size={20} color="#64748B" />
+            <Feather
+              name={attachmentMenuOpen ? 'x' : 'plus-circle'}
+              size={22}
+              color={attachmentMenuOpen ? '#5321E8' : '#64748B'}
+            />
           </TouchableOpacity>
 
           <TextInput
@@ -292,225 +740,174 @@ export default function MessagesScreen({
           </TouchableOpacity>
         </View>
 
-        {/* Chat 3-Dots Action Modal */}
+        {/* ─── TOP-RIGHT 3-DOTS SMOOTH DROPDOWN POPOVER ─── */}
         <Modal
           visible={chatOptionsOpen}
           transparent
           animationType="fade"
           onRequestClose={() => setChatOptionsOpen(false)}
         >
-          <TouchableWithoutFeedback onPress={() => setChatOptionsOpen(false)}>
-            <View style={styles.modalOverlay}>
-              <TouchableWithoutFeedback>
-                <View style={styles.optionsCard}>
-                  {selectedPartner.isGroup ? (
-                    <>
-                      <TouchableOpacity
-                        style={styles.optionsItem}
-                        onPress={() => {
-                          setChatOptionsOpen(false);
-                          setGroupMembersModalOpen(true);
-                        }}
-                      >
-                        <Feather name="users" size={18} color="#4F46E5" style={styles.optionsIcon} />
-                        <Text style={styles.optionsText}>View Group Members</Text>
-                      </TouchableOpacity>
-                      <View style={styles.optionsDivider} />
+          <TouchableOpacity
+            style={styles.dropdownBackdrop}
+            activeOpacity={1}
+            onPress={() => setChatOptionsOpen(false)}
+          >
+            <View style={styles.topRightOptionsCard}>
+              <TouchableOpacity
+                style={styles.dropdownItem}
+                onPress={() => {
+                  setChatOptionsOpen(false);
+                  setSelectedLeaderProfile(selectedPartner);
+                }}
+              >
+                <Feather name="user" size={16} color="#5321E8" />
+                <Text style={styles.dropdownItemText}>View Profile</Text>
+              </TouchableOpacity>
+              <View style={styles.dropdownDivider} />
 
-                      <TouchableOpacity
-                        style={styles.optionsItem}
-                        onPress={() => {
-                          setChatOptionsOpen(false);
-                          setMessages([]);
-                          Alert.alert('Chat Cleared', 'All messages have been cleared');
-                        }}
-                      >
-                        <Feather name="trash-2" size={18} color="#64748B" style={styles.optionsIcon} />
-                        <Text style={styles.optionsText}>Clear Chat</Text>
-                      </TouchableOpacity>
-                      <View style={styles.optionsDivider} />
+              <TouchableOpacity
+                style={styles.dropdownItem}
+                onPress={() => {
+                  setChatOptionsOpen(false);
+                  Alert.alert(
+                    'Notifications Muted',
+                    `Muted notifications for ${selectedPartner.name}`
+                  );
+                }}
+              >
+                <Feather name="bell-off" size={16} color="#64748B" />
+                <Text style={styles.dropdownItemText}>Mute Notifications</Text>
+              </TouchableOpacity>
+              <View style={styles.dropdownDivider} />
 
-                      <TouchableOpacity
-                        style={styles.optionsItem}
-                        onPress={() => {
-                          setChatOptionsOpen(false);
-                          setSelectedPartner(null);
-                          Alert.alert('Left Group', `You left ${selectedPartner.name}`);
-                        }}
-                      >
-                        <Feather name="log-out" size={18} color="#EF4444" style={styles.optionsIcon} />
-                        <Text style={[styles.optionsText, styles.textDanger]}>Leave Group</Text>
-                      </TouchableOpacity>
-                    </>
-                  ) : (
-                    <>
-                      <TouchableOpacity
-                        style={styles.optionsItem}
-                        onPress={() => {
-                          setChatOptionsOpen(false);
-                          Alert.alert('Profile', `${selectedPartner.name} · ${selectedPartner.role}`);
-                        }}
-                      >
-                        <Feather name="user" size={18} color="#4F46E5" style={styles.optionsIcon} />
-                        <Text style={styles.optionsText}>View Profile</Text>
-                      </TouchableOpacity>
-                      <View style={styles.optionsDivider} />
+              <TouchableOpacity
+                style={styles.dropdownItem}
+                onPress={() => {
+                  setChatOptionsOpen(false);
+                  setMessages([]);
+                  Alert.alert('Chat Cleared', 'All messages have been cleared');
+                }}
+              >
+                <Feather name="trash-2" size={16} color="#64748B" />
+                <Text style={styles.dropdownItemText}>Clear Chat</Text>
+              </TouchableOpacity>
+              <View style={styles.dropdownDivider} />
 
-                      <TouchableOpacity
-                        style={styles.optionsItem}
-                        onPress={() => {
-                          setChatOptionsOpen(false);
-                          Alert.alert('Notifications Muted', `Muted notifications for ${selectedPartner.name}`);
-                        }}
-                      >
-                        <Feather name="bell-off" size={18} color="#64748B" style={styles.optionsIcon} />
-                        <Text style={styles.optionsText}>Mute Notifications</Text>
-                      </TouchableOpacity>
-                      <View style={styles.optionsDivider} />
-
-                      <TouchableOpacity
-                        style={styles.optionsItem}
-                        onPress={() => {
-                          setChatOptionsOpen(false);
-                          setMessages([]);
-                          Alert.alert('Chat Cleared', 'All messages have been cleared');
-                        }}
-                      >
-                        <Feather name="trash-2" size={18} color="#64748B" style={styles.optionsIcon} />
-                        <Text style={styles.optionsText}>Clear Chat</Text>
-                      </TouchableOpacity>
-                      <View style={styles.optionsDivider} />
-
-                      <TouchableOpacity
-                        style={styles.optionsItem}
-                        onPress={() => {
-                          setChatOptionsOpen(false);
-                          Alert.alert('User Blocked', `${selectedPartner.name} has been blocked.`);
-                        }}
-                      >
-                        <Feather name="slash" size={18} color="#EF4444" style={styles.optionsIcon} />
-                        <Text style={[styles.optionsText, styles.textDanger]}>Block User</Text>
-                      </TouchableOpacity>
-                    </>
-                  )}
-
-                  <View style={styles.optionsThickDivider} />
-                  <TouchableOpacity
-                    style={styles.optionsCancel}
-                    onPress={() => setChatOptionsOpen(false)}
-                  >
-                    <Text style={styles.optionsCancelText}>Cancel</Text>
-                  </TouchableOpacity>
-                </View>
-              </TouchableWithoutFeedback>
+              <TouchableOpacity
+                style={styles.dropdownItem}
+                onPress={() => {
+                  setChatOptionsOpen(false);
+                  Alert.alert('User Blocked', `${selectedPartner.name} has been blocked.`);
+                }}
+              >
+                <Feather name="slash" size={16} color="#EF4444" />
+                <Text style={[styles.dropdownItemText, { color: '#EF4444' }]}>Block User</Text>
+              </TouchableOpacity>
             </View>
-          </TouchableWithoutFeedback>
+          </TouchableOpacity>
         </Modal>
 
-        {/* Group Members Modal */}
+        {/* ─── WHATSAPP-STYLE MESSAGE ACTION & REACTION MODAL ─── */}
         <Modal
-          visible={groupMembersModalOpen}
+          visible={!!selectedMsgForMenu}
           transparent
           animationType="fade"
-          onRequestClose={() => setGroupMembersModalOpen(false)}
+          onRequestClose={() => setSelectedMsgForMenu(null)}
         >
-          <TouchableWithoutFeedback onPress={() => setGroupMembersModalOpen(false)}>
-            <View style={styles.modalOverlay}>
-              <TouchableWithoutFeedback>
-                <View style={styles.membersCard}>
-                  <View style={styles.membersHeader}>
-                    <Text style={styles.membersHeaderTitle}>
-                      {selectedPartner.name} Members
-                    </Text>
-                    <TouchableOpacity
-                      onPress={() => setGroupMembersModalOpen(false)}
-                      style={{ padding: 4 }}
-                    >
-                      <Feather name="x" size={20} color="#64748B" />
-                    </TouchableOpacity>
-                  </View>
-
-                  <View style={styles.membersList}>
-                    {[
-                      { name: 'Nilesh (You)', role: 'Admin', online: true },
-                      { name: 'Kapil Dhakad', role: 'Silver Leader', online: true },
-                      { name: 'Priya Sharma', role: 'Gold Leader', online: true },
-                      { name: 'Rahul Verma', role: 'Team Leader', online: false },
-                      { name: 'Anita Singh', role: 'Business Leader', online: false },
-                    ].map((m, idx) => (
-                      <View key={idx} style={styles.memberRow}>
-                        <View style={styles.memberAvatar}>
-                          <Text style={styles.memberAvatarText}>{m.name.charAt(0)}</Text>
-                          {m.online && <View style={styles.memberOnlineDot} />}
-                        </View>
-                        <View style={{ flex: 1 }}>
-                          <Text style={styles.memberName}>{m.name}</Text>
-                          <Text style={styles.memberRole}>{m.role}</Text>
-                        </View>
-                        {m.role === 'Admin' && (
-                          <View style={styles.adminBadge}>
-                            <Text style={styles.adminBadgeText}>Admin</Text>
-                          </View>
-                        )}
-                      </View>
-                    ))}
-                  </View>
-
+          <TouchableOpacity
+            style={styles.msgMenuBackdrop}
+            activeOpacity={1}
+            onPress={() => setSelectedMsgForMenu(null)}
+          >
+            <View style={styles.msgMenuCard}>
+              {/* Top Quick Emoji Reactions Bar */}
+              <View style={styles.emojiReactionsRow}>
+                {QUICK_EMOJIS.map((emoji) => (
                   <TouchableOpacity
-                    style={styles.membersCloseBtn}
-                    onPress={() => setGroupMembersModalOpen(false)}
+                    key={emoji}
+                    style={styles.emojiBtn}
+                    onPress={() => handleToggleReaction(selectedMsgForMenu.id, emoji)}
+                    activeOpacity={0.7}
                   >
-                    <Text style={styles.membersCloseBtnText}>Close</Text>
+                    <Text style={styles.emojiText}>{emoji}</Text>
                   </TouchableOpacity>
-                </View>
-              </TouchableWithoutFeedback>
+                ))}
+              </View>
+
+              <View style={styles.msgMenuDivider} />
+
+              {/* Action Buttons: Reply, Copy, Delete */}
+              <TouchableOpacity
+                style={styles.msgMenuItem}
+                onPress={() => handleReplyMessage(selectedMsgForMenu)}
+              >
+                <Feather name="corner-up-left" size={18} color="#5321E8" />
+                <Text style={styles.msgMenuItemText}>Reply</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.msgMenuItem}
+                onPress={() => handleCopyMessage(selectedMsgForMenu)}
+              >
+                <Feather name="copy" size={18} color="#475569" />
+                <Text style={styles.msgMenuItemText}>Copy Text</Text>
+              </TouchableOpacity>
+
+              {/* Delete Options */}
+              {selectedMsgForMenu &&
+              selectedMsgForMenu.sender_id === (currentUser?.id || 999) ? (
+                <>
+                  <TouchableOpacity
+                    style={styles.msgMenuItem}
+                    onPress={() => handleDeleteMessage(selectedMsgForMenu, true)}
+                  >
+                    <Feather name="trash-2" size={18} color="#EF4444" />
+                    <Text style={[styles.msgMenuItemText, { color: '#EF4444' }]}>
+                      Delete for everyone
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.msgMenuItem}
+                    onPress={() => handleDeleteMessage(selectedMsgForMenu, false)}
+                  >
+                    <Feather name="trash" size={18} color="#64748B" />
+                    <Text style={styles.msgMenuItemText}>Delete for me</Text>
+                  </TouchableOpacity>
+                </>
+              ) : (
+                <TouchableOpacity
+                  style={styles.msgMenuItem}
+                  onPress={() => handleDeleteMessage(selectedMsgForMenu, false)}
+                >
+                  <Feather name="trash" size={18} color="#EF4444" />
+                  <Text style={[styles.msgMenuItemText, { color: '#EF4444' }]}>
+                    Delete for me
+                  </Text>
+                </TouchableOpacity>
+              )}
             </View>
-          </TouchableWithoutFeedback>
+          </TouchableOpacity>
         </Modal>
+
+        {/* Leader Profile Modal */}
+        {selectedLeaderProfile && (
+          <LeaderProfileModal
+            visible={!!selectedLeaderProfile}
+            leader={selectedLeaderProfile}
+            currentUser={currentUser}
+            onClose={() => setSelectedLeaderProfile(null)}
+          />
+        )}
       </KeyboardAvoidingView>
     );
   }
 
   // ─────────────────────────────────────────────────────────────
-  // RENDER: CONVERSATIONS LIST (Screenshot 4 Match + Filters)
+  // RENDER: CONVERSATIONS LIST VIEW
   // ─────────────────────────────────────────────────────────────
-  const isFilterActive = filterRole !== 'All' || filterStatus !== 'All' || sortBy !== 'recent';
-
-  const filteredList = conversationList
-    .filter((item) => {
-      // 1. Search text filter
-      if (searchQuery.trim()) {
-        const query = searchQuery.toLowerCase();
-        const matchName = (item.name || '').toLowerCase().includes(query);
-        const matchMsg = (item.lastMessage || '').toLowerCase().includes(query);
-        const matchRole = (item.role || '').toLowerCase().includes(query);
-        if (!matchName && !matchMsg && !matchRole) return false;
-      }
-
-      // 2. Tab filter
-      if (activeFilter === 'Unread' && !item.unread) return false;
-      if (activeFilter === 'Direct' && item.isGroup) return false;
-      if (activeFilter === 'Group' && !item.isGroup) return false;
-
-      // 3. Popup Role filter
-      if (filterRole !== 'All' && item.role !== filterRole) return false;
-
-      // 4. Popup Status filter
-      if (filterStatus === 'Online' && !item.isOnline) return false;
-      if (filterStatus === 'Unread' && !item.unread) return false;
-
-      return true;
-    })
-    .sort((a, b) => {
-      if (sortBy === 'name') {
-        return (a.name || '').localeCompare(b.name || '');
-      }
-      return 0;
-    });
-
   return (
     <View style={styles.container}>
-      {/* 1. Search Bar with Filter Sliders Icon (Screenshot 4) */}
+      {/* 1. Search Bar with Filter Sliders Icon */}
       <View style={styles.searchRow}>
         <View style={styles.searchBox}>
           <Feather name="search" size={16} color="#94A3B8" style={styles.searchIcon} />
@@ -541,7 +938,7 @@ export default function MessagesScreen({
         </TouchableOpacity>
       </View>
 
-      {/* 2. Filter Pills Row: All, Unread, Direct, Group */}
+      {/* 2. Filter Pills Row */}
       <View style={styles.filterPillsRow}>
         {filterTabs.map((tab) => {
           const isActive = activeFilter === tab;
@@ -616,135 +1013,135 @@ export default function MessagesScreen({
         )}
       />
 
-      {/* Filter Popup Modal (Screenshot 4 & Web Filter Popup) */}
+      {/* Filter Popup Modal */}
       <Modal
         visible={isFilterModalOpen}
         transparent
         animationType="fade"
         onRequestClose={() => setIsFilterModalOpen(false)}
       >
-        <TouchableWithoutFeedback onPress={() => setIsFilterModalOpen(false)}>
-          <View style={styles.modalOverlay}>
-            <TouchableWithoutFeedback>
-              <View style={styles.filterModalCard}>
-                <View style={styles.filterModalHeader}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                    <Feather name="sliders" size={18} color="#4F46E5" />
-                    <Text style={styles.filterModalTitle}>Chat Filters</Text>
-                  </View>
-                  <TouchableOpacity
-                    onPress={() => setIsFilterModalOpen(false)}
-                    style={{ padding: 4 }}
-                  >
-                    <Feather name="x" size={20} color="#64748B" />
-                  </TouchableOpacity>
-                </View>
-
-                {/* Section 1: Role */}
-                <View style={styles.filterSection}>
-                  <Text style={styles.filterSectionTitle}>Filter by Role</Text>
-                  <View style={styles.filterChipRow}>
-                    {['All', 'Member', 'Silver Leader', 'Gold Leader', 'Diamond Leader'].map((r) => (
-                      <TouchableOpacity
-                        key={r}
-                        style={[
-                          styles.filterChip,
-                          filterRole === r && styles.filterChipActive,
-                        ]}
-                        onPress={() => setFilterRole(r)}
-                      >
-                        <Text
-                          style={[
-                            styles.filterChipText,
-                            filterRole === r && styles.filterChipTextActive,
-                          ]}
-                        >
-                          {r}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                </View>
-
-                {/* Section 2: Status */}
-                <View style={styles.filterSection}>
-                  <Text style={styles.filterSectionTitle}>Status</Text>
-                  <View style={styles.filterChipRow}>
-                    {['All', 'Online', 'Unread'].map((s) => (
-                      <TouchableOpacity
-                        key={s}
-                        style={[
-                          styles.filterChip,
-                          filterStatus === s && styles.filterChipActive,
-                        ]}
-                        onPress={() => setFilterStatus(s)}
-                      >
-                        <Text
-                          style={[
-                            styles.filterChipText,
-                            filterStatus === s && styles.filterChipTextActive,
-                          ]}
-                        >
-                          {s}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                </View>
-
-                {/* Section 3: Sort Order */}
-                <View style={styles.filterSection}>
-                  <Text style={styles.filterSectionTitle}>Sort Order</Text>
-                  <View style={styles.filterChipRow}>
-                    {[
-                      { id: 'recent', label: 'Recent First' },
-                      { id: 'name', label: 'Name (A-Z)' },
-                    ].map((sb) => (
-                      <TouchableOpacity
-                        key={sb.id}
-                        style={[
-                          styles.filterChip,
-                          sortBy === sb.id && styles.filterChipActive,
-                        ]}
-                        onPress={() => setSortBy(sb.id)}
-                      >
-                        <Text
-                          style={[
-                            styles.filterChipText,
-                            sortBy === sb.id && styles.filterChipTextActive,
-                          ]}
-                        >
-                          {sb.label}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                </View>
-
-                {/* Modal Footer Actions */}
-                <View style={styles.filterModalFooter}>
-                  <TouchableOpacity
-                    style={styles.filterResetBtn}
-                    onPress={() => {
-                      setFilterRole('All');
-                      setFilterStatus('All');
-                      setSortBy('recent');
-                    }}
-                  >
-                    <Text style={styles.filterResetBtnText}>Reset All</Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={styles.filterApplyBtn}
-                    onPress={() => setIsFilterModalOpen(false)}
-                  >
-                    <Text style={styles.filterApplyBtnText}>Apply Filters</Text>
-                  </TouchableOpacity>
-                </View>
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setIsFilterModalOpen(false)}
+        >
+          <View style={styles.filterModalCard}>
+            <View style={styles.filterModalHeader}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <Feather name="sliders" size={18} color="#4F46E5" />
+                <Text style={styles.filterModalTitle}>Chat Filters</Text>
               </View>
-            </TouchableWithoutFeedback>
+              <TouchableOpacity
+                onPress={() => setIsFilterModalOpen(false)}
+                style={{ padding: 4 }}
+              >
+                <Feather name="x" size={20} color="#64748B" />
+              </TouchableOpacity>
+            </View>
+
+            {/* Section 1: Role */}
+            <View style={styles.filterSection}>
+              <Text style={styles.filterSectionTitle}>Filter by Role</Text>
+              <View style={styles.filterChipRow}>
+                {['All', 'Member', 'Silver Leader', 'Gold Leader', 'Diamond Leader'].map((r) => (
+                  <TouchableOpacity
+                    key={r}
+                    style={[
+                      styles.filterChip,
+                      filterRole === r && styles.filterChipActive,
+                    ]}
+                    onPress={() => setFilterRole(r)}
+                  >
+                    <Text
+                      style={[
+                        styles.filterChipText,
+                        filterRole === r && styles.filterChipTextActive,
+                      ]}
+                    >
+                      {r}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+
+            {/* Section 2: Status */}
+            <View style={styles.filterSection}>
+              <Text style={styles.filterSectionTitle}>Status</Text>
+              <View style={styles.filterChipRow}>
+                {['All', 'Online', 'Unread'].map((s) => (
+                  <TouchableOpacity
+                    key={s}
+                    style={[
+                      styles.filterChip,
+                      filterStatus === s && styles.filterChipActive,
+                    ]}
+                    onPress={() => setFilterStatus(s)}
+                  >
+                    <Text
+                      style={[
+                        styles.filterChipText,
+                        filterStatus === s && styles.filterChipTextActive,
+                      ]}
+                    >
+                      {s}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+
+            {/* Section 3: Sort Order */}
+            <View style={styles.filterSection}>
+              <Text style={styles.filterSectionTitle}>Sort Order</Text>
+              <View style={styles.filterChipRow}>
+                {[
+                  { id: 'recent', label: 'Recent First' },
+                  { id: 'name', label: 'Name (A-Z)' },
+                ].map((sb) => (
+                  <TouchableOpacity
+                    key={sb.id}
+                    style={[
+                      styles.filterChip,
+                      sortBy === sb.id && styles.filterChipActive,
+                    ]}
+                    onPress={() => setSortBy(sb.id)}
+                  >
+                    <Text
+                      style={[
+                        styles.filterChipText,
+                        sortBy === sb.id && styles.filterChipTextActive,
+                      ]}
+                    >
+                      {sb.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+
+            {/* Modal Footer Actions */}
+            <View style={styles.filterModalFooter}>
+              <TouchableOpacity
+                style={styles.filterResetBtn}
+                onPress={() => {
+                  setFilterRole('All');
+                  setFilterStatus('All');
+                  setSortBy('recent');
+                }}
+              >
+                <Text style={styles.filterResetBtnText}>Reset All</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.filterApplyBtn}
+                onPress={() => setIsFilterModalOpen(false)}
+              >
+                <Text style={styles.filterApplyBtnText}>Apply Filters</Text>
+              </TouchableOpacity>
+            </View>
           </View>
-        </TouchableWithoutFeedback>
+        </TouchableOpacity>
       </Modal>
     </View>
   );
@@ -777,14 +1174,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     gap: 8,
   },
-  searchIcon: {
-    marginRight: 2,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 13.5,
-    color: '#1E1B4B',
-  },
+  searchIcon: { marginRight: 2 },
+  searchInput: { flex: 1, fontSize: 13.5, color: '#1E1B4B' },
   filterBtn: {
     width: 42,
     height: 42,
@@ -795,6 +1186,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  filterBtnActive: { backgroundColor: '#6114D6', borderColor: '#6114D6' },
 
   /* Filter Pills */
   filterPillsRow: {
@@ -809,23 +1201,12 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     backgroundColor: '#F1F5F9',
   },
-  filterPillActive: {
-    backgroundColor: '#6114D6',
-  },
-  filterPillText: {
-    fontSize: 12.5,
-    fontWeight: '600',
-    color: '#475569',
-  },
-  filterPillTextActive: {
-    color: '#FFFFFF',
-  },
+  filterPillActive: { backgroundColor: '#6114D6' },
+  filterPillText: { fontSize: 12.5, fontWeight: '600', color: '#475569' },
+  filterPillTextActive: { color: '#FFFFFF' },
 
   /* Conversation Cards */
-  convListContent: {
-    paddingHorizontal: 16,
-    gap: 8,
-  },
+  convListContent: { paddingHorizontal: 16, gap: 8 },
   convCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -836,16 +1217,8 @@ const styles = StyleSheet.create({
     padding: 12,
     gap: 12,
   },
-  convAvatarWrap: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    overflow: 'hidden',
-  },
-  convAvatarImg: {
-    width: '100%',
-    height: '100%',
-  },
+  convAvatarWrap: { width: 48, height: 48, borderRadius: 24, overflow: 'hidden' },
+  convAvatarImg: { width: '100%', height: '100%' },
   fortaaAvatarBox: {
     width: '100%',
     height: '100%',
@@ -856,48 +1229,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  fortaaLogoImg: {
-    width: 30,
-    height: 30,
-  },
-  convMeta: {
-    flex: 1,
-    gap: 2,
-  },
-  convName: {
-    fontSize: 14.5,
-    fontWeight: '700',
-    color: '#111827',
-  },
-  roleBadgeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  roleBadgeText: {
-    fontSize: 11,
-    color: '#6D28D9',
-    fontWeight: '600',
-  },
-  lastMessageText: {
-    fontSize: 12.5,
-    color: '#64748B',
-    marginTop: 2,
-  },
-  convRight: {
-    alignItems: 'flex-end',
-    gap: 6,
-  },
-  convTimeText: {
-    fontSize: 11,
-    color: '#94A3B8',
-  },
+  fortaaLogoImg: { width: 30, height: 30 },
+  convMeta: { flex: 1, gap: 2 },
+  convName: { fontSize: 14.5, fontWeight: '700', color: '#111827' },
+  roleBadgeRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  roleBadgeText: { fontSize: 11, color: '#6D28D9', fontWeight: '600' },
+  lastMessageText: { fontSize: 12.5, color: '#64748B', marginTop: 2 },
+  convRight: { alignItems: 'flex-end', gap: 6 },
+  convTimeText: { fontSize: 11, color: '#94A3B8' },
 
   /* Live Chat View */
-  chatContainer: {
-    flex: 1,
-    backgroundColor: '#F8FAFC',
-  },
+  chatContainer: { flex: 1, backgroundColor: '#F8FAFC' },
   chatHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -909,62 +1251,31 @@ const styles = StyleSheet.create({
     borderBottomColor: '#E2E8F0',
     gap: 10,
   },
-  backBtn: {
-    padding: 6,
-  },
-  chatHeaderAvatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    overflow: 'hidden',
-  },
-  chatHeaderAvatarImg: {
-    width: '100%',
-    height: '100%',
-  },
-  chatHeaderMeta: {
-    flex: 1,
-  },
-  chatPartnerName: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#111827',
-  },
-  chatPartnerRole: {
-    fontSize: 11,
-    color: '#10B981',
-    fontWeight: '600',
-  },
-  chatActionBtn: {
-    padding: 6,
-  },
-  messagesList: {
-    paddingHorizontal: 14,
-    paddingVertical: 14,
-    gap: 10,
-  },
-  bubbleRow: {
-    flexDirection: 'row',
-    width: '100%',
-  },
-  bubbleRowMe: {
-    justifyContent: 'flex-end',
-  },
-  bubbleRowPartner: {
-    justifyContent: 'flex-start',
-  },
+  backBtn: { padding: 6 },
+  chatHeaderAvatar: { width: 36, height: 36, borderRadius: 18, overflow: 'hidden' },
+  chatHeaderAvatarImg: { width: '100%', height: '100%' },
+  chatHeaderMeta: { flex: 1 },
+  chatPartnerName: { fontSize: 15, fontWeight: '700', color: '#111827' },
+  chatPartnerRole: { fontSize: 11, color: '#10B981', fontWeight: '600' },
+  chatActionBtn: { padding: 6 },
+
+  messagesList: { paddingHorizontal: 14, paddingVertical: 14, gap: 10 },
+  bubbleRow: { flexDirection: 'row', width: '100%' },
+  bubbleRowMe: { justifyContent: 'flex-end' },
+  bubbleRowPartner: { justifyContent: 'flex-start' },
+
+  bubbleContainer: { position: 'relative', maxWidth: '82%' },
+  bubbleMeContainer: { alignItems: 'flex-end' },
+  bubblePartnerContainer: { alignItems: 'flex-start' },
+
   bubbleMe: {
-    maxWidth: '80%',
     borderRadius: 14,
     borderBottomRightRadius: 2,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
   },
-  bubbleMeText: {
-    fontSize: 13.5,
-    color: '#FFFFFF',
-    lineHeight: 18,
-  },
+  bubbleMeText: { fontSize: 13.5, color: '#FFFFFF', lineHeight: 18 },
+  deletedTextMe: { fontStyle: 'italic', opacity: 0.8 },
   bubbleTimeRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -972,41 +1283,139 @@ const styles = StyleSheet.create({
     gap: 4,
     marginTop: 4,
   },
-  bubbleTimeMe: {
-    fontSize: 10,
-    color: 'rgba(255, 255, 255, 0.8)',
-  },
+  bubbleTimeMe: { fontSize: 10, color: 'rgba(255, 255, 255, 0.8)' },
+
   bubblePartner: {
-    maxWidth: '80%',
     borderRadius: 14,
     borderBottomLeftRadius: 2,
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
     borderColor: '#E2E8F0',
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+  },
+  bubblePartnerText: { fontSize: 13.5, color: '#1E293B', lineHeight: 18 },
+  deletedTextPartner: { fontStyle: 'italic', color: '#94A3B8' },
+  bubbleTimePartner: { fontSize: 10, color: '#94A3B8', marginTop: 4, alignSelf: 'flex-end' },
+
+  /* Quoted Reply Preview Inside Bubble */
+  quotedMsgBoxMe: {
+    backgroundColor: 'rgba(0,0,0,0.18)',
+    borderLeftWidth: 3,
+    borderLeftColor: '#FFFFFF',
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    marginBottom: 6,
+  },
+  quotedSenderNameMe: { fontSize: 11, fontWeight: '700', color: '#FFFFFF' },
+  quotedTextMe: { fontSize: 11.5, color: 'rgba(255,255,255,0.9)' },
+
+  quotedMsgBoxPartner: {
+    backgroundColor: '#F1F5F9',
+    borderLeftWidth: 3,
+    borderLeftColor: '#5321E8',
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    marginBottom: 6,
+  },
+  quotedSenderNamePartner: { fontSize: 11, fontWeight: '700', color: '#5321E8' },
+  quotedTextPartner: { fontSize: 11.5, color: '#475569' },
+
+  /* Attachments in Bubble */
+  attachmentWrapper: { marginBottom: 6, borderRadius: 8, overflow: 'hidden' },
+  attachmentImage: { width: 200, height: 160, borderRadius: 8, backgroundColor: '#E2E8F0' },
+  attachmentVideoBox: {
+    width: 200,
+    height: 120,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  attachmentVideoText: { fontSize: 12, color: '#FFFFFF', fontWeight: '600' },
+  attachmentDocBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: 'rgba(0,0,0,0.15)',
+    borderRadius: 8,
+    padding: 10,
+    minWidth: 180,
+  },
+  attachmentDocName: { fontSize: 12.5, fontWeight: '700', color: '#FFFFFF' },
+  attachmentDocSize: { fontSize: 10, color: 'rgba(255,255,255,0.8)' },
+
+  /* Reaction Emoji Badge on Bubble */
+  reactionBadge: {
+    position: 'absolute',
+    bottom: -10,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 3,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  reactionBadgeMe: { right: 8 },
+  reactionBadgePartner: { left: 8 },
+  reactionBadgeEmoji: { fontSize: 12 },
+
+  /* Replying Banner Above Input */
+  replyBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+    borderTopWidth: 1,
+    borderTopColor: '#E2E8F0',
     paddingHorizontal: 14,
-    paddingVertical: 10,
+    paddingVertical: 8,
+    gap: 10,
   },
-  bubblePartnerText: {
-    fontSize: 13.5,
-    color: '#1E293B',
-    lineHeight: 18,
+  replyIndicatorBar: { width: 3, height: '100%', backgroundColor: '#5321E8', borderRadius: 2 },
+  replyingToName: { fontSize: 12, fontWeight: '700', color: '#5321E8' },
+  replyingToText: { fontSize: 11.5, color: '#64748B' },
+  cancelReplyBtn: { padding: 4 },
+
+  /* Attachment Options Sheet (+) */
+  attachmentSheetBox: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    backgroundColor: '#FFFFFF',
+    borderTopWidth: 1,
+    borderTopColor: '#E2E8F0',
+    paddingVertical: 14,
+    paddingHorizontal: 10,
   },
-  bubbleTimePartner: {
-    fontSize: 10,
-    color: '#94A3B8',
-    marginTop: 4,
-    alignSelf: 'flex-end',
+  attachOptionItem: { alignItems: 'center', gap: 6 },
+  attachIconCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
+  attachOptionLabel: { fontSize: 11, fontWeight: '600', color: '#334155' },
+
+  /* Bottom Input Bar */
   chatInputBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 14,
+    paddingHorizontal: 12,
     paddingVertical: 8,
     backgroundColor: '#FFFFFF',
     borderTopWidth: 1,
     borderTopColor: '#E2E8F0',
     gap: 10,
   },
+  chatAttachBtn: { padding: 4 },
   chatTextInput: {
     flex: 1,
     minHeight: 38,
@@ -1026,18 +1435,82 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  chatSendBtnDisabled: {
-    opacity: 0.5,
-  },
-  chatAttachBtn: {
-    padding: 6,
-  },
-  filterBtnActive: {
-    backgroundColor: '#6114D6',
-    borderColor: '#6114D6',
-  },
+  chatSendBtnDisabled: { opacity: 0.5 },
 
-  /* Modals Overlay */
+  /* Top-Right 3-Dots Smooth Popover */
+  dropdownBackdrop: { flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.25)' },
+  topRightOptionsCard: {
+    position: 'absolute',
+    top: Platform.OS === 'web' ? 48 : (StatusBar.currentHeight ? StatusBar.currentHeight + 46 : 52),
+    right: 12,
+    width: 190,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    paddingVertical: 6,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.18,
+    shadowRadius: 14,
+    elevation: 10,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  dropdownItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 11,
+  },
+  dropdownItemText: { fontSize: 13.5, fontWeight: '600', color: '#1E293B' },
+  dropdownDivider: { height: 1, backgroundColor: '#F1F5F9' },
+
+  /* Message Long Press Menu Backdrop & Card */
+  msgMenuBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.45)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+  },
+  msgMenuCard: {
+    width: '100%',
+    maxWidth: 290,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
+    paddingVertical: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.25,
+    shadowRadius: 18,
+    elevation: 10,
+  },
+  emojiReactionsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    paddingHorizontal: 8,
+    paddingBottom: 10,
+  },
+  emojiBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#F8FAFC',
+  },
+  emojiText: { fontSize: 20 },
+  msgMenuDivider: { height: 1, backgroundColor: '#F1F5F9', marginBottom: 4 },
+  msgMenuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+  },
+  msgMenuItemText: { fontSize: 14, fontWeight: '600', color: '#1E293B' },
+
+  /* Modals Overlay & Filter Card */
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.55)',
@@ -1045,153 +1518,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
   },
-
-  /* 3-Dots Options Card */
-  optionsCard: {
-    width: '100%',
-    maxWidth: 320,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 18,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.2,
-    shadowRadius: 20,
-    elevation: 10,
-  },
-  optionsItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    gap: 12,
-  },
-  optionsIcon: {
-    width: 22,
-    textAlign: 'center',
-  },
-  optionsText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#1E293B',
-  },
-  textDanger: {
-    color: '#EF4444',
-  },
-  optionsDivider: {
-    height: 1,
-    backgroundColor: '#F1F5F9',
-  },
-  optionsThickDivider: {
-    height: 1,
-    backgroundColor: '#E2E8F0',
-  },
-  optionsCancel: {
-    paddingVertical: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#FAFAFA',
-  },
-  optionsCancelText: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#475569',
-  },
-
-  /* Group Members Modal */
-  membersCard: {
-    width: '100%',
-    maxWidth: 340,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    padding: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.25,
-    shadowRadius: 24,
-    elevation: 12,
-  },
-  membersHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingBottom: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
-  },
-  membersHeaderTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#0F172A',
-  },
-  membersList: {
-    paddingVertical: 10,
-    gap: 12,
-  },
-  memberRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  memberAvatar: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: '#EDE9FE',
-    alignItems: 'center',
-    justifyContent: 'center',
-    position: 'relative',
-  },
-  memberAvatarText: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#4F46E5',
-  },
-  memberOnlineDot: {
-    width: 9,
-    height: 9,
-    borderRadius: 4.5,
-    backgroundColor: '#10B981',
-    position: 'absolute',
-    bottom: 0,
-    right: 0,
-    borderWidth: 1.5,
-    borderColor: '#FFFFFF',
-  },
-  memberName: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1E293B',
-  },
-  memberRole: {
-    fontSize: 11.5,
-    color: '#64748B',
-  },
-  adminBadge: {
-    backgroundColor: '#EEF2FF',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
-  },
-  adminBadgeText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#4F46E5',
-  },
-  membersCloseBtn: {
-    marginTop: 10,
-    backgroundColor: '#4F46E5',
-    borderRadius: 12,
-    paddingVertical: 11,
-    alignItems: 'center',
-  },
-  membersCloseBtnText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-
-  /* Filter Modal Card */
   filterModalCard: {
     width: '100%',
     maxWidth: 340,
@@ -1200,87 +1526,47 @@ const styles = StyleSheet.create({
     padding: 20,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.25,
-    shadowRadius: 24,
-    elevation: 12,
-    gap: 16,
+    shadowOpacity: 0.2,
+    shadowRadius: 20,
+    elevation: 10,
   },
   filterModalHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingBottom: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    marginBottom: 16,
   },
-  filterModalTitle: {
-    fontSize: 16.5,
-    fontWeight: '700',
-    color: '#0F172A',
-  },
-  filterSection: {
-    gap: 8,
-  },
-  filterSectionTitle: {
-    fontSize: 12.5,
-    fontWeight: '700',
-    color: '#64748B',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  filterChipRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
+  filterModalTitle: { fontSize: 16, fontWeight: '700', color: '#1E1B4B' },
+  filterSection: { marginBottom: 14 },
+  filterSectionTitle: { fontSize: 12.5, fontWeight: '700', color: '#64748B', marginBottom: 8 },
+  filterChipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   filterChip: {
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 8,
-    backgroundColor: '#F8FAFC',
+    borderRadius: 14,
+    backgroundColor: '#F1F5F9',
     borderWidth: 1,
     borderColor: '#E2E8F0',
   },
-  filterChipActive: {
-    backgroundColor: '#4F46E5',
-    borderColor: '#4F46E5',
-  },
-  filterChipText: {
-    fontSize: 12.5,
-    fontWeight: '600',
-    color: '#475569',
-  },
-  filterChipTextActive: {
-    color: '#FFFFFF',
-  },
+  filterChipActive: { backgroundColor: '#5321E8', borderColor: '#5321E8' },
+  filterChipText: { fontSize: 12, fontWeight: '600', color: '#475569' },
+  filterChipTextActive: { color: '#FFFFFF' },
   filterModalFooter: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
-    paddingTop: 10,
+    alignItems: 'center',
+    marginTop: 10,
+    paddingTop: 12,
     borderTopWidth: 1,
     borderTopColor: '#F1F5F9',
-    gap: 12,
   },
-  filterResetBtn: {
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-  },
-  filterResetBtnText: {
-    fontSize: 13.5,
-    fontWeight: '600',
-    color: '#64748B',
-  },
+  filterResetBtn: { paddingVertical: 8, paddingHorizontal: 12 },
+  filterResetBtnText: { fontSize: 13, fontWeight: '600', color: '#64748B' },
   filterApplyBtn: {
-    flex: 1,
-    backgroundColor: '#4F46E5',
-    borderRadius: 12,
-    paddingVertical: 11,
-    alignItems: 'center',
+    backgroundColor: '#5321E8',
+    paddingHorizontal: 16,
+    paddingVertical: 9,
+    borderRadius: 10,
   },
-  filterApplyBtnText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
+  filterApplyBtnText: { fontSize: 13, fontWeight: '700', color: '#FFFFFF' },
 });

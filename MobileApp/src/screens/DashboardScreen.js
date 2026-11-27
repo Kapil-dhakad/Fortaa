@@ -1224,13 +1224,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 99,
+    backgroundColor: 'transparent',
   },
   instagramHeartGlow: {
-    shadowColor: '#FF2D55',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.6,
-    shadowRadius: 12,
-    elevation: 10,
+    // Pure icon without rectangular box-shadow on web
+    backgroundColor: 'transparent',
   },
 
   // Engagement Row (Instagram / Web Exact Match)
