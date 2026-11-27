@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   StyleSheet,
   Text,
@@ -10,6 +10,7 @@ import {
   Platform,
 } from 'react-native';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
+import { subscribeUnreadCounts } from '../services/unreadCountService';
 
 export default function MenuBottomSheet({
   visible,
@@ -20,6 +21,14 @@ export default function MenuBottomSheet({
 }) {
   const userName = user?.name || 'Nilesh';
   const userRole = user?.designation || user?.accountType || 'Marketing';
+  const userAvatar = user?.avatarUrl || user?.avatar_url;
+
+  const [unreadCounts, setUnreadCounts] = useState({ notificationCount: 0, messageCount: 0 });
+
+  useEffect(() => {
+    const unsub = subscribeUnreadCounts((counts) => setUnreadCounts(counts));
+    return () => unsub();
+  }, []);
 
   const menuItems = [
     { key: 'home', label: 'Home', icon: 'home', iconFamily: 'Feather' },
@@ -61,10 +70,19 @@ export default function MenuBottomSheet({
               }}
               activeOpacity={0.8}
             >
-              <Image
-                source={require('../../assets/dashboard/user_avatar_rahul.png')}
-                style={styles.avatarImg}
-              />
+              {userAvatar ? (
+                <Image
+                  source={{ uri: userAvatar }}
+                  style={styles.avatarImg}
+                  resizeMode="cover"
+                />
+              ) : (
+                <Image
+                  source={require('../../assets/dashboard/user_avatar_rahul.png')}
+                  style={styles.avatarImg}
+                  resizeMode="cover"
+                />
+              )}
               <View style={styles.nameWrap}>
                 <Text style={styles.userName}>{userName}</Text>
                 <Text style={styles.userRole}>{userRole}</Text>
@@ -94,6 +112,20 @@ export default function MenuBottomSheet({
               >
                 <View style={styles.cardIconBox}>
                   <Feather name={item.icon} size={18} color="#FFFFFF" />
+                  {item.key === 'notifications' && unreadCounts.notificationCount > 0 && (
+                    <View style={styles.menuBadge}>
+                      <Text style={styles.menuBadgeText}>
+                        {unreadCounts.notificationCount > 99 ? '99+' : unreadCounts.notificationCount}
+                      </Text>
+                    </View>
+                  )}
+                  {item.key === 'messages' && unreadCounts.messageCount > 0 && (
+                    <View style={styles.menuBadge}>
+                      <Text style={styles.menuBadgeText}>
+                        {unreadCounts.messageCount > 99 ? '99+' : unreadCounts.messageCount}
+                      </Text>
+                    </View>
+                  )}
                 </View>
                 <Text style={styles.cardLabel} numberOfLines={1}>
                   {item.label}
@@ -217,6 +249,29 @@ const styles = StyleSheet.create({
     backgroundColor: '#2E0362',
     alignItems: 'center',
     justifyContent: 'center',
+    position: 'relative',
+  },
+  menuBadge: {
+    position: 'absolute',
+    top: -5,
+    right: -7,
+    backgroundColor: '#F60808',
+    borderRadius: 8,
+    minWidth: 16,
+    height: 16,
+    paddingHorizontal: 3,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1.5,
+    borderColor: '#FFFFFF',
+  },
+  menuBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 9,
+    fontWeight: '800',
+    textAlign: 'center',
+    includeFontPadding: false,
+    lineHeight: 11,
   },
   cardLabel: {
     fontSize: 13,

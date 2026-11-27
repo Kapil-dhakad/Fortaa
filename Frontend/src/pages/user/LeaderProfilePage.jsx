@@ -15,7 +15,7 @@ import {
   fetchFollowers,
   fetchFollowing,
 } from '../../services/follow.service';
-import { fetchPosts, fetchLeaders } from '../../services/dashboard.service';
+import { fetchPosts, fetchLeaders, likePostApi } from '../../services/dashboard.service';
 import { joinChat, subscribeToFollowEvents } from '../../services/socket.service';
 
 // React Icons
@@ -36,6 +36,10 @@ import {
   FaRegCommentDots,
   FaGem,
   FaChevronLeft,
+  FaHeart,
+  FaRegHeart,
+  FaRegComment,
+  FaPlay,
 } from 'react-icons/fa';
 import {
   HiChatAlt2,
@@ -231,6 +235,9 @@ export default function LeaderProfilePage() {
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('Overview');
+  const [mobileTab, setMobileTab] = useState('About'); // 'About' | 'Posts' | 'Network' | 'Achievements'
+  const [showNetworkModal, setShowNetworkModal] = useState(false);
+  const [networkModalTab, setNetworkModalTab] = useState('followers');
   const [networkSubTab, setNetworkSubTab] = useState('followers');
   const [leaderFollowers, setLeaderFollowers] = useState([]);
   const [leaderFollowing, setLeaderFollowing] = useState([]);
@@ -238,6 +245,33 @@ export default function LeaderProfilePage() {
   const [userPosts, setUserPosts] = useState([]);
   const [loadingPosts, setLoadingPosts] = useState(true);
   const [topLeaders, setTopLeaders] = useState([]);
+
+  const handleLikePost = async (post) => {
+    if (!currentUserId) {
+      toast.error('Please log in to like posts');
+      return;
+    }
+    const wasLiked = !!post.has_liked;
+    const prevCount = Number(post.likes_count) || 0;
+    const nextLiked = !wasLiked;
+    const nextCount = wasLiked ? Math.max(0, prevCount - 1) : prevCount + 1;
+
+    setUserPosts((prev) =>
+      prev.map((p) =>
+        p.id === post.id ? { ...p, has_liked: nextLiked, likes_count: nextCount } : p
+      )
+    );
+
+    try {
+      await likePostApi(post.id, currentUserId);
+    } catch {
+      setUserPosts((prev) =>
+        prev.map((p) =>
+          p.id === post.id ? { ...p, has_liked: wasLiked, likes_count: prevCount } : p
+        )
+      );
+    }
+  };
 
   // Follow status: 'none' | 'pending' | 'accepted'
   const [followStatus, setFollowStatus] = useState(() => {
@@ -1565,10 +1599,10 @@ export default function LeaderProfilePage() {
           </div>
         </div>
 
-        {/* 2. Main Profile Header Card (LinkedIn Structure) */}
+        {/* 2. Main Profile Header Card (Instagram Stats + Image 2 Hybrid) */}
         <div className="lp-li-main-card">
-          {/* Overlapping Avatar Row */}
-          <div className="lp-li-avatar-row">
+          {/* Top Row: Avatar on Left + Instagram-Style Stats on Right */}
+          <div className="lp-li-avatar-stats-row">
             <div className="lp-li-avatar-box">
               <img
                 src={leader.avatar || userAvatarRahul}
@@ -1579,28 +1613,61 @@ export default function LeaderProfilePage() {
                 }}
               />
               <div className="lp-li-avatar-badge" title="Top Leader">
-                <FaCrown size={12} color="#FFFFFF" />
+                <FaCrown size={11} color="#FFFFFF" />
               </div>
             </div>
 
-            {leader.company && (
-              <div className="lp-li-company-tag">
-                <FaMedal size={12} color="#7C3AED" />
-                <span className="lp-li-company-name">{leader.company}</span>
+            {/* Instagram Profile Stats (Posts, Followers, Following) */}
+            <div className="lp-li-insta-stats">
+              <div
+                className="lp-li-insta-stat-item"
+                style={{ cursor: 'pointer' }}
+                onClick={() => setMobileTab('Posts')}
+              >
+                <span className="lp-li-insta-stat-num">{userPosts.length || leader.posts || '0'}</span>
+                <span className="lp-li-insta-stat-lbl">Posts</span>
               </div>
-            )}
+              <div
+                className="lp-li-insta-stat-item"
+                style={{ cursor: 'pointer' }}
+                onClick={() => {
+                  setNetworkModalTab('followers');
+                  setShowNetworkModal(true);
+                }}
+              >
+                <span className="lp-li-insta-stat-num">{leader.followers || '0'}</span>
+                <span className="lp-li-insta-stat-lbl">Followers</span>
+              </div>
+              <div
+                className="lp-li-insta-stat-item"
+                style={{ cursor: 'pointer' }}
+                onClick={() => {
+                  setNetworkModalTab('following');
+                  setShowNetworkModal(true);
+                }}
+              >
+                <span className="lp-li-insta-stat-num">{leader.following || '0'}</span>
+                <span className="lp-li-insta-stat-lbl">Following</span>
+              </div>
+            </div>
           </div>
 
-          {/* Left-Aligned Identity Information */}
+          {/* Left-Aligned Identity Information (Matching Image 2) */}
           <div className="lp-li-info">
-            <div className="lp-li-name-row">
+            <div className="lp-li-name-header-row">
               <h1 className="lp-li-name">{leader.name}</h1>
               <span className="lp-li-verified-icon" title="Verified Leader">
-                <FaGem size={14} color="#7C3AED" />
+                <FaGem size={13} color="#7C3AED" />
               </span>
               <span className="lp-li-badge-pill">
                 {leader.levelTitle || leader.level || 'Leader'}
               </span>
+              {leader.company && (
+                <span className="lp-li-company-pill">
+                  <FaMedal size={11} color="#7C3AED" />
+                  <span>{leader.company}</span>
+                </span>
+              )}
             </div>
 
             {leader.username && (
@@ -1610,12 +1677,12 @@ export default function LeaderProfilePage() {
             )}
 
             <p className="lp-li-headline">
-              {leader.levelTitle || leader.role || 'Business Leader'} at {leader.company || 'Fortaa Network'}
+              {leader.levelTitle || leader.role || 'Leader'} at {leader.company || 'Fortaa Network'}
             </p>
 
             <div className="lp-li-meta-line">
               <span className="lp-li-location">
-                <FaMapMarkerAlt size={12} /> {leader.location || 'India'}
+                <FaMapMarkerAlt size={12} color="#64748B" /> {leader.location || 'India'}
               </span>
               <span className="lp-li-meta-dot">•</span>
               <span
@@ -1627,17 +1694,35 @@ export default function LeaderProfilePage() {
             </div>
 
             <div className="lp-li-social-proof">
-              <span className="lp-li-followers-highlight">
+              <span
+                className="lp-li-followers-highlight"
+                style={{ cursor: 'pointer' }}
+                onClick={() => {
+                  setNetworkModalTab('followers');
+                  setShowNetworkModal(true);
+                }}
+              >
                 <strong>{leader.followers || '0'}</strong> followers
               </span>
               <span className="lp-li-meta-dot">•</span>
-              <span className="lp-li-following-sub">
+              <span
+                className="lp-li-following-sub"
+                style={{ cursor: 'pointer' }}
+                onClick={() => {
+                  setNetworkModalTab('following');
+                  setShowNetworkModal(true);
+                }}
+              >
                 {leader.following || '0'} connections
               </span>
             </div>
+
+            <p className="lp-li-motto-figma">
+              “{cleanQuote || 'Small steps every day lead to big result'}”
+            </p>
           </div>
 
-          {/* Action Buttons Row (LinkedIn Style) */}
+          {/* Action Buttons Row (Matching Image 2) */}
           <div className="lp-li-actions-row">
             {isOwnProfile ? (
               <button
@@ -1678,9 +1763,27 @@ export default function LeaderProfilePage() {
               <FiShare2 size={16} />
             </button>
           </div>
+
+          {/* 3. FOUR SECTION TABS ROW (About, Posts, Network, Achievements - Media removed) */}
+          <div className="lp-li-tabs-bar-four">
+            {['About', 'Posts', 'Network', 'Achievements'].map((tab) => {
+              const isActive = mobileTab === tab;
+              return (
+                <button
+                  key={tab}
+                  type="button"
+                  className={`lp-li-tab-btn-four ${isActive ? 'active' : ''}`}
+                  onClick={() => setMobileTab(tab)}
+                >
+                  <span>{tab}</span>
+                  {isActive && <div className="lp-li-tab-indicator" />}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
-        {/* 3. Sections or Private Lock */}
+        {/* 4. Tab Content or Private Lock */}
         {!canViewContent ? (
           <div className="lp-li-card lp-li-private-card">
             <div className="lp-private-lock-circle">
@@ -1688,107 +1791,390 @@ export default function LeaderProfilePage() {
             </div>
             <h3 className="lp-private-title">This profile is private</h3>
             <p className="lp-private-desc">
-              Follow to see their photos and videos.
+              Follow to see their posts and achievements.
             </p>
           </div>
         ) : (
-          <div className="lp-li-sections">
-            {/* CARD 1: ABOUT */}
-            <div className="lp-li-card">
-              <h3 className="lp-li-card-heading">About</h3>
-              <p className="lp-li-card-paragraph">
-                {leader.bio || cleanQuote || 'Network marketing leader and entrepreneur dedicated to team growth and collaboration.'}
-              </p>
-              {leader.website && (
-                <div className="lp-li-website-item">
-                  <MdLanguage size={15} color="#7C3AED" />
-                  <a
-                    href={leader.website.startsWith('http') ? leader.website : `https://${leader.website}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="lp-li-website-anchor"
-                  >
-                    {leader.website}
-                  </a>
-                </div>
-              )}
-            </div>
-
-            {/* CARD 2: ACTIVITY / POSTS */}
-            <div className="lp-li-card">
-              <div className="lp-li-card-head-row">
-                <h3 className="lp-li-card-heading" style={{ margin: 0 }}>Activity</h3>
-                <span className="lp-li-activity-sub">{userPosts.length} posts</span>
-              </div>
-
-              {loadingPosts ? (
-                <div className="lp-li-empty-text">Loading posts...</div>
-              ) : userPosts && userPosts.length > 0 ? (
-                <div className="lp-li-posts-list">
-                  {userPosts.slice(0, 3).map((post) => (
-                    <div key={post.id} className="lp-li-post-item">
-                      <p className="lp-li-post-content">{post.content || 'Shared an update'}</p>
-                      {post.image_url && (
-                        <div className="lp-li-post-media">
-                          <img src={post.image_url} alt="Post" className="lp-li-post-img" />
-                        </div>
-                      )}
-                      <div className="lp-li-post-metrics">
-                        <span>❤️ {post.likes_count || 0} likes</span>
-                        <span>💬 {post.comments_count || 0} comments</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="lp-li-empty-text">No posts published yet.</div>
-              )}
-            </div>
-
-            {/* CARD 3: EXPERIENCE */}
-            <div className="lp-li-card">
-              <h3 className="lp-li-card-heading">Experience</h3>
-              <div className="lp-li-exp-item">
-                <div className="lp-li-exp-icon">
-                  <FaMedal size={20} color="#7C3AED" />
-                </div>
-                <div className="lp-li-exp-body">
-                  <h4 className="lp-li-exp-role">{leader.levelTitle || leader.role || 'Business Leader'}</h4>
-                  <p className="lp-li-exp-company">{leader.company || 'Fortaa'}</p>
-                  <span className="lp-li-exp-date">
-                    <FaCalendarAlt size={11} /> {leader.joinedDate || 'Active Leader'}
-                  </span>
-                  <p className="lp-li-exp-desc">
-                    {leader.experience || `Actively growing business networks, mentoring leaders, and driving growth.`}
+          <div className="lp-li-tab-content">
+            {/* ─── TAB 1: ABOUT (About info only) ─── */}
+            {mobileTab === 'About' && (
+              <div className="lp-li-tab-pane">
+                {/* Card 1: About Me */}
+                <div className="lp-li-card">
+                  <h3 className="lp-li-card-heading">About</h3>
+                  <p className="lp-li-card-paragraph">
+                    {leader.bio || cleanQuote || 'Network marketing leader and entrepreneur dedicated to team growth and collaboration.'}
                   </p>
+
+                  <div className="lp-li-about-meta">
+                    <div className="lp-li-meta-row">
+                      <FaMapMarkerAlt size={13} color="#64748B" />
+                      <span>{leader.location || 'India'}</span>
+                    </div>
+                    <div className="lp-li-meta-row">
+                      <MdLanguage size={14} color="#64748B" />
+                      <span>Hindi, English</span>
+                    </div>
+                    {leader.website && (
+                      <div className="lp-li-meta-row">
+                        <FaGlobe size={13} color="#7C3AED" />
+                        <a
+                          href={leader.website.startsWith('http') ? leader.website : `https://${leader.website}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="lp-li-meta-link"
+                        >
+                          {leader.website}
+                        </a>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Motivational Quote Bubble */}
+                  <div className="lp-li-quote-bubble">
+                    <p className="lp-li-quote-text">
+                      “Success is not a destination, it's a journey of continuous growth.”
+                    </p>
+                    <span className="lp-li-quote-author">-{leader.name?.toLowerCase() || 'leader'}</span>
+                  </div>
+                </div>
+
+                {/* Card 2: Professional Background & Experience */}
+                <div className="lp-li-card">
+                  <h3 className="lp-li-card-heading">Experience</h3>
+                  <div className="lp-li-exp-item">
+                    <div className="lp-li-exp-icon">
+                      <FaMedal size={20} color="#7C3AED" />
+                    </div>
+                    <div className="lp-li-exp-body">
+                      <h4 className="lp-li-exp-role">{leader.levelTitle || leader.role || 'Business Leader'}</h4>
+                      <p className="lp-li-exp-company">{leader.company || 'Fortaa'}</p>
+                      <span className="lp-li-exp-date">
+                        <FaCalendarAlt size={11} /> {leader.joinedDate || 'Active Leader'}
+                      </span>
+                      <p className="lp-li-exp-desc">
+                        {leader.experience || `Actively growing business networks, mentoring leaders, and driving growth.`}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Card 3: Skills */}
+                <div className="lp-li-card">
+                  <h3 className="lp-li-card-heading">Skills</h3>
+                  {(() => {
+                    const skills = (leader.specialization || leader.skills || 'Marketing, Sales, Strategy, Leadership, Team Builder')
+                      .split(',')
+                      .map((s) => s.trim())
+                      .filter(Boolean);
+
+                    return (
+                      <div className="lp-li-skills-chips">
+                        {skills.map((skill, sIdx) => (
+                          <span key={sIdx} className="lp-li-skill-chip">
+                            <span className="lp-li-skill-dot">✓</span> {skill}
+                          </span>
+                        ))}
+                      </div>
+                    );
+                  })()}
                 </div>
               </div>
-            </div>
+            )}
 
-            {/* CARD 4: SKILLS */}
-            <div className="lp-li-card">
-              <h3 className="lp-li-card-heading">Skills</h3>
-              {(() => {
-                const skills = (leader.specialization || leader.skills || '')
-                  .split(',')
-                  .map((s) => s.trim())
-                  .filter(Boolean);
+            {/* ─── TAB 2: POSTS (All Real Posts) ─── */}
+            {mobileTab === 'Posts' && (
+              <div className="lp-li-tab-pane">
+                <div className="lp-li-posts-header">
+                  <h3 className="lp-li-posts-header-title">
+                    Posts by {leader.name} ({userPosts.length})
+                  </h3>
+                </div>
 
-                if (skills.length === 0) {
-                  return <div className="lp-li-empty-text">No skills added yet.</div>;
-                }
-
-                return (
-                  <div className="lp-li-skills-chips">
-                    {skills.map((skill, sIdx) => (
-                      <span key={sIdx} className="lp-li-skill-chip">
-                        <span className="lp-li-skill-dot">✓</span> {skill}
-                      </span>
-                    ))}
+                {loadingPosts ? (
+                  <div className="lp-li-card" style={{ padding: '36px 16px', textAlign: 'center', color: '#64748B' }}>
+                    Loading posts...
                   </div>
-                );
-              })()}
+                ) : userPosts && userPosts.length > 0 ? (
+                  userPosts.map((post) => {
+                    const hasLiked = !!post.has_liked;
+                    return (
+                      <div key={post.id} className="lp-li-full-post-card">
+                        <div className="lp-li-fp-header">
+                          <img
+                            src={leader.avatar || userAvatarRahul}
+                            alt={leader.name}
+                            className="lp-li-fp-avatar"
+                          />
+                          <div className="lp-li-fp-meta">
+                            <h4 className="lp-li-fp-author">{leader.name}</h4>
+                            <div className="lp-li-fp-sub">
+                              <span className="lp-li-fp-role">{leader.levelTitle || leader.level || 'Leader'}</span>
+                              <span>•</span>
+                              <span>
+                                {post.created_at
+                                  ? new Date(post.created_at).toLocaleDateString('en-US', {
+                                      month: 'short',
+                                      day: 'numeric',
+                                    })
+                                  : 'Recently'}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {post.content && (
+                          <p className="lp-li-fp-content">{post.content}</p>
+                        )}
+
+                        {post.image_url && (
+                          <div className="lp-li-fp-media">
+                            <img src={post.image_url} alt="Post" className="lp-li-fp-img" />
+                          </div>
+                        )}
+
+                        {post.video_url && (
+                          <div className="lp-li-fp-media">
+                            <video src={post.video_url} controls className="lp-li-fp-video" />
+                          </div>
+                        )}
+
+                        <div className="lp-li-fp-actions">
+                          <button
+                            type="button"
+                            className={`lp-li-fp-act-btn ${hasLiked ? 'liked' : ''}`}
+                            onClick={() => handleLikePost(post)}
+                          >
+                            {hasLiked ? <FaHeart color="#EF4444" /> : <FaRegHeart />}
+                            <span>{post.likes_count || 0} Likes</span>
+                          </button>
+                          <button
+                            type="button"
+                            className="lp-li-fp-act-btn"
+                            onClick={() => toast(`Post has ${post.comments_count || 0} comments.`)}
+                          >
+                            <FaRegComment />
+                            <span>{post.comments_count || 0} Comments</span>
+                          </button>
+                          <button
+                            type="button"
+                            className="lp-li-fp-act-btn"
+                            onClick={() => {
+                              if (navigator.share) {
+                                navigator.share({
+                                  title: `Post by ${leader.name}`,
+                                  url: window.location.href,
+                                });
+                              } else {
+                                toast.success('Post link copied to clipboard!');
+                              }
+                            }}
+                          >
+                            <FiShare2 />
+                            <span>Share</span>
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <div className="lp-li-card" style={{ padding: '40px 16px', textAlign: 'center', color: '#64748B' }}>
+                    <p style={{ margin: 0, fontWeight: 700, color: '#1E293B' }}>No posts published yet</p>
+                    <p style={{ margin: '6px 0 0 0', fontSize: '13px', color: '#94A3B8' }}>
+                      {leader.name} hasn't published any posts or updates yet.
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* ─── TAB 3: NETWORK (Followers & Following) ─── */}
+            {mobileTab === 'Network' && (
+              <div className="lp-li-tab-pane">
+                <div className="lp-li-card">
+                  <div className="lp-li-card-head-row">
+                    <h3 className="lp-li-card-heading">Network & Connections</h3>
+                    <button
+                      type="button"
+                      className="lp-li-view-all-btn"
+                      onClick={() => {
+                        setNetworkModalTab('followers');
+                        setShowNetworkModal(true);
+                      }}
+                    >
+                      View List ↗
+                    </button>
+                  </div>
+                  <p className="lp-li-card-paragraph">
+                    {leader.name} has <strong>{leader.followers || '0'}</strong> followers and is connected with <strong>{leader.following || '0'}</strong> leaders across Fortaa.
+                  </p>
+                  <div className="lp-li-net-stats-row">
+                    <div
+                      className="lp-li-net-stat-card"
+                      style={{ cursor: 'pointer' }}
+                      onClick={() => {
+                        setNetworkModalTab('followers');
+                        setShowNetworkModal(true);
+                      }}
+                    >
+                      <span className="lp-li-net-stat-num">{leader.followers || '0'}</span>
+                      <span className="lp-li-net-stat-lbl">Followers</span>
+                    </div>
+                    <div
+                      className="lp-li-net-stat-card"
+                      style={{ cursor: 'pointer' }}
+                      onClick={() => {
+                        setNetworkModalTab('following');
+                        setShowNetworkModal(true);
+                      }}
+                    >
+                      <span className="lp-li-net-stat-num">{leader.following || '0'}</span>
+                      <span className="lp-li-net-stat-lbl">Following</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ─── TAB 4: ACHIEVEMENTS (Milestones & Recognition - Image 1 Style) ─── */}
+            {mobileTab === 'Achievements' && (
+              <div className="lp-li-tab-pane">
+                <div className="lp-li-card">
+                  <h3 className="lp-li-card-heading">Milestones & Recognition</h3>
+                  <div className="lp-li-achieve-grid">
+                    <div className="lp-li-achieve-card">
+                      <FaGem size={24} color="#7C3AED" />
+                      <span className="lp-li-achieve-val">{leader.levelTitle || leader.level || 'Diamond Leader'}</span>
+                      <span className="lp-li-achieve-lbl">Current Tier</span>
+                    </div>
+                    <div className="lp-li-achieve-card">
+                      <FaMedal size={24} color="#F59E0B" />
+                      <span className="lp-li-achieve-val">{leader.experience || '12 year'}</span>
+                      <span className="lp-li-achieve-lbl">Industry Experience</span>
+                    </div>
+                    <div className="lp-li-achieve-card">
+                      <FaCrown size={24} color="#10B981" />
+                      <span className="lp-li-achieve-val">Top 10</span>
+                      <span className="lp-li-achieve-lbl">Leadership Award</span>
+                    </div>
+                    <div className="lp-li-achieve-card">
+                      <FaStar size={24} color="#EF4444" />
+                      <span className="lp-li-achieve-val">Verified</span>
+                      <span className="lp-li-achieve-lbl">Leader Status</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* 5. INSTAGRAM-STYLE FOLLOWERS / FOLLOWING POPUP MODAL (WEB) */}
+        {showNetworkModal && (
+          <div className="lp-li-modal-backdrop" onClick={() => setShowNetworkModal(false)}>
+            <div className="lp-li-modal-sheet" onClick={(e) => e.stopPropagation()}>
+              <div className="lp-li-modal-head">
+                <h3 className="lp-li-modal-title">Network</h3>
+                <button
+                  type="button"
+                  className="lp-li-modal-close-btn"
+                  onClick={() => setShowNetworkModal(false)}
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="lp-li-modal-subtabs">
+                <button
+                  type="button"
+                  className={`lp-li-modal-subtab-btn ${networkModalTab === 'followers' ? 'active' : ''}`}
+                  onClick={() => setNetworkModalTab('followers')}
+                >
+                  Followers ({leader.followers || '0'})
+                </button>
+                <button
+                  type="button"
+                  className={`lp-li-modal-subtab-btn ${networkModalTab === 'following' ? 'active' : ''}`}
+                  onClick={() => setNetworkModalTab('following')}
+                >
+                  Following ({leader.following || '0'})
+                </button>
+              </div>
+
+              <div className="lp-li-modal-body">
+                {(() => {
+                  const list = networkModalTab === 'followers' ? leaderFollowers : leaderFollowing;
+                  if (!list || list.length === 0) {
+                    return (
+                      <div style={{ padding: '36px 16px', textAlign: 'center', color: '#94A3B8' }}>
+                        No {networkModalTab} yet.
+                      </div>
+                    );
+                  }
+                  return list.map((item) => (
+                    <div key={item.id} className="lp-li-modal-member-row">
+                      <img
+                        src={item.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(item.name || 'Member')}&background=6220FE&color=fff`}
+                        alt={item.name}
+                        className="lp-li-modal-avatar"
+                        onClick={() => {
+                          setShowNetworkModal(false);
+                          navigate(`/leader/${item.id}`, { state: { leader: item } });
+                        }}
+                      />
+                      <div
+                        className="lp-li-modal-info"
+                        onClick={() => {
+                          setShowNetworkModal(false);
+                          navigate(`/leader/${item.id}`, { state: { leader: item } });
+                        }}
+                      >
+                        <span className="lp-li-modal-name">{item.name}</span>
+                        <span className="lp-li-modal-role">{item.designation || item.role || 'Member'}</span>
+                      </div>
+                      {currentUserId && Number(currentUserId) !== Number(item.id) && (
+                        <button
+                          type="button"
+                          className="lp-li-modal-follow-btn"
+                          onClick={() => handleTopFollowToggle(item.id, item.name)}
+                        >
+                          Follow
+                        </button>
+                      )}
+                    </div>
+                  ));
+                })()}
+              </div>
             </div>
+          </div>
+        )}
+
+        {/* 7. Bottom Fixed Action Bar */}
+        {!isOwnProfile && (
+          <div className="lp-li-bottom-bar-figma">
+            <button
+              type="button"
+              className="lp-li-bbar-msg-btn"
+              onClick={handleMessageClick}
+            >
+              <HiChatAlt2 size={16} />
+              <span>Message</span>
+            </button>
+            <button
+              type="button"
+              className={`lp-li-bbar-follow-btn ${followStatus === 'accepted' ? 'following' : followStatus === 'pending' ? 'pending' : ''}`}
+              onClick={handleFollowToggle}
+            >
+              {followStatus === 'accepted' ? 'Following ✓' : followStatus === 'pending' ? 'Pending ⏳' : '+ Follow'}
+            </button>
+            <button
+              type="button"
+              className="lp-li-bbar-share-btn"
+              onClick={handleShareProfile}
+            >
+              <FiShare2 size={16} />
+              <span>Share Profile</span>
+            </button>
           </div>
         )}
       </div>

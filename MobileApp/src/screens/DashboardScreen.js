@@ -15,9 +15,11 @@ import {
   Dimensions,
   Alert,
   Animated,
+  Platform,
 } from 'react-native';
 import { Feather, Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as ImagePicker from 'expo-image-picker';
 import UserHeader from '../components/UserHeader';
 import StoriesBar from '../components/StoriesBar';
 import CreatePostModal from '../components/CreatePostModal';
@@ -33,14 +35,54 @@ import {
   sharePostApi,
   getPostLikersApi,
   toggleFollowApi,
+  getLeadersApi,
 } from '../services/api';
 
 const { width } = Dimensions.get('window');
+
+// ─── DYNAMIC ASPECT-RATIO FEED IMAGE COMPONENT ───
+function FeedPostImage({ uri, style }) {
+  const [aspectRatio, setAspectRatio] = useState(null);
+
+  useEffect(() => {
+    if (!uri) return;
+    let isMounted = true;
+    Image.getSize(
+      uri,
+      (w, h) => {
+        if (isMounted && w > 0 && h > 0) {
+          // Clamp between 0.65 (portrait ~9:14) and 1.91 (landscape banner)
+          const ratio = Math.max(0.65, Math.min(1.91, w / h));
+          setAspectRatio(ratio);
+        }
+      },
+      () => {
+        if (isMounted) setAspectRatio(1);
+      }
+    );
+    return () => {
+      isMounted = false;
+    };
+  }, [uri]);
+
+  return (
+    <Image
+      source={{ uri }}
+      style={[
+        styles.postMediaImg,
+        aspectRatio ? { aspectRatio } : { minHeight: 260 },
+        style,
+      ]}
+      resizeMode="contain"
+    />
+  );
+}
 
 // ─── INSTAGRAM-STYLE POST CARD COMPONENT ───
 function DashboardPostCard({
   post,
   user,
+  leadersMap = {},
   isFollowing,
   onToggleLike,
   onToggleFollow,
@@ -58,6 +100,10 @@ function DashboardPostCard({
   const commentsCount = Number(post.comments_count) || 0;
   const sharesCount = Number(post.shares_count) || 1;
   const authorInit = (post.author_name || 'U')[0].toUpperCase();
+  const resolvedAvatar =
+    post.author_avatar ||
+    (leadersMap && (leadersMap[post.user_id] || leadersMap[post.author_name])) ||
+    null;
 
   // Determine Instagram-style like summary text
   const myName = user?.name || 'you';
@@ -167,12 +213,20 @@ function DashboardPostCard({
       <View style={styles.postHeader}>
         <TouchableOpacity
           style={styles.postAuthorTouchable}
-          onPress={() => onPressAuthor && onPressAuthor({ id: post.user_id, name: post.author_name })}
+          onPress={() =>
+            onPressAuthor &&
+            onPressAuthor({
+              id: post.user_id,
+              name: post.author_name,
+              avatar_url: resolvedAvatar,
+              designation: post.author_role,
+            })
+          }
           activeOpacity={0.7}
         >
           <View style={styles.authorAvatarWrap}>
-            {post.author_avatar ? (
-              <Image source={{ uri: post.author_avatar }} style={styles.postAuthorAvatar} />
+            {resolvedAvatar ? (
+              <Image source={{ uri: resolvedAvatar }} style={styles.postAuthorAvatar} />
             ) : (
               <LinearGradient colors={['#DC3AEE', '#5321E8']} style={styles.postAuthorAvatarCircle}>
                 <Text style={styles.postAuthorAvatarText}>{authorInit}</Text>
@@ -288,11 +342,7 @@ function DashboardPostCard({
           onPress={handleImagePress}
           style={styles.postMediaBox}
         >
-          <Image
-            source={{ uri: post.image_url }}
-            style={styles.postMediaImg}
-            resizeMode="cover"
-          />
+          <FeedPostImage uri={post.image_url} />
 
           {/* Instagram Center Heart Popup Overlay */}
           {showHeartPopup && (
@@ -404,6 +454,7 @@ function DashboardPostCard({
 
 export default function DashboardScreen({
   user,
+  feedRefreshKey = 0,
   onNavigateTab,
   onNavigateToMessages,
   onNavigateToProfile,
@@ -412,9 +463,77 @@ export default function DashboardScreen({
 }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [posts, setPosts] = useState([]);
+  const [leadersMap, setLeadersMap] = useState({});
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [createPostVisible, setCreatePostVisible] = useState(false);
+  const [composerInitialMediaUri, setComposerInitialMediaUri] = useState(null);
+  const [composerInitialMediaType, setComposerInitialMediaType] = useState(null);
+  const [composerInitialPollOpen, setComposerInitialPollOpen] = useState(false);
+
+  const handleQuickOpenTextPost = () => {
+    setComposerInitialMediaUri(null);
+    setComposerInitialMediaType(null);
+    setComposerInitialPollOpen(false);
+    setCreatePostVisible(true);
+  };
+
+  const handleQuickPickPhoto = async () => {
+    try {
+      if (Platform.OS !== 'web') {
+        const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (!perm.granted) {
+          Alert.alert('Permission Denied', 'Please allow gallery access to select photos.');
+          return;
+        }
+      }
+      const res = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: Platform.OS !== 'web',
+        quality: 0.85,
+      });
+      if (!res.canceled && res.assets && res.assets.length > 0) {
+        setComposerInitialMediaUri(res.assets[0].uri);
+        setComposerInitialMediaType('image');
+        setComposerInitialPollOpen(false);
+        setCreatePostVisible(true);
+      }
+    } catch (err) {
+      console.warn('Direct photo pick error:', err);
+    }
+  };
+
+  const handleQuickPickVideo = async () => {
+    try {
+      if (Platform.OS !== 'web') {
+        const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (!perm.granted) {
+          Alert.alert('Permission Denied', 'Please allow gallery access to select videos.');
+          return;
+        }
+      }
+      const res = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['videos'],
+        allowsEditing: Platform.OS !== 'web',
+        quality: 0.85,
+      });
+      if (!res.canceled && res.assets && res.assets.length > 0) {
+        setComposerInitialMediaUri(res.assets[0].uri);
+        setComposerInitialMediaType('video');
+        setComposerInitialPollOpen(false);
+        setCreatePostVisible(true);
+      }
+    } catch (err) {
+      console.warn('Direct video pick error:', err);
+    }
+  };
+
+  const handleQuickOpenPoll = () => {
+    setComposerInitialMediaUri(null);
+    setComposerInitialMediaType(null);
+    setComposerInitialPollOpen(true);
+    setCreatePostVisible(true);
+  };
 
   // Comments Modal State
   const [activeCommentsPost, setActiveCommentsPost] = useState(null);
@@ -436,6 +555,14 @@ export default function DashboardScreen({
 
   // Active Video in Screen Viewport
   const [activeVideoId, setActiveVideoId] = useState(null);
+  const [isStoryViewerOpen, setIsStoryViewerOpen] = useState(false);
+
+  // Pause feed videos when story viewer modal is open
+  useEffect(() => {
+    if (isStoryViewerOpen) {
+      setActiveVideoId(null);
+    }
+  }, [isStoryViewerOpen]);
 
   // Instagram Style Three-Dots Action Menu State
   const [actionMenuPost, setActionMenuPost] = useState(null);
@@ -478,10 +605,24 @@ export default function DashboardScreen({
     }
   };
 
-  // Load real posts from backend
+  // Load real posts and leaders from backend
   const loadPosts = async () => {
     try {
-      const data = await fetchPostsApi({ userId: user?.id, filter: 'all' });
+      const [data, leaders] = await Promise.all([
+        fetchPostsApi({ userId: user?.id, filter: 'all' }).catch(() => []),
+        getLeadersApi(user?.id).catch(() => []),
+      ]);
+      const lMap = {};
+      if (Array.isArray(leaders)) {
+        leaders.forEach((l) => {
+          const av = l.avatarUrl || l.avatar_url || l.avatar;
+          if (av) {
+            if (l.id) lMap[l.id] = av;
+            if (l.name) lMap[l.name] = av;
+          }
+        });
+      }
+      setLeadersMap(lMap);
       setPosts(data || []);
       // Auto-set the first video post as active if present
       const firstVidPost = (data || []).find((p) => p.video_url || p.media_type === 'video');
@@ -498,7 +639,7 @@ export default function DashboardScreen({
 
   useEffect(() => {
     loadPosts();
-  }, [user]);
+  }, [user, feedRefreshKey]);
 
   // Handle Like / Unlike (Instagram-style optimistic update)
   const handleToggleLike = async (post) => {
@@ -686,13 +827,13 @@ export default function DashboardScreen({
         }
       >
         {/* 2. Real Instagram-like Story Bar */}
-        <StoriesBar user={user} />
+        <StoriesBar user={user} onStoryModalOpenChange={setIsStoryViewerOpen} />
 
         {/* 3. Create Post Trigger Widget (Matching Web Mobile Screenshot) */}
         <View style={styles.createPostCard}>
           <TouchableOpacity
             style={styles.createPostInputRow}
-            onPress={() => setCreatePostVisible(true)}
+            onPress={handleQuickOpenTextPost}
             activeOpacity={0.8}
           >
             {user?.avatarUrl || user?.avatar_url ? (
@@ -716,7 +857,7 @@ export default function DashboardScreen({
             <View style={styles.mediaPillsRow}>
               <TouchableOpacity
                 style={styles.mediaPill}
-                onPress={() => setCreatePostVisible(true)}
+                onPress={handleQuickPickPhoto}
                 activeOpacity={0.7}
               >
                 <Feather name="image" size={14} color="#334155" />
@@ -725,7 +866,7 @@ export default function DashboardScreen({
 
               <TouchableOpacity
                 style={styles.mediaPill}
-                onPress={() => setCreatePostVisible(true)}
+                onPress={handleQuickPickVideo}
                 activeOpacity={0.7}
               >
                 <Feather name="video" size={14} color="#334155" />
@@ -734,7 +875,7 @@ export default function DashboardScreen({
 
               <TouchableOpacity
                 style={styles.mediaPill}
-                onPress={() => setCreatePostVisible(true)}
+                onPress={handleQuickOpenPoll}
                 activeOpacity={0.7}
               >
                 <Feather name="bar-chart-2" size={14} color="#334155" />
@@ -744,7 +885,7 @@ export default function DashboardScreen({
 
             <TouchableOpacity
               style={styles.btnPost}
-              onPress={() => setCreatePostVisible(true)}
+              onPress={handleQuickOpenTextPost}
               activeOpacity={0.85}
             >
               <Text style={styles.btnPostText}>Post</Text>
@@ -778,6 +919,7 @@ export default function DashboardScreen({
               key={post.id}
               post={post}
               user={user}
+              leadersMap={leadersMap}
               isFollowing={followingIds.has(post.user_id)}
               onToggleLike={handleToggleLike}
               onToggleFollow={handleToggleFollow}
@@ -788,7 +930,7 @@ export default function DashboardScreen({
               onVote={handleVote}
               timeAgo={timeAgo}
               onPressAuthor={(author) => setSelectedLeader(author)}
-              isVideoActive={activeVideoId === post.id}
+              isVideoActive={!isStoryViewerOpen && activeVideoId === post.id}
             />
           ))
         )}
@@ -920,7 +1062,7 @@ export default function DashboardScreen({
                   </View>
                   <View style={styles.commentBody}>
                     <Text style={styles.commentAuthor}>{item.author_name || 'User'}</Text>
-                    <Text style={styles.commentText}>{item.text || item.comment}</Text>
+                    <Text style={styles.commentText}>{item.content || item.text || item.comment}</Text>
                     <Text style={styles.commentTime}>
                       {timeAgo(item.created_at)}
                     </Text>
@@ -960,8 +1102,16 @@ export default function DashboardScreen({
       {/* Global Create Post Modal */}
       <CreatePostModal
         visible={createPostVisible}
-        onClose={() => setCreatePostVisible(false)}
+        onClose={() => {
+          setCreatePostVisible(false);
+          setComposerInitialMediaUri(null);
+          setComposerInitialMediaType(null);
+          setComposerInitialPollOpen(false);
+        }}
         user={user}
+        initialMediaUri={composerInitialMediaUri}
+        initialMediaType={composerInitialMediaType}
+        initialPollOpen={composerInitialPollOpen}
         onPostCreated={handlePostCreated}
       />
 
@@ -983,10 +1133,11 @@ export default function DashboardScreen({
         onClose={() => setSelectedLeader(null)}
         leaderId={selectedLeader?.id}
         leaderName={selectedLeader?.name}
+        leader={selectedLeader}
         currentUser={user}
-        onOpenChat={(targetId) => {
+        onOpenChat={(targetUser) => {
           setSelectedLeader(null);
-          if (onNavigateToMessages) onNavigateToMessages(targetId);
+          if (onNavigateToMessages) onNavigateToMessages(targetUser);
         }}
       />
     </View>
@@ -1199,7 +1350,6 @@ const styles = StyleSheet.create({
   // Media
   postMediaBox: {
     width: '100%',
-    minHeight: 250,
     borderRadius: 12,
     overflow: 'hidden',
     backgroundColor: '#0F092A',
@@ -1208,7 +1358,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  postMediaImg: { width: '100%', height: 260 },
+  postMediaImg: {
+    width: '100%',
+    maxHeight: 560,
+  },
   videoPlayOverlay: {
     position: 'absolute',
     top: 0,

@@ -35,6 +35,7 @@ export default function EditProfileModal({
   const [activeTab, setActiveTab] = useState('personal');
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  const [isUploadingCover, setIsUploadingCover] = useState(false);
 
   // Form Fields
   const [name, setName] = useState('');
@@ -61,6 +62,7 @@ export default function EditProfileModal({
   const [website, setWebsite] = useState('');
 
   const [avatarUri, setAvatarUri] = useState(null);
+  const [coverUri, setCoverUri] = useState(null);
 
   useEffect(() => {
     if (user) {
@@ -93,8 +95,45 @@ export default function EditProfileModal({
       setWebsite(user.websiteSocial || user.website || '');
 
       setAvatarUri(user.avatarUrl || user.avatar_url || null);
+      setCoverUri(user.coverUrl || user.cover_url || null);
     }
   }, [user, visible]);
+
+  // Handle Cover Photo Picker
+  const handlePickCover = async () => {
+    try {
+      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permission.granted) {
+        Alert.alert('Permission Required', 'Please grant photo gallery permission to change background cover.');
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [16, 9],
+        quality: 0.85,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const localUri = result.assets[0].uri;
+        setCoverUri(localUri);
+
+        // Upload to server
+        setIsUploadingCover(true);
+        const cloudUrl = await uploadMediaApi(localUri, false);
+        setIsUploadingCover(false);
+
+        if (cloudUrl && cloudUrl.startsWith('http')) {
+          setCoverUri(cloudUrl);
+        }
+      }
+    } catch (err) {
+      setIsUploadingCover(false);
+      console.warn('Pick cover error:', err);
+      Alert.alert('Upload Error', 'Failed to select or upload background cover.');
+    }
+  };
 
   // Handle Photo Picker
   const handlePickAvatar = async () => {
@@ -173,6 +212,8 @@ export default function EditProfileModal({
         skills: skillsList,
         avatarUrl: avatarUri,
         avatar_url: avatarUri,
+        coverUrl: coverUri,
+        cover_url: coverUri,
         websiteSocial: website.trim(),
         socialLinks: {
           linkedin: linkedin.trim(),
@@ -237,7 +278,7 @@ export default function EditProfileModal({
                   <Feather
                     name={tab.icon}
                     size={14}
-                    color={isActive ? '#5321E8' : '#64748B'}
+                    color={isActive ? '#FFFFFF' : '#64748B'}
                   />
                   <Text style={[styles.tabText, isActive && styles.tabTextActive]}>
                     {tab.label}
@@ -256,7 +297,46 @@ export default function EditProfileModal({
             {/* ─── TAB 1: PERSONAL INFORMATION ─── */}
             {activeTab === 'personal' && (
               <View style={styles.tabContent}>
-                {/* Avatar Photo Editor */}
+                {/* 1. Cover / Background Photo Editor */}
+                <View style={styles.coverEditBox}>
+                  <View style={styles.sectionTitleRow}>
+                    <Text style={styles.sectionTitle}>Cover Background</Text>
+                    <Text style={styles.sectionSubtitle}>Recommended 16:9 banner</Text>
+                  </View>
+                  <View style={styles.coverPreviewContainer}>
+                    {coverUri ? (
+                      <Image source={{ uri: coverUri }} style={styles.coverPreviewImage} resizeMode="cover" />
+                    ) : (
+                      <Image
+                        source={require('../../assets/dashboard/profile_cover_purple.png')}
+                        style={styles.coverPreviewImage}
+                        resizeMode="cover"
+                      />
+                    )}
+
+                    {isUploadingCover && (
+                      <View style={styles.coverUploadOverlay}>
+                        <ActivityIndicator size="small" color="#FFFFFF" />
+                        <Text style={styles.uploadingCoverText}>Uploading cover...</Text>
+                      </View>
+                    )}
+
+                    <TouchableOpacity
+                      style={styles.btnChangeCover}
+                      onPress={handlePickCover}
+                      activeOpacity={0.85}
+                    >
+                      <Feather name="camera" size={13} color="#FFFFFF" />
+                      <Text style={styles.btnChangeCoverText}>Change Cover</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+
+                {/* 2. Avatar Photo Editor */}
+                <View style={styles.sectionTitleRow}>
+                  <Text style={styles.sectionTitle}>Profile Picture</Text>
+                  <Text style={styles.sectionSubtitle}>Square JPG or PNG</Text>
+                </View>
                 <View style={styles.avatarEditRow}>
                   <View style={styles.avatarRing}>
                     {avatarUri ? (
@@ -561,35 +641,107 @@ const styles = StyleSheet.create({
 
   tabsRow: {
     flexDirection: 'row',
-    paddingHorizontal: 16,
+    paddingHorizontal: 12,
     paddingVertical: 10,
-    backgroundColor: '#FAF5FF',
-    gap: 8,
+    backgroundColor: '#F8FAFC',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+    gap: 6,
   },
   tabBtn: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 5,
-    paddingVertical: 8,
-    borderRadius: 10,
-    backgroundColor: '#fff',
+    gap: 4,
+    paddingVertical: 9,
+    paddingHorizontal: 4,
+    borderRadius: 20,
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#E9D5FF',
+    borderColor: '#E2E8F0',
   },
   tabBtnActive: {
     backgroundColor: '#5321E8',
     borderColor: '#5321E8',
+    shadowColor: '#5321E8',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 3,
   },
-  tabText: { fontSize: 12.5, fontWeight: '600', color: '#64748B' },
-  tabTextActive: { color: '#fff', fontWeight: '700' },
+  tabText: { fontSize: 12, fontWeight: '600', color: '#64748B' },
+  tabTextActive: { color: '#FFFFFF', fontWeight: '700' },
 
   formScroll: {
     paddingHorizontal: 20,
     paddingVertical: 16,
   },
   tabContent: { gap: 10 },
+
+  coverEditBox: {
+    marginBottom: 12,
+  },
+  sectionTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  sectionTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#1E1B4B',
+  },
+  sectionSubtitle: {
+    fontSize: 11,
+    color: '#94A3B8',
+  },
+  coverPreviewContainer: {
+    width: '100%',
+    height: 120,
+    borderRadius: 14,
+    overflow: 'hidden',
+    position: 'relative',
+    backgroundColor: '#0F092A',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  coverPreviewImage: {
+    width: '100%',
+    height: '100%',
+  },
+  coverUploadOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.65)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 6,
+  },
+  uploadingCoverText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  btnChangeCover: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: 'rgba(15, 9, 42, 0.75)',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  btnChangeCoverText: {
+    color: '#FFFFFF',
+    fontSize: 11.5,
+    fontWeight: '700',
+  },
 
   avatarEditRow: {
     flexDirection: 'row',

@@ -12,10 +12,16 @@ import {
   TextInput,
   ActivityIndicator,
   Alert,
+  Share,
+  ScrollView,
+  Platform,
+  KeyboardAvoidingView,
+  Keyboard,
 } from 'react-native';
 import { Feather, Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
+import { useVideoPlayer, VideoView } from 'expo-video';
 import {
   fetchStoriesApi,
   createStoryApi,
@@ -24,6 +30,9 @@ import {
   uploadMediaApi,
   deleteStoryApi,
   fetchStoryViewersApi,
+  replyStoryApi,
+  getConversationsApi,
+  sendMessageApi,
 } from '../services/api';
 
 const { width, height } = Dimensions.get('window');
@@ -38,7 +47,31 @@ const GRADIENT_PRESETS = [
   ['#00C9FF', '#92FE9D'],
 ];
 
-export default function StoriesBar({ user }) {
+function NativeStoryVideo({ uri }) {
+  let player = null;
+  try {
+    player = useVideoPlayer(uri, (p) => {
+      if (p) {
+        p.loop = true;
+        try {
+          p.play();
+        } catch (e) {}
+      }
+    });
+  } catch (err) {}
+
+  if (!player) return null;
+  return (
+    <VideoView
+      player={player}
+      style={StyleSheet.absoluteFill}
+      contentFit="cover"
+      nativeControls={false}
+    />
+  );
+}
+
+export default function StoriesBar({ user, onStoryModalOpenChange }) {
   const [storyGroups, setStoryGroups] = useState([]);
   const [loading, setLoading] = useState(false);
 
@@ -47,6 +80,15 @@ export default function StoriesBar({ user }) {
   const [activeStoryIndex, setActiveStoryIndex] = useState(0);
   const [isLiked, setIsLiked] = useState(false);
   const [replyText, setReplyText] = useState('');
+  const [showHeartBurst, setShowHeartBurst] = useState(false);
+
+  // Share Sheet States (Web Parity)
+  const [showShareSheet, setShowShareSheet] = useState(false);
+  const [shareContacts, setShareContacts] = useState([]);
+  const [loadingShareContacts, setLoadingShareContacts] = useState(false);
+  const [sharedStatus, setSharedStatus] = useState({});
+  const [copiedLink, setCopiedLink] = useState(false);
+  const [isSendingReply, setIsSendingReply] = useState(false);
 
   // Owner Story Options & Viewers Sheet States (Screenshot 1 parity)
   const [showDeletePopover, setShowDeletePopover] = useState(false);
@@ -64,6 +106,8 @@ export default function StoriesBar({ user }) {
   const [isPublishing, setIsPublishing] = useState(false);
 
   const progressAnim = useRef(new Animated.Value(0)).current;
+  const isPausedRef = useRef(false);
+  const currentProgressRef = useRef(0);
 
   // Load real stories from backend
   const loadStories = async () => {
@@ -82,6 +126,23 @@ export default function StoriesBar({ user }) {
     loadStories();
   }, [user]);
 
+  // Sync story viewer state to pause any background feed videos
+  useEffect(() => {
+    const isModalOpen = activeGroupIndex !== null;
+    if (onStoryModalOpenChange) {
+      onStoryModalOpenChange(isModalOpen);
+    }
+    if (isModalOpen && Platform.OS === 'web' && typeof document !== 'undefined') {
+      try {
+        document.querySelectorAll('video').forEach((v) => {
+          if (!v.closest('[data-story-viewer="true"]')) {
+            v.pause();
+          }
+        });
+      } catch (e) {}
+    }
+  }, [activeGroupIndex, onStoryModalOpenChange]);
+
   // Handle Opening a Story Group
   const handleOpenGroup = (index) => {
     setActiveGroupIndex(index);
@@ -89,25 +150,43 @@ export default function StoriesBar({ user }) {
     startStoryProgress(index, 0);
   };
 
-  const startStoryProgress = (grpIdx, stIdx) => {
-    progressAnim.setValue(0);
+  const startStoryProgress = (grpIdx, stIdx, startFrom = 0) => {
+    progressAnim.setValue(startFrom);
+    currentProgressRef.current = startFrom;
+    isPausedRef.current = false;
     const grp = storyGroups[grpIdx];
     const currentStory = grp?.stories[stIdx];
 
-    if (currentStory && user?.id) {
+    if (currentStory && user?.id && startFrom === 0) {
       recordStoryViewApi(currentStory.id, user.id);
       setIsLiked(!!currentStory.is_liked);
     }
 
+    const duration = Math.max(600, (1 - startFrom) * 5000);
     Animated.timing(progressAnim, {
       toValue: 1,
-      duration: 5000,
+      duration: duration,
       useNativeDriver: false,
     }).start(({ finished }) => {
-      if (finished) {
+      if (finished && !isPausedRef.current) {
         handleNextStory(grpIdx, stIdx);
       }
     });
+  };
+
+  const handleReplyFocus = () => {
+    isPausedRef.current = true;
+    progressAnim.stopAnimation((value) => {
+      currentProgressRef.current = typeof value === 'number' ? value : 0;
+    });
+  };
+
+  const handleReplyBlur = () => {
+    if (replyText.trim().length === 0 && activeGroupIndex !== null) {
+      isPausedRef.current = false;
+      const resumeFrom = currentProgressRef.current || 0;
+      startStoryProgress(activeGroupIndex, activeStoryIndex, resumeFrom);
+    }
   };
 
   const handleNextStory = (grpIdx = activeGroupIndex, stIdx = activeStoryIndex) => {
@@ -147,9 +226,12 @@ export default function StoriesBar({ user }) {
     setActiveStoryIndex(0);
     setShowDeletePopover(false);
     setShowViewersSheet(false);
+    if (onStoryModalOpenChange) {
+      onStoryModalOpenChange(false);
+    }
   };
 
-  // Direct gallery picker on + tap (Instagram-style)
+  // Direct gallery picker on + tap (Instagram-style: instant publish)
   const handleDirectGalleryStory = async () => {
     try {
       const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -159,18 +241,46 @@ export default function StoriesBar({ user }) {
       }
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images', 'videos'],
-        allowsEditing: true,
+        allowsEditing: false,
         quality: 0.85,
       });
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
         const asset = result.assets[0];
-        setPickedMedia(asset.uri);
-        setPickedMediaType(asset.type === 'video' ? 'video' : 'photo');
-        setAddStoryModalVisible(true);
+        const isVideo =
+          asset.type === 'video' ||
+          (asset.uri && (asset.uri.endsWith('.mp4') || asset.uri.endsWith('.webm') || asset.uri.endsWith('.mov')));
+
+        setIsPublishing(true);
+        if (Platform.OS === 'web' && typeof window !== 'undefined') {
+          window.alert('Uploading Story ⏳\nYour story is publishing...');
+        } else {
+          Alert.alert('Uploading Story ⏳', 'Your story is publishing...');
+        }
+
+        const uploadedUrl = await uploadMediaApi(asset.uri, isVideo);
+
+        await createStoryApi({
+          userId: user?.id || null,
+          mediaType: isVideo ? 'video' : 'photo',
+          mediaUrl: uploadedUrl,
+          textContent: null,
+          backgroundStyle: null,
+        });
+
+        if (Platform.OS === 'web' && typeof window !== 'undefined') {
+          window.alert('Story Live! ✨\nYour story is live for 24 hours.');
+        } else {
+          Alert.alert('Story Live! ✨', 'Your story is live for 24 hours.');
+        }
+
+        await loadStories();
       }
     } catch (err) {
       console.warn('Gallery picker error:', err);
+      Alert.alert('Upload Failed', 'Unable to upload story. Please try again.');
+    } finally {
+      setIsPublishing(false);
     }
   };
 
@@ -232,16 +342,127 @@ export default function StoriesBar({ user }) {
     const currentStory = grp?.stories[activeStoryIndex];
     if (!currentStory) return;
 
-    setIsLiked(!isLiked);
-    if (user?.id) {
+    if (!user?.id) {
+      Alert.alert('Sign In Required', 'Please sign in to like this story.');
+      return;
+    }
+
+    const nextLiked = !isLiked;
+    setIsLiked(nextLiked);
+
+    if (nextLiked) {
+      setShowHeartBurst(true);
+      setTimeout(() => setShowHeartBurst(false), 900);
+    }
+
+    try {
       await toggleStoryLikeApi(currentStory.id, user.id);
+    } catch (err) {
+      console.warn('Like story error:', err);
     }
   };
 
-  const handleSendReply = () => {
-    if (!replyText.trim()) return;
-    Alert.alert('Reply Sent 💬', `Your reply "${replyText}" has been sent.`);
-    setReplyText('');
+  const handleOpenShareSheet = async () => {
+    progressAnim.stopAnimation();
+    setShowShareSheet(true);
+    setLoadingShareContacts(true);
+    setCopiedLink(false);
+
+    try {
+      if (user?.id) {
+        const convs = await getConversationsApi(user.id);
+        setShareContacts(Array.isArray(convs) ? convs.slice(0, 10) : []);
+      }
+    } catch (err) {
+      console.warn('Failed to load share contacts:', err);
+    } finally {
+      setLoadingShareContacts(false);
+    }
+  };
+
+  const handleCloseShareSheet = () => {
+    setShowShareSheet(false);
+    startStoryProgress(activeGroupIndex, activeStoryIndex);
+  };
+
+  const handleNativeAppShare = async () => {
+    const grp = storyGroups[activeGroupIndex];
+    const authorName = grp?.userName || 'Leader';
+
+    try {
+      await Share.share({
+        title: `${authorName}'s Story on Fortaa`,
+        message: `Check out ${authorName}'s story on Fortaa!\nhttps://fortaa.com/dashboard`,
+      });
+    } catch (err) {
+      console.warn('Native share error:', err);
+    }
+  };
+
+  const handleCopyStoryLink = () => {
+    if (Platform.OS === 'web' && typeof navigator !== 'undefined' && navigator.clipboard) {
+      navigator.clipboard.writeText('https://fortaa.com/dashboard');
+    }
+    setCopiedLink(true);
+    setTimeout(() => setCopiedLink(false), 2500);
+  };
+
+  const handleShareToContact = async (contact) => {
+    const contactId = contact.user_id || contact.id;
+    if (!contactId || sharedStatus[contactId] || !user?.id) return;
+
+    const grp = storyGroups[activeGroupIndex];
+    const currentStory = grp?.stories[activeStoryIndex];
+
+    try {
+      const msgText = `Shared ${grp?.userName || 'Leader'}'s story with you! 🌟`;
+      const attachment = {
+        type: 'story_share',
+        storyId: currentStory.id,
+        mediaType: currentStory.media_type,
+        mediaUrl: currentStory.media_url,
+        authorName: grp?.userName,
+        authorAvatar: grp?.userAvatar,
+      };
+
+      await sendMessageApi({
+        senderId: user.id,
+        receiverId: contactId,
+        text: msgText,
+        attachment,
+      });
+
+      setSharedStatus((prev) => ({ ...prev, [contactId]: true }));
+    } catch (err) {
+      console.warn('Failed to share to contact:', err);
+    }
+  };
+
+  const handleSendReply = async () => {
+    const textToSend = replyText.trim();
+    const grp = storyGroups[activeGroupIndex];
+    const currentStory = grp?.stories[activeStoryIndex];
+    const targetUserId = currentStory?.user_id || grp?.userId;
+
+    if (!textToSend || !user?.id || !targetUserId || isSendingReply) return;
+
+    setIsSendingReply(true);
+    try {
+      await replyStoryApi(currentStory.id, {
+        senderId: user.id,
+        receiverId: targetUserId,
+        text: textToSend,
+      });
+      setReplyText('');
+      Keyboard.dismiss();
+      isPausedRef.current = false;
+      Alert.alert('Reply Sent 💬', `Sent to ${grp?.userName || 'Leader'}!`);
+      handleNextStory(activeGroupIndex, activeStoryIndex);
+    } catch (err) {
+      console.warn('Send story reply error:', err);
+    } finally {
+      setIsSendingReply(false);
+    }
   };
 
   // Add Story - Pick photo or video from phone
@@ -411,14 +632,42 @@ export default function StoriesBar({ user }) {
         onRequestClose={handleCloseViewer}
       >
         {currentGroup && currentStory && (
-          <View style={styles.viewerContainer}>
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            style={styles.viewerContainer}
+          >
             {/* Story Background / Media */}
             {currentStory.media_url ? (
-              <Image
-                source={{ uri: currentStory.media_url }}
-                style={styles.viewerMediaBg}
-                resizeMode="cover"
-              />
+              currentStory.media_type === 'video' ||
+              currentStory.media_url.endsWith('.mp4') ||
+              currentStory.media_url.endsWith('.webm') ||
+              currentStory.media_url.endsWith('.mov') ||
+              currentStory.media_url.includes('/video/') ? (
+                Platform.OS === 'web' ? (
+                  <video
+                    src={currentStory.media_url}
+                    autoPlay
+                    playsInline
+                    loop
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover',
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                    }}
+                  />
+                ) : (
+                  <NativeStoryVideo uri={currentStory.media_url} />
+                )
+              ) : (
+                <Image
+                  source={{ uri: currentStory.media_url }}
+                  style={styles.viewerMediaBg}
+                  resizeMode="cover"
+                />
+              )
             ) : (
               <LinearGradient
                 colors={GRADIENT_PRESETS[activeGroupIndex % GRADIENT_PRESETS.length]}
@@ -493,6 +742,16 @@ export default function StoriesBar({ user }) {
               </View>
 
               <View style={styles.viewerHeaderRight}>
+                {!(user?.id && Number(currentGroup.userId) === Number(user.id)) && (
+                  <TouchableOpacity
+                    onPress={handleOpenShareSheet}
+                    style={styles.viewerHeaderIconBtn}
+                    activeOpacity={0.8}
+                  >
+                    <Feather name="share-2" size={20} color="#fff" />
+                  </TouchableOpacity>
+                )}
+
                 {user?.id && Number(currentGroup.userId) === Number(user.id) && (
                   <TouchableOpacity
                     onPress={() => setShowDeletePopover((prev) => !prev)}
@@ -507,6 +766,13 @@ export default function StoriesBar({ user }) {
                 </TouchableOpacity>
               </View>
             </View>
+
+            {/* Heart Burst Center Overlay on Like (Web Parity) */}
+            {showHeartBurst && (
+              <View style={styles.heartBurstOverlay} pointerEvents="none">
+                <Ionicons name="heart" size={96} color="#FF0055" />
+              </View>
+            )}
 
             {/* White Delete Story Popover Pill (Screenshot 1) */}
             {showDeletePopover && user?.id && Number(currentGroup.userId) === Number(user.id) && (
@@ -527,7 +793,7 @@ export default function StoriesBar({ user }) {
               </View>
             )}
 
-            {/* Bottom Bar: Owner views badge (Screenshot 1) vs Viewer reply & like */}
+            {/* Bottom Bar: Owner views badge (Image 2 Parity) vs Viewer reply & like */}
             {user?.id && Number(currentGroup.userId) === Number(user.id) ? (
               <View style={styles.ownerBottomBar}>
                 <TouchableOpacity
@@ -550,11 +816,17 @@ export default function StoriesBar({ user }) {
                     placeholderTextColor="rgba(255,255,255,0.7)"
                     value={replyText}
                     onChangeText={setReplyText}
+                    onFocus={handleReplyFocus}
+                    onBlur={handleReplyBlur}
                     onSubmitEditing={handleSendReply}
                   />
                   {replyText.trim().length > 0 && (
-                    <TouchableOpacity onPress={handleSendReply}>
-                      <Feather name="send" size={18} color="#fff" />
+                    <TouchableOpacity onPress={handleSendReply} disabled={isSendingReply}>
+                      {isSendingReply ? (
+                        <ActivityIndicator size="small" color="#5321E8" />
+                      ) : (
+                        <Feather name="send" size={18} color="#5321E8" />
+                      )}
                     </TouchableOpacity>
                   )}
                 </View>
@@ -564,15 +836,23 @@ export default function StoriesBar({ user }) {
                   onPress={handleToggleLike}
                   activeOpacity={0.8}
                 >
-                  <Feather
-                    name="heart"
-                    size={24}
-                    color={isLiked ? '#EF4444' : '#fff'}
+                  <Ionicons
+                    name={isLiked ? 'heart' : 'heart-outline'}
+                    size={26}
+                    color={isLiked ? '#FF0055' : '#FFFFFF'}
                   />
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.shareBtn}
+                  onPress={handleOpenShareSheet}
+                  activeOpacity={0.8}
+                >
+                  <Feather name="send" size={20} color="#FFFFFF" />
                 </TouchableOpacity>
               </View>
             )}
-          </View>
+          </KeyboardAvoidingView>
         )}
       </Modal>
 
@@ -674,6 +954,114 @@ export default function StoriesBar({ user }) {
               )}
             />
           )}
+        </View>
+      </Modal>
+
+      {/* ─── STORY SHARE BOTTOM SHEET MODAL (Web Parity) ─── */}
+      <Modal
+        visible={showShareSheet}
+        animationType="slide"
+        transparent
+        onRequestClose={handleCloseShareSheet}
+      >
+        <TouchableOpacity
+          style={styles.viewersBackdrop}
+          activeOpacity={1}
+          onPress={handleCloseShareSheet}
+        />
+        <View style={styles.shareSheetContainer}>
+          <View style={styles.viewersDragHandle} />
+
+          <View style={styles.shareHeader}>
+            <View style={styles.shareHeaderTitleRow}>
+              <Feather name="send" size={18} color="#5321E8" />
+              <Text style={styles.shareHeaderTitle}>Share Story</Text>
+            </View>
+            <TouchableOpacity onPress={handleCloseShareSheet} style={styles.shareCloseBtn}>
+              <Feather name="x" size={18} color="#64748B" />
+            </TouchableOpacity>
+          </View>
+
+          {/* Quick Action Buttons: Share via Apps & Copy Link */}
+          <View style={styles.shareQuickRow}>
+            <TouchableOpacity
+              style={styles.shareQuickBtn}
+              onPress={handleNativeAppShare}
+              activeOpacity={0.8}
+            >
+              <View style={styles.shareQuickIconCircle}>
+                <Feather name="share-2" size={18} color="#5321E8" />
+              </View>
+              <Text style={styles.shareQuickLabel}>Share via Apps</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.shareQuickBtn}
+              onPress={handleCopyStoryLink}
+              activeOpacity={0.8}
+            >
+              <View style={[styles.shareQuickIconCircle, copiedLink && styles.shareQuickIconCircleSuccess]}>
+                <Feather name={copiedLink ? 'check' : 'copy'} size={18} color={copiedLink ? '#10B981' : '#5321E8'} />
+              </View>
+              <Text style={[styles.shareQuickLabel, copiedLink && styles.shareQuickLabelSuccess]}>
+                {copiedLink ? 'Link Copied! ✓' : 'Copy Link'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Send in Chat to Leaders Heading */}
+          <View style={styles.shareSectionHeader}>
+            <Text style={styles.shareSectionTitle}>Send in Chat</Text>
+            <Text style={styles.shareSectionSub}>Send directly to connections</Text>
+          </View>
+
+          {/* Contacts List */}
+          <ScrollView style={styles.shareContactsScroll} showsVerticalScrollIndicator={false}>
+            {loadingShareContacts ? (
+              <View style={styles.shareLoadingBox}>
+                <ActivityIndicator size="small" color="#5321E8" />
+                <Text style={styles.shareLoadingText}>Loading contacts...</Text>
+              </View>
+            ) : shareContacts.length === 0 ? (
+              <View style={styles.shareEmptyBox}>
+                <Text style={styles.shareEmptyText}>Use "Share via Apps" to share anywhere!</Text>
+              </View>
+            ) : (
+              shareContacts.map((contact) => {
+                const contactId = contact.user_id || contact.id;
+                const isSent = Boolean(sharedStatus[contactId]);
+                return (
+                  <View key={contactId} style={styles.shareContactRow}>
+                    <View style={styles.shareContactAvatar}>
+                      {contact.avatar || contact.avatar_url ? (
+                        <Image source={{ uri: contact.avatar || contact.avatar_url }} style={styles.shareContactAvatarImg} />
+                      ) : (
+                        <Text style={styles.shareContactInitial}>
+                          {(contact.name || 'U')[0].toUpperCase()}
+                        </Text>
+                      )}
+                    </View>
+                    <View style={styles.shareContactInfo}>
+                      <Text style={styles.shareContactName} numberOfLines={1}>{contact.name}</Text>
+                      <Text style={styles.shareContactRole} numberOfLines={1}>
+                        {contact.role || contact.company || 'Leader'}
+                      </Text>
+                    </View>
+                    <TouchableOpacity
+                      style={[styles.shareSendBtn, isSent && styles.shareSendBtnSent]}
+                      onPress={() => !isSent && handleShareToContact(contact)}
+                      disabled={isSent}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={[styles.shareSendBtnText, isSent && styles.shareSendBtnTextSent]}>
+                        {isSent ? 'Sent ✓' : 'Send'}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                );
+              })
+            )}
+          </ScrollView>
         </View>
       </Modal>
 
@@ -1168,6 +1556,195 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.2)',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  shareBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  heartBurstOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 99,
+  },
+
+  // ─── STORY SHARE BOTTOM SHEET ───
+  shareSheetContainer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    maxHeight: height * 0.75,
+    paddingBottom: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 10,
+    elevation: 10,
+    zIndex: 999,
+  },
+  shareHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+  },
+  shareHeaderTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  shareHeaderTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#1E1B4B',
+  },
+  shareCloseBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#F3F4F6',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  shareQuickRow: {
+    flexDirection: 'row',
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    gap: 12,
+  },
+  shareQuickBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    gap: 8,
+  },
+  shareQuickIconCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#EDE9FE',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  shareQuickIconCircleSuccess: {
+    backgroundColor: '#D1FAE5',
+  },
+  shareQuickLabel: {
+    fontSize: 12.5,
+    fontWeight: '700',
+    color: '#334155',
+  },
+  shareQuickLabelSuccess: {
+    color: '#10B981',
+  },
+  shareSectionHeader: {
+    paddingHorizontal: 20,
+    paddingTop: 4,
+    paddingBottom: 8,
+  },
+  shareSectionTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#1E1B4B',
+  },
+  shareSectionSub: {
+    fontSize: 11,
+    color: '#94A3B8',
+  },
+  shareContactsScroll: {
+    maxHeight: 260,
+    paddingHorizontal: 20,
+  },
+  shareLoadingBox: {
+    paddingVertical: 24,
+    alignItems: 'center',
+    gap: 8,
+  },
+  shareLoadingText: {
+    fontSize: 12,
+    color: '#64748B',
+  },
+  shareEmptyBox: {
+    paddingVertical: 20,
+    alignItems: 'center',
+  },
+  shareEmptyText: {
+    fontSize: 12.5,
+    color: '#64748B',
+    textAlign: 'center',
+  },
+  shareContactRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F8FAFC',
+    gap: 12,
+  },
+  shareContactAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#EDE9FE',
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  shareContactAvatarImg: {
+    width: '100%',
+    height: '100%',
+  },
+  shareContactInitial: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#5321E8',
+  },
+  shareContactInfo: {
+    flex: 1,
+  },
+  shareContactName: {
+    fontSize: 13.5,
+    fontWeight: '700',
+    color: '#1E1B4B',
+  },
+  shareContactRole: {
+    fontSize: 11.5,
+    color: '#64748B',
+    marginTop: 1,
+  },
+  shareSendBtn: {
+    backgroundColor: '#5321E8',
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  shareSendBtnSent: {
+    backgroundColor: '#10B981',
+  },
+  shareSendBtnText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  shareSendBtnTextSent: {
+    color: '#FFFFFF',
   },
 
   // ─── ADD STORY CREATOR ───

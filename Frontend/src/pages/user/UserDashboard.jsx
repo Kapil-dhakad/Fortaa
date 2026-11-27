@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { FaRegThumbsUp, FaThumbsUp, FaRegComment, FaVolumeMute, FaVolumeUp } from 'react-icons/fa';
 import { RiShareForwardLine } from 'react-icons/ri';
+import { FiImage, FiVideo, FiBarChart2 } from 'react-icons/fi';
 import './UserDashboard.css';
 import UserHeader from '../../components/layout/UserHeader';
 import UserSidebar from '../../components/layout/UserSidebar';
@@ -1913,6 +1914,16 @@ export default function UserDashboard() {
                   <>
                   {displayedPosts.map((post, pIdx) => (
                     <React.Fragment key={post.id || pIdx}>
+                      {(() => {
+                        const resolvedPostAvatar =
+                          post.author_avatar ||
+                          leadersList.find(
+                            (l) =>
+                              (post.user_id && Number(l.id) === Number(post.user_id)) ||
+                              (post.author_name && l.name && l.name.toLowerCase().trim() === post.author_name.toLowerCase().trim())
+                          )?.avatar_url ||
+                          userAvatarImg;
+                        return (
                       <div className={`ud-post-item ${pIdx === 0 ? 'ud-post-item-first' : 'ud-post-item-second'}`}>
                       <div className="ud-post-header">
                         <div
@@ -1922,7 +1933,7 @@ export default function UserDashboard() {
                           title="View Profile"
                         >
                           <img
-                            src={post.author_avatar || userAvatarImg}
+                            src={resolvedPostAvatar}
                             alt=""
                             loading={pIdx > 2 ? 'lazy' : 'eager'}
                             decoding="async"
@@ -2115,6 +2126,8 @@ export default function UserDashboard() {
                         />
                       )}
                       </div>
+                      );
+                      })()}
                       {/* 1st Slot: Trainers (after 5 posts, or every 10 posts starting at 5) */}
                       {((pIdx + 1) % 10 === 5 || (posts.length <= 5 && pIdx === posts.length - 1)) && (
                         <InFeedSuggestedPeople
@@ -2527,17 +2540,17 @@ export default function UserDashboard() {
 
             <div className="ud-mob-cp-pills">
               <button type="button" className={`ud-mob-cp-pill ${postImagePreview ? 'active' : ''}`} onClick={() => photoInputRef.current?.click()}>
-                <span>📷</span>
+                <FiImage size={14} />
                 <span>Photo</span>
               </button>
 
               <button type="button" className={`ud-mob-cp-pill ${postVideoPreview ? 'active' : ''}`} onClick={() => videoInputRef.current?.click()}>
-                <span>📹</span>
+                <FiVideo size={14} />
                 <span>Video</span>
               </button>
 
               <button type="button" className={`ud-mob-cp-pill ${showPollCreator ? 'active' : ''}`} onClick={() => setShowPollCreator(!showPollCreator)}>
-                <span>📊</span>
+                <FiBarChart2 size={14} />
                 <span>Poll</span>
               </button>
 
@@ -2594,6 +2607,16 @@ export default function UserDashboard() {
               <>
               {displayedPosts.map((post, pIdx) => (
                 <React.Fragment key={post.id || pIdx}>
+                  {(() => {
+                    const resolvedPostAvatar =
+                      post.author_avatar ||
+                      leadersList.find(
+                        (l) =>
+                          (post.user_id && Number(l.id) === Number(post.user_id)) ||
+                          (post.author_name && l.name && l.name.toLowerCase().trim() === post.author_name.toLowerCase().trim())
+                      )?.avatar_url ||
+                      userAvatarImg;
+                    return (
                   <article className="ud-mob-post-card">
                   <div className="ud-mob-post-header">
                     <div className="ud-mob-post-author">
@@ -2604,7 +2627,7 @@ export default function UserDashboard() {
                         title="View Profile"
                       >
                         <img
-                          src={post.author_avatar || userAvatarImg}
+                          src={resolvedPostAvatar}
                           alt={post.author_name}
                           loading={pIdx > 2 ? 'lazy' : 'eager'}
                           decoding="async"
@@ -2810,6 +2833,8 @@ export default function UserDashboard() {
                     />
                   )}
                   </article>
+                  );
+                  })()}
                   {/* 1st Slot: Trainers (after 5 posts) */}
                   {((pIdx + 1) % 10 === 5 || (posts.length <= 5 && pIdx === posts.length - 1)) && (
                     <InFeedSuggestedPeople
@@ -3115,21 +3140,21 @@ export default function UserDashboard() {
                     className="ud-cpm-tool-btn"
                     onClick={() => photoInputRef.current?.click()}
                   >
-                    📷 Photo
+                    <FiImage size={15} /> Photo
                   </button>
                   <button
                     type="button"
                     className="ud-cpm-tool-btn"
                     onClick={() => videoInputRef.current?.click()}
                   >
-                    🎥 Video
+                    <FiVideo size={15} /> Video
                   </button>
                   <button
                     type="button"
                     className="ud-cpm-tool-btn"
                     onClick={() => setShowPollCreator(!showPollCreator)}
                   >
-                    📊 Poll
+                    <FiBarChart2 size={15} /> Poll
                   </button>
                 </div>
               </div>

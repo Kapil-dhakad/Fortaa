@@ -220,6 +220,9 @@ async function getPosts(req, res) {
       const activeUserId = requesterId || userId || 0;
       let queryStr = `
         SELECT p.*,
+               COALESCE(author_u.avatar_url, p.author_avatar) AS author_avatar,
+               COALESCE(author_u.name, p.author_name) AS author_name,
+               COALESCE(author_u.designation, p.author_role) AS author_role,
                COALESCE((SELECT TRUE FROM post_likes pl WHERE pl.post_id = p.id AND pl.user_id = $1 LIMIT 1), FALSE) AS has_liked,
                (
                  SELECT u.name
@@ -238,6 +241,7 @@ async function getPosts(req, res) {
                  LIMIT 1
                ) AS latest_liker_avatar
         FROM posts p
+        LEFT JOIN users author_u ON (author_u.id = p.user_id OR (p.user_id IS NULL AND author_u.name = p.author_name))
         ORDER BY p.created_at DESC
       `;
       let params = [activeUserId];
@@ -267,6 +271,9 @@ async function getPosts(req, res) {
 
         queryStr = `
           SELECT p.*,
+                 COALESCE(author_u.avatar_url, p.author_avatar) AS author_avatar,
+                 COALESCE(author_u.name, p.author_name) AS author_name,
+                 COALESCE(author_u.designation, p.author_role) AS author_role,
                  COALESCE((SELECT TRUE FROM post_likes pl WHERE pl.post_id = p.id AND pl.user_id = $1 LIMIT 1), FALSE) AS has_liked,
                  (
                    SELECT u.name
@@ -285,6 +292,7 @@ async function getPosts(req, res) {
                    LIMIT 1
                  ) AS latest_liker_avatar
           FROM posts p
+          LEFT JOIN users author_u ON (author_u.id = p.user_id OR (p.user_id IS NULL AND author_u.name = p.author_name))
           WHERE p.user_id = $1
           ORDER BY p.created_at DESC
         `;
@@ -292,6 +300,9 @@ async function getPosts(req, res) {
       } else if (filter === 'following' && userId) {
         queryStr = `
           SELECT p.*,
+                 COALESCE(author_u.avatar_url, p.author_avatar) AS author_avatar,
+                 COALESCE(author_u.name, p.author_name) AS author_name,
+                 COALESCE(author_u.designation, p.author_role) AS author_role,
                  COALESCE((SELECT TRUE FROM post_likes pl WHERE pl.post_id = p.id AND pl.user_id = $1 LIMIT 1), FALSE) AS has_liked,
                  (
                    SELECT u.name
@@ -310,6 +321,7 @@ async function getPosts(req, res) {
                    LIMIT 1
                  ) AS latest_liker_avatar
           FROM posts p
+          LEFT JOIN users author_u ON (author_u.id = p.user_id OR (p.user_id IS NULL AND author_u.name = p.author_name))
           WHERE p.user_id = $1 
              OR p.user_id IN (SELECT following_id FROM follows WHERE follower_id = $1 AND status = 'accepted')
           ORDER BY p.created_at DESC
@@ -319,6 +331,9 @@ async function getPosts(req, res) {
         // Main community feed: show public community posts, user's own posts, or posts from followed private accounts
         queryStr = `
           SELECT p.*,
+                 COALESCE(author_u.avatar_url, p.author_avatar) AS author_avatar,
+                 COALESCE(author_u.name, p.author_name) AS author_name,
+                 COALESCE(author_u.designation, p.author_role) AS author_role,
                  COALESCE((SELECT TRUE FROM post_likes pl WHERE pl.post_id = p.id AND pl.user_id = $1 LIMIT 1), FALSE) AS has_liked,
                  (
                    SELECT u.name
@@ -337,6 +352,7 @@ async function getPosts(req, res) {
                    LIMIT 1
                  ) AS latest_liker_avatar
           FROM posts p
+          LEFT JOIN users author_u ON (author_u.id = p.user_id OR (p.user_id IS NULL AND author_u.name = p.author_name))
           WHERE (
             p.user_id IN (SELECT id FROM users WHERE COALESCE(profile_visibility, 'public') = 'public')
             OR p.user_id = $1
@@ -956,12 +972,13 @@ async function getPostComments(req, res) {
 async function addPostComment(req, res) {
   try {
     const { id } = req.params;
-    const { content, userId, authorName, authorRole, authorAvatar } = req.body;
+    const { content, text, userId, authorName, authorRole, authorAvatar } = req.body;
+    const commentBody = (content || text || '').trim();
 
     if (!id) {
       return res.status(400).json({ success: false, message: 'Post ID is required' });
     }
-    if (!content || !content.trim()) {
+    if (!commentBody) {
       return res.status(400).json({ success: false, message: 'Comment content cannot be empty' });
     }
 
@@ -976,7 +993,7 @@ async function addPostComment(req, res) {
         `INSERT INTO post_comments (post_id, user_id, author_name, author_role, author_avatar, content)
          VALUES ($1, $2, $3, $4, $5, $6)
          RETURNING *`,
-        [id, activeUserId, name, role, avatar, content.trim()]
+        [id, activeUserId, name, role, avatar, commentBody]
       );
 
       // 2. Update post comments count
@@ -1011,7 +1028,8 @@ async function addPostComment(req, res) {
       author_name: name,
       author_role: role,
       author_avatar: avatar,
-      content: cleanContent,
+      content: commentBody,
+      text: commentBody,
       likes_count: 0,
       created_at: new Date().toISOString(),
     };

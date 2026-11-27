@@ -1,11 +1,21 @@
 import React from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, Platform } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, Platform, Dimensions } from 'react-native';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
+
+const { height: windowHeight } = Dimensions.get('window');
+const { height: screenHeight } = Dimensions.get('screen');
+const navBarDiff = Math.max(0, screenHeight - windowHeight);
+const safeBottomPadding = Platform.select({
+  ios: 22,
+  android: navBarDiff > 20 ? Math.min(navBarDiff + 2, 44) : 20,
+  default: 8,
+});
 
 export default function UserMobileBottomNav({
   activeTab = 'home',
   onSelectTab,
   onPlusClick,
+  unreadTotalCount = 0,
 }) {
   return (
     <View style={styles.navContainer}>
@@ -89,11 +99,14 @@ export default function UserMobileBottomNav({
         onPress={() => onSelectTab('menu')}
         activeOpacity={0.7}
       >
-        <Feather
-          name="menu"
-          size={22}
-          color={activeTab === 'menu' ? '#5321E8' : '#334155'}
-        />
+        <View style={styles.menuIconBox}>
+          <Feather
+            name="menu"
+            size={22}
+            color={activeTab === 'menu' ? '#5321E8' : '#334155'}
+          />
+          {unreadTotalCount > 0 && <View style={styles.menuDot} />}
+        </View>
         <Text
           style={[
             styles.navLabel,
@@ -113,11 +126,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: '#FFFFFF',
-    height: 60,
     borderTopWidth: 1,
     borderTopColor: '#ECEAF5',
     paddingHorizontal: 12,
-    paddingBottom: Platform.OS === 'ios' ? 10 : 2,
+    paddingTop: 8,
+    paddingBottom: safeBottomPadding,
     shadowColor: '#000000',
     shadowOffset: { width: 0, height: -3 },
     shadowOpacity: 0.08,
@@ -159,5 +172,21 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.45,
     shadowRadius: 8,
     elevation: 8,
+  },
+  menuIconBox: {
+    position: 'relative',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  menuDot: {
+    position: 'absolute',
+    top: -1,
+    right: -4,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#F60808',
+    borderWidth: 1.5,
+    borderColor: '#FFFFFF',
   },
 });

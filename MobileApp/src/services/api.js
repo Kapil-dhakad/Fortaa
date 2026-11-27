@@ -196,10 +196,12 @@ export async function googleLoginApi({ credential, email, name, picture, account
 }
 
 // 9. Fetch Real Posts Feed from Backend
-export async function fetchPostsApi({ userId, filter = 'all' } = {}) {
+export async function fetchPostsApi({ userId, filter = 'all', currentUserId = null } = {}) {
   try {
     let url = `${BASE_URL}/api/dashboard/posts?filter=${filter}`;
-    if (userId) url += `&userId=${userId}&currentUserId=${userId}`;
+    if (userId) url += `&userId=${userId}`;
+    const requesterId = currentUserId || userId;
+    if (requesterId) url += `&currentUserId=${requesterId}`;
     const res = await fetch(url);
     const data = await res.json();
     if (data.success && Array.isArray(data.posts)) {
@@ -274,11 +276,18 @@ export async function getPostCommentsApi(postId) {
 }
 
 // 14. Add Post Comment
-export async function addPostCommentApi(postId, { userId, authorName, authorAvatar, text }) {
+export async function addPostCommentApi(postId, { userId, authorName, authorAvatar, text, content }) {
+  const commentBody = text || content;
   const res = await fetch(`${BASE_URL}/api/dashboard/posts/${postId}/comments`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ userId, authorName, authorAvatar, text }),
+    body: JSON.stringify({
+      userId,
+      authorName,
+      authorAvatar,
+      text: commentBody,
+      content: commentBody,
+    }),
   });
   const data = await res.json();
   if (!res.ok || !data.success) {
@@ -387,11 +396,21 @@ export async function uploadMediaApi(uri, isVideo = false) {
       : `image/${ext === 'png' ? 'png' : 'jpeg'}`;
 
     const formData = new FormData();
-    formData.append('file', {
-      uri,
-      name: filename,
-      type,
-    });
+    if (Platform.OS === 'web' || typeof window !== 'undefined') {
+      try {
+        const fetchRes = await fetch(uri);
+        const blob = await fetchRes.blob();
+        formData.append('file', blob, filename);
+      } catch (blobErr) {
+        formData.append('file', { uri, name: filename, type });
+      }
+    } else {
+      formData.append('file', {
+        uri,
+        name: filename,
+        type,
+      });
+    }
 
     const endpoint = isVideo ? `${BASE_URL}/api/upload/video` : `${BASE_URL}/api/upload/image`;
     const res = await fetch(endpoint, {
@@ -411,9 +430,12 @@ export async function uploadMediaApi(uri, isVideo = false) {
 }
 
 // 22. Fetch User Profile
-export async function fetchUserProfileApi(userId) {
+export async function fetchUserProfileApi(userId, viewerId = null) {
   try {
-    const res = await fetch(`${BASE_URL}/api/users/profile/${userId}`);
+    const url = viewerId
+      ? `${BASE_URL}/api/users/profile/${userId}?viewerId=${viewerId}`
+      : `${BASE_URL}/api/users/profile/${userId}`;
+    const res = await fetch(url);
     const data = await res.json();
     if (data.success && data.profile) {
       return data.profile;
@@ -421,6 +443,17 @@ export async function fetchUserProfileApi(userId) {
     return null;
   } catch (err) {
     console.warn('fetchUserProfileApi error:', err);
+    return null;
+  }
+}
+
+// 22b. Fetch User Social Counts (Followers & Following)
+export async function fetchUserSocialCountsApi(userId) {
+  try {
+    const res = await fetch(`${BASE_URL}/api/follow/counts/${userId}`);
+    return await res.json();
+  } catch (err) {
+    console.warn('fetchUserSocialCountsApi error:', err);
     return null;
   }
 }
@@ -484,6 +517,30 @@ export async function toggleFollowApi(targetUserId, currentUserId) {
   }
 }
 
+// 26b. Fetch Followers API
+export async function fetchFollowersApi(userId) {
+  try {
+    const res = await fetch(`${BASE_URL}/api/follow/followers/${userId}`);
+    const data = await res.json();
+    return Array.isArray(data) ? data : data?.followers || [];
+  } catch (err) {
+    console.warn('fetchFollowersApi error:', err);
+    return [];
+  }
+}
+
+// 26c. Fetch Following API
+export async function fetchFollowingApi(userId) {
+  try {
+    const res = await fetch(`${BASE_URL}/api/follow/following/${userId}`);
+    const data = await res.json();
+    return Array.isArray(data) ? data : data?.following || [];
+  } catch (err) {
+    console.warn('fetchFollowingApi error:', err);
+    return [];
+  }
+}
+
 // 27. Delete Story API
 export async function deleteStoryApi(storyId, userId) {
   try {
@@ -522,6 +579,48 @@ export async function fetchNotificationsApi(userId) {
   } catch (err) {
     console.warn('fetchNotificationsApi error:', err);
     return [];
+  }
+}
+
+// 29b. Fetch Unread Notification Count API
+export async function fetchUnreadNotificationCountApi(userId) {
+  try {
+    if (!userId) return 0;
+    const res = await fetch(`${BASE_URL}/api/notifications/count/${userId}`);
+    const data = await res.json();
+    return Number(data.unreadCount) || 0;
+  } catch (err) {
+    console.warn('fetchUnreadNotificationCountApi error:', err);
+    return 0;
+  }
+}
+
+// 29c. Mark All Notifications Seen API (Clears bell badge)
+export async function markNotificationsSeenApi(userId) {
+  try {
+    if (!userId) return { success: false };
+    const res = await fetch(`${BASE_URL}/api/notifications/mark-seen`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId }),
+    });
+    return await res.json();
+  } catch (err) {
+    console.warn('markNotificationsSeenApi error:', err);
+    return { success: false };
+  }
+}
+
+// 29d. Fetch Unread Messages Count API
+export async function fetchUnreadMessageCountApi(userId) {
+  try {
+    if (!userId) return 0;
+    const res = await fetch(`${BASE_URL}/api/messages/unread-count/${userId}`);
+    const data = await res.json();
+    return Number(data.count ?? data.unreadCount ?? 0);
+  } catch (err) {
+    console.warn('fetchUnreadMessageCountApi error:', err);
+    return 0;
   }
 }
 
@@ -592,16 +691,36 @@ export async function fetchUserPostsApi(userId) {
   }
 }
 
-// 34. Reply to Story (send message via chat API)
+// 34. Reply to Story (rich story reply with attachment into messages)
 export async function replyStoryApi(storyId, { senderId, receiverId, text }) {
   try {
-    const res = await fetch(`${BASE_URL}/api/messages/send`, {
+    if (storyId) {
+      const res = await fetch(`${BASE_URL}/api/stories/${storyId}/reply`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ senderId, text }),
+      });
+      const data = await res.json();
+      if (data && data.success) {
+        return data;
+      }
+    }
+    // Fallback to direct message with story_reply attachment
+    const fallbackRes = await fetch(`${BASE_URL}/api/messages/send`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ senderId, receiverId, text: `[Story Reply] ${text}` }),
+      body: JSON.stringify({
+        senderId,
+        receiverId,
+        text,
+        attachment: {
+          type: 'story_reply',
+          storyId,
+          text,
+        },
+      }),
     });
-    const data = await res.json();
-    return data;
+    return await fallbackRes.json();
   } catch (err) {
     console.warn('replyStoryApi error:', err);
     return { success: false };

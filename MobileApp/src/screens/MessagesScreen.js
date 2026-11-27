@@ -14,6 +14,7 @@ import {
   Modal,
   Alert,
   Dimensions,
+  Keyboard,
 } from 'react-native';
 import { Feather, MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -26,6 +27,7 @@ import {
   deleteChatMessageApi,
   uploadChatMediaApi,
 } from '../services/api';
+import { refreshUnreadCounts } from '../services/unreadCountService';
 
 const { width } = Dimensions.get('window');
 
@@ -35,8 +37,36 @@ export default function MessagesScreen({
   currentUser,
   activeChatPartner,
   onBackToConversations,
+  onChatPartnerOpen,
 }) {
   const [selectedPartner, setSelectedPartner] = useState(activeChatPartner || null);
+
+  useEffect(() => {
+    if (activeChatPartner) {
+      setSelectedPartner(activeChatPartner);
+    }
+  }, [activeChatPartner]);
+
+  useEffect(() => {
+    if (onChatPartnerOpen) {
+      onChatPartnerOpen(selectedPartner);
+    }
+  }, [selectedPartner]);
+
+  useEffect(() => {
+    if (!selectedPartner) return;
+    const keyboardShowSub = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      () => {
+        setTimeout(() => {
+          flatListRef.current?.scrollToEnd({ animated: true });
+        }, 120);
+      }
+    );
+    return () => {
+      keyboardShowSub.remove();
+    };
+  }, [selectedPartner]);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState('All');
 
@@ -149,6 +179,7 @@ export default function MessagesScreen({
             },
           ]);
         }
+        refreshUnreadCounts(currentUser.id);
       });
     }
   }, [selectedPartner?.id, currentUser?.id]);
@@ -404,7 +435,8 @@ export default function MessagesScreen({
     return (
       <KeyboardAvoidingView
         style={styles.chatContainer}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
       >
         {/* Chat Top Header */}
         <View style={styles.chatHeader}>
@@ -426,7 +458,9 @@ export default function MessagesScreen({
           >
             <Image
               source={
-                selectedPartner.avatarType === 'fortaa'
+                selectedPartner.avatar_url || selectedPartner.avatarUrl
+                  ? { uri: selectedPartner.avatar_url || selectedPartner.avatarUrl }
+                  : selectedPartner.avatarType === 'fortaa'
                   ? require('../../assets/figma/logo_icon_img.png')
                   : require('../../assets/dashboard/user_avatar_rahul.png')
               }
@@ -505,7 +539,36 @@ export default function MessagesScreen({
                       {/* Attachment Render */}
                       {item.attachment ? (
                         <View style={styles.attachmentWrapper}>
-                          {item.attachment.type === 'image' ? (
+                          {item.attachment.type === 'story_reply' || item.attachment.type === 'story_share' ? (
+                            <View style={styles.storyReplyCardWrapper}>
+                              <Text style={[styles.storyReplyAuthorLabel, styles.storyReplyAuthorLabelMe]}>
+                                Replied to {item.attachment.authorName ? `@${item.attachment.authorName}'s story` : 'story'}
+                              </Text>
+                              <View style={styles.storyReplyMediaCard}>
+                                {item.attachment.mediaUrl ? (
+                                  <Image
+                                    source={{ uri: item.attachment.mediaUrl }}
+                                    style={styles.storyReplyThumbImg}
+                                    resizeMode="cover"
+                                  />
+                                ) : (
+                                  <LinearGradient
+                                    colors={['#6366F1', '#9333EA']}
+                                    style={styles.storyReplyTextThumb}
+                                  >
+                                    <Text style={styles.storyReplyTextThumbContent} numberOfLines={4}>
+                                      {item.attachment.textContent || 'Story'}
+                                    </Text>
+                                  </LinearGradient>
+                                )}
+                                {item.attachment.mediaType === 'video' && (
+                                  <View style={styles.storyReplyVideoBadge}>
+                                    <Ionicons name="play" size={14} color="#FFFFFF" />
+                                  </View>
+                                )}
+                              </View>
+                            </View>
+                          ) : item.attachment.type === 'image' ? (
                             <Image
                               source={{ uri: item.attachment.url }}
                               style={styles.attachmentImage}
@@ -542,7 +605,10 @@ export default function MessagesScreen({
                             item.is_deleted && styles.deletedTextMe,
                           ]}
                         >
-                          {item.text}
+                          {(item.text || '')
+                            .replace(/^\[Story Reply\]\s*/i, '')
+                            .replace(/^Replied to story:\s*"?/i, '')
+                            .replace(/"?$/, '')}
                         </Text>
                       ) : null}
 
@@ -575,7 +641,36 @@ export default function MessagesScreen({
                       {/* Attachment Render */}
                       {item.attachment ? (
                         <View style={styles.attachmentWrapper}>
-                          {item.attachment.type === 'image' ? (
+                          {item.attachment.type === 'story_reply' || item.attachment.type === 'story_share' ? (
+                            <View style={styles.storyReplyCardWrapper}>
+                              <Text style={[styles.storyReplyAuthorLabel, styles.storyReplyAuthorLabelPartner]}>
+                                Replied to your story
+                              </Text>
+                              <View style={styles.storyReplyMediaCard}>
+                                {item.attachment.mediaUrl ? (
+                                  <Image
+                                    source={{ uri: item.attachment.mediaUrl }}
+                                    style={styles.storyReplyThumbImg}
+                                    resizeMode="cover"
+                                  />
+                                ) : (
+                                  <LinearGradient
+                                    colors={['#6366F1', '#9333EA']}
+                                    style={styles.storyReplyTextThumb}
+                                  >
+                                    <Text style={styles.storyReplyTextThumbContent} numberOfLines={4}>
+                                      {item.attachment.textContent || 'Story'}
+                                    </Text>
+                                  </LinearGradient>
+                                )}
+                                {item.attachment.mediaType === 'video' && (
+                                  <View style={styles.storyReplyVideoBadge}>
+                                    <Ionicons name="play" size={14} color="#FFFFFF" />
+                                  </View>
+                                )}
+                              </View>
+                            </View>
+                          ) : item.attachment.type === 'image' ? (
                             <Image
                               source={{ uri: item.attachment.url }}
                               style={styles.attachmentImage}
@@ -615,7 +710,10 @@ export default function MessagesScreen({
                             item.is_deleted && styles.deletedTextPartner,
                           ]}
                         >
-                          {item.text}
+                          {(item.text || '')
+                            .replace(/^\[Story Reply\]\s*/i, '')
+                            .replace(/^Replied to story:\s*"?/i, '')
+                            .replace(/"?$/, '')}
                         </Text>
                       ) : null}
 
@@ -976,7 +1074,12 @@ export default function MessagesScreen({
           >
             {/* Avatar */}
             <View style={styles.convAvatarWrap}>
-              {item.avatarType === 'fortaa' ? (
+              {item.avatar_url || item.avatarUrl ? (
+                <Image
+                  source={{ uri: item.avatar_url || item.avatarUrl }}
+                  style={styles.convAvatarImg}
+                />
+              ) : item.avatarType === 'fortaa' ? (
                 <View style={styles.fortaaAvatarBox}>
                   <Image
                     source={require('../../assets/figma/logo_icon_img.png')}
@@ -1348,6 +1451,65 @@ const styles = StyleSheet.create({
   attachmentDocName: { fontSize: 12.5, fontWeight: '700', color: '#FFFFFF' },
   attachmentDocSize: { fontSize: 10, color: 'rgba(255,255,255,0.8)' },
 
+  /* Story Reply Card (Web & Instagram Parity) */
+  storyReplyCardWrapper: {
+    marginBottom: 6,
+    width: 150,
+  },
+  storyReplyAuthorLabel: {
+    fontSize: 11,
+    fontWeight: '500',
+    marginBottom: 4,
+  },
+  storyReplyAuthorLabelMe: {
+    color: 'rgba(255, 255, 255, 0.85)',
+    textAlign: 'right',
+  },
+  storyReplyAuthorLabelPartner: {
+    color: '#64748B',
+    textAlign: 'left',
+  },
+  storyReplyMediaCard: {
+    width: 150,
+    height: 210,
+    borderRadius: 14,
+    overflow: 'hidden',
+    backgroundColor: '#090D16',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+    position: 'relative',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  storyReplyThumbImg: {
+    width: '100%',
+    height: '100%',
+  },
+  storyReplyTextThumb: {
+    width: '100%',
+    height: '100%',
+    padding: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  storyReplyTextThumbContent: {
+    color: '#FFFFFF',
+    fontSize: 12.5,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  storyReplyVideoBadge: {
+    position: 'absolute',
+    bottom: 8,
+    right: 8,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: 'rgba(0, 0, 0, 0.65)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
   /* Reaction Emoji Badge on Bubble */
   reactionBadge: {
     position: 'absolute',
@@ -1409,7 +1571,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingTop: 8,
+    paddingBottom: Platform.OS === 'ios' ? 24 : 10,
     backgroundColor: '#FFFFFF',
     borderTopWidth: 1,
     borderTopColor: '#E2E8F0',

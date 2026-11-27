@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { View, StyleSheet, Alert } from 'react-native';
+import { View, StyleSheet, Alert, Platform, ActivityIndicator, Image } from 'react-native';
 import LoginScreen from './src/screens/LoginScreen';
 import SignUpScreen from './src/screens/SignUpScreen';
 import DashboardScreen from './src/screens/DashboardScreen';
@@ -14,36 +14,90 @@ import SettingsScreen from './src/screens/SettingsScreen';
 import UserMobileBottomNav from './src/components/UserMobileBottomNav';
 import MenuBottomSheet from './src/components/MenuBottomSheet';
 import CreatePostModal from './src/components/CreatePostModal';
+import {
+  subscribeUnreadCounts,
+  startUnreadCountPolling,
+  stopUnreadCountPolling,
+} from './src/services/unreadCountService';
+import {
+  saveUserSession,
+  getUserSession,
+  clearUserSession,
+} from './src/services/authStorage';
 
 export default function App() {
-  // Auth state: 'login' | 'signup' | 'main'
-  const [currentScreen, setCurrentScreen] = useState('login');
+  // Auth state: 'loading' | 'login' | 'signup' | 'main'
+  const [currentScreen, setCurrentScreen] = useState('loading');
   const [user, setUser] = useState(null);
+
+  // Restore persistent login session on app startup
+  useEffect(() => {
+    let isMounted = true;
+    async function restoreSession() {
+      try {
+        const savedUser = await getUserSession();
+        if (isMounted) {
+          if (savedUser && savedUser.id) {
+            setUser(savedUser);
+            setCurrentScreen('main');
+          } else {
+            setCurrentScreen('login');
+          }
+        }
+      } catch (err) {
+        if (isMounted) setCurrentScreen('login');
+      }
+    }
+    restoreSession();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   // Tab State: 'home' | 'network' | 'opportunity' | 'messages' | 'profile' | 'notifications'
   const [activeTab, setActiveTab] = useState('home');
   const [menuSheetOpen, setMenuSheetOpen] = useState(false);
   const [activeChatPartner, setActiveChatPartner] = useState(null);
+  const [isInsideChat, setIsInsideChat] = useState(false);
   const [createPostModalOpen, setCreatePostModalOpen] = useState(false);
+  const [feedRefreshKey, setFeedRefreshKey] = useState(0);
+  const [unreadCounts, setUnreadCounts] = useState({ notificationCount: 0, messageCount: 0 });
 
-  const handleLoginSuccess = (userData) => {
-    setUser(userData);
+  useEffect(() => {
+    if (user?.id) {
+      startUnreadCountPolling(user.id);
+    } else {
+      stopUnreadCountPolling();
+    }
+    const unsub = subscribeUnreadCounts((counts) => setUnreadCounts(counts));
+    return () => unsub();
+  }, [user?.id]);
+
+  const handleLoginSuccess = async (userData) => {
+    const finalUser = userData?.user || userData;
+    setUser(finalUser);
+    await saveUserSession(finalUser);
     setCurrentScreen('main');
     setActiveTab('home');
   };
 
-  const handleRegisterSuccess = (userData) => {
-    setUser(userData);
+  const handleRegisterSuccess = async (userData) => {
+    const finalUser = userData?.user || userData;
+    setUser(finalUser);
+    await saveUserSession(finalUser);
     setCurrentScreen('main');
     setActiveTab('home');
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    stopUnreadCountPolling();
+    await clearUserSession();
     setUser(null);
     setCurrentScreen('login');
     setActiveTab('home');
     setMenuSheetOpen(false);
     setActiveChatPartner(null);
+    setIsInsideChat(false);
   };
 
   const handleSelectTab = (tab) => {
@@ -76,6 +130,20 @@ export default function App() {
     setActiveTab('messages');
   };
 
+  if (currentScreen === 'loading') {
+    return (
+      <View style={[styles.container, styles.loadingSplash]}>
+        <StatusBar style="light" />
+        <Image
+          source={require('./assets/icon.png')}
+          style={styles.splashLogo}
+          resizeMode="contain"
+        />
+        <ActivityIndicator size="large" color="#FFFFFF" style={{ marginTop: 24 }} />
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <StatusBar style="light" />
@@ -104,8 +172,14 @@ export default function App() {
             {activeTab === 'home' && (
               <DashboardScreen
                 user={user}
+                feedRefreshKey={feedRefreshKey}
                 onNavigateTab={(tab) => handleSelectTab(tab)}
-                onNavigateToMessages={() => setActiveTab('messages')}
+                onNavigateToMessages={(partner) => {
+                  if (partner && partner.id) {
+                    setActiveChatPartner(partner);
+                  }
+                  setActiveTab('messages');
+                }}
                 onNavigateToProfile={() => setActiveTab('profile')}
                 onNavigateToNotifications={() => setActiveTab('notifications')}
                 onNavigateToSettings={() => setActiveTab('settings')}
@@ -142,7 +216,11 @@ export default function App() {
               <MessagesScreen
                 currentUser={user}
                 activeChatPartner={activeChatPartner}
-                onBackToConversations={() => setActiveChatPartner(null)}
+                onBackToConversations={() => {
+                  setActiveChatPartner(null);
+                  setIsInsideChat(false);
+                }}
+                onChatPartnerOpen={(partner) => setIsInsideChat(!!partner)}
               />
             )}
 
@@ -150,7 +228,10 @@ export default function App() {
             {activeTab === 'profile' && (
               <ProfileScreen
                 user={user}
-                onUpdateUser={(updated) => setUser(updated)}
+                onUpdateUser={async (updated) => {
+                  setUser(updated);
+                  await saveUserSession(updated);
+                }}
                 onNavigateToMessages={() => setActiveTab('messages')}
                 onNavigateToNotifications={() => setActiveTab('notifications')}
                 onNavigateToSettings={() => setActiveTab('settings')}
@@ -198,12 +279,18 @@ export default function App() {
             )}
           </View>
 
-          {/* Docked Mobile Bottom Navigation Bar with FAB (+) */}
-          <UserMobileBottomNav
-            activeTab={activeTab === 'notifications' || activeTab === 'groups' ? 'menu' : activeTab}
-            onSelectTab={handleSelectTab}
-            onPlusClick={() => setCreatePostModalOpen(true)}
-          />
+          {/* Docked Mobile Bottom Navigation Bar with FAB (+) - hidden inside active conversation like WhatsApp */}
+          {!(activeTab === 'messages' && isInsideChat) && (
+            <UserMobileBottomNav
+              activeTab={activeTab === 'notifications' || activeTab === 'groups' ? 'menu' : activeTab}
+              onSelectTab={(tab) => {
+                setIsInsideChat(false);
+                handleSelectTab(tab);
+              }}
+              onPlusClick={() => setCreatePostModalOpen(true)}
+              unreadTotalCount={unreadCounts.notificationCount + unreadCounts.messageCount}
+            />
+          )}
 
           {/* Slide-up Menu Drawer Sheet */}
           <MenuBottomSheet
@@ -220,8 +307,14 @@ export default function App() {
             onClose={() => setCreatePostModalOpen(false)}
             user={user}
             onPostCreated={(post) => {
-              Alert.alert('Post Created 🎉', post.text);
+              setFeedRefreshKey((k) => k + 1);
               setActiveTab('home');
+              const msg = post?.content ? 'Your post is now live in the network feed!' : 'Post published!';
+              if (Platform.OS === 'web' && typeof window !== 'undefined') {
+                window.alert(`Post Published 🎉\n${msg}`);
+              } else {
+                Alert.alert('Post Published 🎉', msg);
+              }
             }}
           />
         </View>
@@ -234,6 +327,16 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F3F4F6',
+  },
+  loadingSplash: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#1E0B4B',
+  },
+  splashLogo: {
+    width: 96,
+    height: 96,
+    borderRadius: 24,
   },
   mainWrapper: {
     flex: 1,

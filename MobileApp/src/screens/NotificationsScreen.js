@@ -21,6 +21,7 @@ import {
   markNotificationsReadApi,
   deleteNotificationApi,
 } from '../services/api';
+import { clearNotificationBadge } from '../services/unreadCountService';
 
 const { width } = Dimensions.get('window');
 
@@ -164,6 +165,9 @@ export default function NotificationsScreen({
 
   useEffect(() => {
     loadNotifications();
+    if (user?.id) {
+      clearNotificationBadge(user.id);
+    }
   }, [user]);
 
   const formatTimeAgo = (dateStr) => {
@@ -181,6 +185,7 @@ export default function NotificationsScreen({
   const markAllRead = async () => {
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
     if (user?.id) {
+      clearNotificationBadge(user.id);
       await markNotificationsReadApi(user.id);
     }
   };

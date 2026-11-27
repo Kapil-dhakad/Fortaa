@@ -12,6 +12,11 @@ import {
 import { Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { getLeadersApi } from '../services/api';
+import {
+  subscribeUnreadCounts,
+  startUnreadCountPolling,
+  clearNotificationBadge,
+} from '../services/unreadCountService';
 
 export default function UserHeader({
   user,
@@ -24,9 +29,26 @@ export default function UserHeader({
   onLogout,
   onSelectLeader,
   onViewAllLeaders,
+  notificationCount = 0,
+  messageCount = 0,
 }) {
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const [leadersList, setLeadersList] = useState([]);
+  const [unreadNotifCount, setUnreadNotifCount] = useState(notificationCount || 0);
+  const [unreadMsgCount, setUnreadMsgCount] = useState(messageCount || 0);
+
+  useEffect(() => {
+    if (user?.id) {
+      startUnreadCountPolling(user.id);
+    }
+    const unsubscribe = subscribeUnreadCounts((counts) => {
+      setUnreadNotifCount(counts.notificationCount);
+      setUnreadMsgCount(counts.messageCount);
+    });
+    return () => {
+      unsubscribe();
+    };
+  }, [user?.id]);
 
   useEffect(() => {
     getLeadersApi().then((data) => {
@@ -79,10 +101,20 @@ export default function UserHeader({
           <View style={styles.rightActions}>
             <TouchableOpacity
               style={styles.iconBtn}
-              onPress={onNavigateToNotifications}
+              onPress={() => {
+                clearNotificationBadge(user?.id);
+                if (onNavigateToNotifications) onNavigateToNotifications();
+              }}
               activeOpacity={0.7}
             >
               <Feather name="bell" size={20} color="#FFFFFF" />
+              {unreadNotifCount > 0 && (
+                <View style={styles.badgeCountPill}>
+                  <Text style={styles.badgeCountText}>
+                    {unreadNotifCount > 99 ? '99+' : unreadNotifCount}
+                  </Text>
+                </View>
+              )}
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -91,6 +123,13 @@ export default function UserHeader({
               activeOpacity={0.7}
             >
               <Feather name="message-square" size={20} color="#FFFFFF" />
+              {unreadMsgCount > 0 && (
+                <View style={styles.badgeCountPill}>
+                  <Text style={styles.badgeCountText}>
+                    {unreadMsgCount > 99 ? '99+' : unreadMsgCount}
+                  </Text>
+                </View>
+              )}
             </TouchableOpacity>
 
             {/* User Profile Avatar with dropdown trigger */}
@@ -99,11 +138,19 @@ export default function UserHeader({
               onPress={() => setProfileDropdownOpen((prev) => !prev)}
               activeOpacity={0.8}
             >
-              <Image
-                source={require('../../assets/dashboard/user_avatar_rahul.png')}
-                style={styles.userAvatarImg}
-                resizeMode="cover"
-              />
+              {displayAvatar ? (
+                <Image
+                  source={{ uri: displayAvatar }}
+                  style={styles.userAvatarImg}
+                  resizeMode="cover"
+                />
+              ) : (
+                <Image
+                  source={require('../../assets/dashboard/user_avatar_rahul.png')}
+                  style={styles.userAvatarImg}
+                  resizeMode="cover"
+                />
+              )}
             </TouchableOpacity>
           </View>
         </View>
@@ -203,10 +250,19 @@ export default function UserHeader({
           />
           <View style={styles.dropdownCard}>
             <View style={styles.dropdownUserRow}>
-              <Image
-                source={require('../../assets/dashboard/user_avatar_rahul.png')}
-                style={styles.dropdownAvatar}
-              />
+              {displayAvatar ? (
+                <Image
+                  source={{ uri: displayAvatar }}
+                  style={styles.dropdownAvatar}
+                  resizeMode="cover"
+                />
+              ) : (
+                <Image
+                  source={require('../../assets/dashboard/user_avatar_rahul.png')}
+                  style={styles.dropdownAvatar}
+                  resizeMode="cover"
+                />
+              )}
               <View style={styles.dropdownUserMeta}>
                 <Text style={styles.dropdownUserName}>{displayName}</Text>
                 <Text style={styles.dropdownUserRole}>{displayRole}</Text>
@@ -319,6 +375,29 @@ const styles = StyleSheet.create({
     padding: 6,
     alignItems: 'center',
     justifyContent: 'center',
+    position: 'relative',
+  },
+  badgeCountPill: {
+    position: 'absolute',
+    top: -2,
+    right: -4,
+    backgroundColor: '#F60808',
+    borderRadius: 9,
+    minWidth: 17,
+    height: 17,
+    paddingHorizontal: 3,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1.5,
+    borderColor: '#4E1AD9',
+  },
+  badgeCountText: {
+    color: '#FFFFFF',
+    fontSize: 9.5,
+    fontWeight: '800',
+    textAlign: 'center',
+    includeFontPadding: false,
+    lineHeight: 12,
   },
   avatarBtn: {
     width: 36,

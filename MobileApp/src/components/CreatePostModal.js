@@ -12,15 +12,33 @@ import {
   ScrollView,
   ActivityIndicator,
   Alert,
+  Platform,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
 import { createPostApi, uploadMediaApi } from '../services/api';
+import FeedVideoPlayer from './FeedVideoPlayer';
 
-const { width, height } = Dimensions.get('window');
+const { height } = Dimensions.get('window');
 
-export default function CreatePostModal({ visible, onClose, user, onPostCreated }) {
+const showAlert = (title, message) => {
+  if (Platform.OS === 'web' && typeof window !== 'undefined') {
+    window.alert(`${title}: ${message}`);
+  } else {
+    Alert.alert(title, message);
+  }
+};
+
+export default function CreatePostModal({
+  visible,
+  onClose,
+  user,
+  onPostCreated,
+  initialMediaUri = null,
+  initialMediaType = null,
+  initialPollOpen = false,
+}) {
   const [postText, setPostText] = useState('');
   const [mediaUri, setMediaUri] = useState(null);
   const [mediaType, setMediaType] = useState(null); // 'image' | 'video'
@@ -38,6 +56,17 @@ export default function CreatePostModal({ visible, onClose, user, onPostCreated 
 
   useEffect(() => {
     if (visible) {
+      // Sync any direct-trigger initial state (e.g., from Photo / Video / Poll pill click)
+      if (initialMediaUri) {
+        setMediaUri(initialMediaUri);
+        setMediaType(initialMediaType || 'image');
+        setIsPollOpen(false);
+      } else if (initialPollOpen) {
+        setIsPollOpen(true);
+        setMediaUri(null);
+        setMediaType(null);
+      }
+
       Animated.spring(slideAnim, {
         toValue: 0,
         useNativeDriver: true,
@@ -51,20 +80,22 @@ export default function CreatePostModal({ visible, onClose, user, onPostCreated 
         useNativeDriver: true,
       }).start();
     }
-  }, [visible]);
+  }, [visible, initialMediaUri, initialMediaType, initialPollOpen]);
 
   // Pick Image from Gallery
   const handlePickImage = async () => {
     try {
-      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (!permission.granted) {
-        Alert.alert('Permission Denied', 'Please allow gallery access to select photos.');
-        return;
+      if (Platform.OS !== 'web') {
+        const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (!permission.granted) {
+          showAlert('Permission Denied', 'Please allow gallery access to select photos.');
+          return;
+        }
       }
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images'],
-        allowsEditing: true,
-        quality: 0.8,
+        allowsEditing: Platform.OS !== 'web',
+        quality: 0.85,
       });
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
@@ -74,22 +105,24 @@ export default function CreatePostModal({ visible, onClose, user, onPostCreated 
       }
     } catch (err) {
       console.warn('Image picker error:', err);
-      Alert.alert('Error', 'Failed to pick image.');
+      showAlert('Error', 'Failed to pick image.');
     }
   };
 
   // Pick Video from Gallery
   const handlePickVideo = async () => {
     try {
-      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (!permission.granted) {
-        Alert.alert('Permission Denied', 'Please allow gallery access to select videos.');
-        return;
+      if (Platform.OS !== 'web') {
+        const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (!permission.granted) {
+          showAlert('Permission Denied', 'Please allow gallery access to select videos.');
+          return;
+        }
       }
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['videos'],
-        allowsEditing: true,
-        quality: 0.8,
+        allowsEditing: Platform.OS !== 'web',
+        quality: 0.85,
       });
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
@@ -99,24 +132,33 @@ export default function CreatePostModal({ visible, onClose, user, onPostCreated 
       }
     } catch (err) {
       console.warn('Video picker error:', err);
-      Alert.alert('Error', 'Failed to pick video.');
+      showAlert('Error', 'Failed to pick video.');
     }
   };
 
   // Toggle Poll builder
   const handleTogglePoll = () => {
-    setIsPollOpen((prev) => !prev);
-    if (!isPollOpen) {
-      setMediaUri(null);
-      setMediaType(null);
-    }
+    setIsPollOpen((prev) => {
+      const next = !prev;
+      if (next) {
+        setMediaUri(null);
+        setMediaType(null);
+      }
+      return next;
+    });
   };
 
   const handleAddPollOption = () => {
     if (pollOptions.length < 4) {
       setPollOptions((prev) => [...prev, '']);
     } else {
-      Alert.alert('Limit Reached', 'Maximum 4 options allowed in a poll.');
+      showAlert('Limit Reached', 'Maximum 4 options allowed in a poll.');
+    }
+  };
+
+  const handleRemovePollOption = (index) => {
+    if (pollOptions.length > 2) {
+      setPollOptions((prev) => prev.filter((_, i) => i !== index));
     }
   };
 
@@ -131,7 +173,7 @@ export default function CreatePostModal({ visible, onClose, user, onPostCreated 
   // Submit Real Post to Backend
   const handlePost = async () => {
     if (!postText.trim() && !mediaUri && !pollQuestion.trim()) {
-      Alert.alert('Empty Post', 'Please write something or attach media/poll.');
+      showAlert('Empty Post', 'Please write something or attach media/poll.');
       return;
     }
 
@@ -140,11 +182,11 @@ export default function CreatePostModal({ visible, onClose, user, onPostCreated 
     if (isPollOpen) {
       const validOptions = pollOptions.filter((o) => o.trim().length > 0);
       if (validOptions.length < 2) {
-        Alert.alert('Incomplete Poll', 'Please provide at least 2 poll options.');
+        showAlert('Incomplete Poll', 'Please provide at least 2 poll options.');
         return;
       }
       pollPayload = {
-        question: pollQuestion.trim() || postText.trim(),
+        question: pollQuestion.trim() || postText.trim() || 'Poll Question',
         options: validOptions.map((opt, idx) => ({ id: idx + 1, text: opt.trim(), votes: 0 })),
         totalVotes: 0,
       };
@@ -157,7 +199,7 @@ export default function CreatePostModal({ visible, onClose, user, onPostCreated 
       if (mediaUri) {
         uploadedUrl = await uploadMediaApi(mediaUri, mediaType === 'video');
         if (mediaType === 'video' && (!uploadedUrl || uploadedUrl.startsWith('file:///'))) {
-          Alert.alert(
+          showAlert(
             'Video Upload Error',
             'Could not upload video to the server. Please check internet connection and try again.'
           );
@@ -168,11 +210,13 @@ export default function CreatePostModal({ visible, onClose, user, onPostCreated 
       const payload = {
         userId: user?.id || null,
         authorName: user?.name || 'Fortaa Leader',
-        authorRole: user?.designation || user?.accountType || 'Senior Leader',
-        authorAvatar: user?.avatar_url || null,
-        content: postText.trim() || (isPollOpen ? pollQuestion.trim() : 'New update shared'),
+        authorRole: user?.designation || user?.accountType || 'Leader',
+        authorAvatar: user?.avatar_url || user?.avatarUrl || null,
+        content:
+          postText.trim() ||
+          (isPollOpen ? pollQuestion.trim() : mediaType === 'video' ? 'Shared a video' : 'Shared a photo'),
         tags: tags.trim() || null,
-        imageUrl: mediaType === 'image' ? (uploadedUrl || mediaUri) : null,
+        imageUrl: mediaType === 'image' ? uploadedUrl || mediaUri : null,
         videoUrl: mediaType === 'video' ? uploadedUrl : null,
         mediaType: mediaType || (pollPayload ? 'poll' : 'text'),
         pollData: pollPayload,
@@ -180,13 +224,12 @@ export default function CreatePostModal({ visible, onClose, user, onPostCreated 
 
       const createdPost = await createPostApi(payload);
 
-      Alert.alert('Post Published 🎉', 'Your post is now live in the network feed!');
       handleReset();
       onPostCreated && onPostCreated(createdPost || payload);
       onClose();
     } catch (err) {
       console.warn('Post creation error:', err);
-      Alert.alert('Failed to Post', err.message || 'Server error. Please try again.');
+      showAlert('Failed to Post', err.message || 'Server error. Please try again.');
     } finally {
       setIsPosting(false);
     }
@@ -209,8 +252,12 @@ export default function CreatePostModal({ visible, onClose, user, onPostCreated 
   };
 
   const userName = user?.name || 'You';
-  const userRole = user?.designation || user?.accountType || 'Marketing';
+  const userRole = user?.designation || user?.accountType || 'Leader';
+  const userAvatar = user?.avatar_url || user?.avatarUrl;
   const userInitial = (userName[0] || 'U').toUpperCase();
+  const canSubmit = Boolean(
+    postText.trim() || mediaUri || (isPollOpen && (pollQuestion.trim() || pollOptions.filter((o) => o.trim()).length >= 2))
+  );
 
   return (
     <Modal
@@ -220,320 +267,304 @@ export default function CreatePostModal({ visible, onClose, user, onPostCreated 
       onRequestClose={handleClose}
       statusBarTranslucent
     >
-      <TouchableOpacity
-        style={styles.backdrop}
-        activeOpacity={1}
-        onPress={handleClose}
-      />
+      <View style={styles.modalCenterOverlay}>
+        <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={handleClose} />
 
-      <Animated.View
-        style={[
-          styles.modalCard,
-          { transform: [{ translateY: slideAnim }] },
-        ]}
-      >
-        <View style={styles.dragHandle} />
+        <Animated.View
+          style={[
+            styles.modalCard,
+            { transform: [{ translateY: slideAnim }] },
+          ]}
+        >
+          {/* Header (Matching Web ud-cpm-header) */}
+          <View style={styles.header}>
+            <Text style={styles.headerTitle}>Create a Post</Text>
+            <TouchableOpacity onPress={handleClose} style={styles.closeBtn}>
+              <Feather name="x" size={16} color="#64748B" />
+            </TouchableOpacity>
+          </View>
 
-        {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>Create a Post</Text>
-          <TouchableOpacity onPress={handleClose} style={styles.closeBtn}>
-            <Feather name="x" size={20} color="#374151" />
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.divider} />
-
-        <ScrollView showsVerticalScrollIndicator={false} style={styles.scrollArea}>
-          {/* User Row */}
-          <View style={styles.userRow}>
-            <LinearGradient
-              colors={['#DC3AEE', '#5321E8']}
-              style={styles.avatarCircle}
-            >
-              <Text style={styles.avatarText}>{userInitial}</Text>
-            </LinearGradient>
-
-            <View style={styles.userInfo}>
-              <Text style={styles.userName}>{userName}</Text>
-              <View style={styles.pillsRow}>
-                <LinearGradient
-                  colors={['#DC3AEE', '#5321E8']}
-                  style={styles.rolePill}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                >
-                  <Text style={styles.rolePillText}>{userRole}</Text>
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            style={styles.scrollArea}
+            keyboardShouldPersistTaps="handled"
+          >
+            {/* Author Meta Row (Matching Web ud-cpm-author-row) */}
+            <View style={styles.userRow}>
+              {userAvatar ? (
+                <Image source={{ uri: userAvatar }} style={styles.avatarImage} />
+              ) : (
+                <LinearGradient colors={['#DC3AEE', '#5321E8']} style={styles.avatarCircle}>
+                  <Text style={styles.avatarText}>{userInitial}</Text>
                 </LinearGradient>
+              )}
 
+              <View style={styles.userInfo}>
+                <Text style={styles.userName}>{userName}</Text>
+                <View style={styles.pillsRow}>
+                  <View style={styles.rolePill}>
+                    <Text style={styles.rolePillText}>{userRole}</Text>
+                  </View>
+
+                  <TouchableOpacity
+                    style={styles.visibilityPill}
+                    onPress={() => {
+                      const opts = ['Anyone', 'Network', 'Team Only'];
+                      const next = opts[(opts.indexOf(visibility) + 1) % opts.length];
+                      setVisibility(next);
+                    }}
+                  >
+                    <Text style={styles.visibilityText}>🌐 {visibility}</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+
+            {/* Main Text Input (Matching Web ud-cpm-textarea) */}
+            <TextInput
+              style={styles.postInput}
+              placeholder="What do you want to talk about? Share an update, business opportunity or insight..."
+              placeholderTextColor="#94A3B8"
+              multiline
+              numberOfLines={4}
+              value={postText}
+              onChangeText={setPostText}
+              textAlignVertical="top"
+              autoFocus={!mediaUri && !isPollOpen}
+            />
+
+            {/* Photo / Video Preview Box */}
+            {mediaUri && (
+              <View style={styles.previewBox}>
+                {mediaType === 'video' ? (
+                  <FeedVideoPlayer
+                    videoUrl={mediaUri}
+                    isActive={true}
+                    style={{ height: 200, borderRadius: 12 }}
+                  />
+                ) : (
+                  <Image source={{ uri: mediaUri }} style={styles.previewMedia} resizeMode="cover" />
+                )}
                 <TouchableOpacity
-                  style={styles.visibilityPill}
+                  style={styles.removeMediaBtn}
                   onPress={() => {
-                    const opts = ['Anyone', 'Network', 'Team Only'];
-                    const next = opts[(opts.indexOf(visibility) + 1) % opts.length];
-                    setVisibility(next);
+                    setMediaUri(null);
+                    setMediaType(null);
                   }}
                 >
-                  <Feather name="globe" size={11} color="#2563EB" />
-                  <Text style={styles.visibilityText}> {visibility}</Text>
-                  <Feather name="chevron-down" size={11} color="#2563EB" />
+                  <Feather name="x" size={14} color="#fff" />
                 </TouchableOpacity>
               </View>
-            </View>
-          </View>
+            )}
 
-          {/* Main Text Input */}
-          <TextInput
-            style={styles.postInput}
-            placeholder="Share your thoughts, success, opportunity or updates..."
-            placeholderTextColor="#9CA3AF"
-            multiline
-            numberOfLines={4}
-            value={postText}
-            onChangeText={setPostText}
-            textAlignVertical="top"
-          />
-
-          {/* Media Preview Box (Instagram style) */}
-          {mediaUri && (
-            <View style={styles.previewBox}>
-              {mediaType === 'video' ? (
-                <View style={[styles.previewMedia, styles.videoPreviewFallback]}>
-                  <Feather name="video" size={36} color="#5321E8" />
-                  <Text style={styles.videoPreviewTitle}>Video Attached</Text>
-                  <Text style={styles.videoPreviewSub} numberOfLines={1}>
-                    {mediaUri.split('/').pop() || 'video.mp4'}
-                  </Text>
+            {/* Poll Builder Box (Matching Web ud-cp-poll-box) */}
+            {isPollOpen && (
+              <View style={styles.pollBuilder}>
+                <View style={styles.pollHeaderRow}>
+                  <Text style={styles.pollBuilderTitle}>📊 Create a Poll</Text>
+                  <TouchableOpacity
+                    onPress={() => {
+                      setIsPollOpen(false);
+                      setPollQuestion('');
+                      setPollOptions(['', '']);
+                    }}
+                    style={styles.pollCloseBtn}
+                  >
+                    <Feather name="x" size={15} color="#6B7280" />
+                  </TouchableOpacity>
                 </View>
-              ) : (
-                <Image
-                  source={{ uri: mediaUri }}
-                  style={styles.previewMedia}
-                  resizeMode="cover"
+
+                <TextInput
+                  style={styles.pollQuestionInput}
+                  placeholder="Ask a question..."
+                  placeholderTextColor="#94A3B8"
+                  value={pollQuestion}
+                  onChangeText={setPollQuestion}
+                  autoFocus
                 />
-              )}
-              <TouchableOpacity
-                style={styles.removeMediaBtn}
-                onPress={() => {
-                  setMediaUri(null);
-                  setMediaType(null);
-                }}
-              >
-                <Feather name="x" size={14} color="#fff" />
-              </TouchableOpacity>
-              <View style={styles.mediaTypeBadge}>
-                <Feather
-                  name={mediaType === 'video' ? 'video' : 'image'}
-                  size={12}
-                  color="#fff"
+
+                {pollOptions.map((opt, idx) => (
+                  <View key={idx} style={styles.pollOptionRow}>
+                    <Text style={styles.pollOptionNum}>{idx + 1}.</Text>
+                    <TextInput
+                      style={styles.pollOptionInput}
+                      placeholder={`Option ${idx + 1}`}
+                      placeholderTextColor="#94A3B8"
+                      value={opt}
+                      onChangeText={(txt) => handleUpdatePollOption(txt, idx)}
+                    />
+                    {pollOptions.length > 2 && (
+                      <TouchableOpacity
+                        style={styles.pollDelOptBtn}
+                        onPress={() => handleRemovePollOption(idx)}
+                      >
+                        <Feather name="x" size={14} color="#EF4444" />
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                ))}
+
+                {pollOptions.length < 4 && (
+                  <TouchableOpacity style={styles.addOptionBtn} onPress={handleAddPollOption}>
+                    <Text style={styles.addOptionText}>+ Add Option</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            )}
+
+            {/* Tags Input */}
+            {showTagsInput && (
+              <View style={styles.tagsContainer}>
+                <Feather name="hash" size={14} color="#5A2CE4" />
+                <TextInput
+                  style={styles.tagsInput}
+                  placeholder="Add tags e.g. #marketing #business #growth"
+                  placeholderTextColor="#94A3B8"
+                  value={tags}
+                  onChangeText={setTags}
                 />
-                <Text style={styles.mediaTypeBadgeText}>
-                  {mediaType === 'video' ? ' Video' : ' Photo'}
-                </Text>
               </View>
-            </View>
-          )}
+            )}
 
-          {/* Poll Builder Box */}
-          {isPollOpen && (
-            <View style={styles.pollBuilder}>
-              <View style={styles.pollHeaderRow}>
-                <Feather name="bar-chart-2" size={16} color="#5321E8" />
-                <Text style={styles.pollBuilderTitle}>Create a Poll</Text>
-                <TouchableOpacity onPress={() => setIsPollOpen(false)} style={{ marginLeft: 'auto' }}>
-                  <Feather name="x" size={16} color="#6B7280" />
-                </TouchableOpacity>
-              </View>
-
-              <TextInput
-                style={styles.pollQuestionInput}
-                placeholder="Ask a question (e.g. Which market to join?)..."
-                placeholderTextColor="#9CA3AF"
-                value={pollQuestion}
-                onChangeText={setPollQuestion}
-              />
-
-              {pollOptions.map((opt, idx) => (
-                <View key={idx} style={styles.pollOptionRow}>
-                  <Text style={styles.pollOptionNum}>{idx + 1}.</Text>
-                  <TextInput
-                    style={styles.pollOptionInput}
-                    placeholder={`Option ${idx + 1}`}
-                    placeholderTextColor="#9CA3AF"
-                    value={opt}
-                    onChangeText={(txt) => handleUpdatePollOption(txt, idx)}
-                  />
-                </View>
-              ))}
-
-              {pollOptions.length < 4 && (
+            {/* Add Media Toolbar Row (Matching Web ud-cpm-tools-row) */}
+            <View style={styles.toolsRow}>
+              <Text style={styles.toolsLabel}>Add to your post:</Text>
+              <View style={styles.toolsBtns}>
                 <TouchableOpacity
-                  style={styles.addOptionBtn}
-                  onPress={handleAddPollOption}
+                  style={[styles.toolBtn, mediaType === 'image' && styles.toolBtnActive]}
+                  onPress={handlePickImage}
                 >
-                  <Feather name="plus" size={14} color="#5321E8" />
-                  <Text style={styles.addOptionText}>Add Option</Text>
+                  <Feather name="image" size={14} color={mediaType === 'image' ? '#8B17F8' : '#334155'} />
+                  <Text style={[styles.toolBtnText, mediaType === 'image' && styles.toolBtnTextActive]}>Photo</Text>
                 </TouchableOpacity>
-              )}
+
+                <TouchableOpacity
+                  style={[styles.toolBtn, mediaType === 'video' && styles.toolBtnActive]}
+                  onPress={handlePickVideo}
+                >
+                  <Feather name="video" size={14} color={mediaType === 'video' ? '#8B17F8' : '#334155'} />
+                  <Text style={[styles.toolBtnText, mediaType === 'video' && styles.toolBtnTextActive]}>Video</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.toolBtn, isPollOpen && styles.toolBtnActive]}
+                  onPress={handleTogglePoll}
+                >
+                  <Feather name="bar-chart-2" size={14} color={isPollOpen ? '#8B17F8' : '#334155'} />
+                  <Text style={[styles.toolBtnText, isPollOpen && styles.toolBtnTextActive]}>Poll</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.toolBtn, showTagsInput && styles.toolBtnActive]}
+                  onPress={() => setShowTagsInput((p) => !p)}
+                >
+                  <Feather name="hash" size={13} color={showTagsInput ? '#8B17F8' : '#334155'} />
+                  <Text style={[styles.toolBtnText, showTagsInput && styles.toolBtnTextActive]}>Tags</Text>
+                </TouchableOpacity>
+              </View>
             </View>
-          )}
+          </ScrollView>
 
-          {/* Tags Input */}
-          {showTagsInput && (
-            <View style={styles.tagsContainer}>
-              <Feather name="tag" size={14} color="#5321E8" />
-              <TextInput
-                style={styles.tagsInput}
-                placeholder="Add tags e.g. #marketing #business #growth"
-                placeholderTextColor="#9CA3AF"
-                value={tags}
-                onChangeText={setTags}
-              />
-            </View>
-          )}
+          {/* Footer Actions (Matching Web ud-cpm-footer) */}
+          <View style={styles.footer}>
+            <TouchableOpacity style={styles.cancelBtn} onPress={handleClose}>
+              <Text style={styles.cancelBtnText}>Cancel</Text>
+            </TouchableOpacity>
 
-          {/* Add Media Action Buttons */}
-          <View style={styles.mediaSection}>
-            <Text style={styles.mediaSectionLabel}>Add to your post:</Text>
-            <View style={styles.mediaOptions}>
-              <TouchableOpacity
-                style={[styles.mediaBtn, mediaType === 'image' && styles.mediaBtnActive]}
-                onPress={handlePickImage}
-              >
-                <Feather name="image" size={16} color={mediaType === 'image' ? '#5321E8' : '#374151'} />
-                <Text style={[styles.mediaBtnText, mediaType === 'image' && styles.mediaBtnTextActive]}>
-                  Photo
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.mediaBtn, mediaType === 'video' && styles.mediaBtnActive]}
-                onPress={handlePickVideo}
-              >
-                <Feather name="video" size={16} color={mediaType === 'video' ? '#5321E8' : '#374151'} />
-                <Text style={[styles.mediaBtnText, mediaType === 'video' && styles.mediaBtnTextActive]}>
-                  Video
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.mediaBtn, isPollOpen && styles.mediaBtnActive]}
-                onPress={handleTogglePoll}
-              >
-                <Feather name="bar-chart-2" size={16} color={isPollOpen ? '#5321E8' : '#374151'} />
-                <Text style={[styles.mediaBtnText, isPollOpen && styles.mediaBtnTextActive]}>
-                  Poll
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.mediaBtn, showTagsInput && styles.mediaBtnActive]}
-                onPress={() => setShowTagsInput((prev) => !prev)}
-              >
-                <Feather name="hash" size={16} color={showTagsInput ? '#5321E8' : '#374151'} />
-                <Text style={[styles.mediaBtnText, showTagsInput && styles.mediaBtnTextActive]}>
-                  Tags
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </ScrollView>
-
-        <View style={styles.divider} />
-
-        {/* Footer */}
-        <View style={styles.footer}>
-          <TouchableOpacity style={styles.cancelBtn} onPress={handleClose}>
-            <Text style={styles.cancelBtnText}>Cancel</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.postBtn, (!postText.trim() && !mediaUri && !pollQuestion.trim()) && styles.postBtnDisabled]}
-            onPress={handlePost}
-            disabled={isPosting || (!postText.trim() && !mediaUri && !pollQuestion.trim())}
-            activeOpacity={0.85}
-          >
-            <LinearGradient
-              colors={postText.trim() || mediaUri || pollQuestion.trim() ? ['#DC3AEE', '#5321E8'] : ['#D1D5DB', '#9CA3AF']}
-              style={styles.postBtnGradient}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
+            <TouchableOpacity
+              style={[styles.postBtn, (!canSubmit || isPosting) && styles.postBtnDisabled]}
+              onPress={handlePost}
+              disabled={isPosting || !canSubmit}
+              activeOpacity={0.85}
             >
-              {isPosting ? (
-                <ActivityIndicator size="small" color="#fff" />
-              ) : (
-                <>
-                  <Feather name="send" size={14} color="#fff" />
-                  <Text style={styles.postBtnText}> Post</Text>
-                </>
-              )}
-            </LinearGradient>
-          </TouchableOpacity>
-        </View>
-      </Animated.View>
+              <LinearGradient
+                colors={canSubmit ? ['#9F21FE', '#4F24FF'] : ['#CBD5E1', '#94A3B8']}
+                style={styles.postBtnGradient}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+              >
+                {isPosting ? (
+                  <>
+                    <ActivityIndicator size="small" color="#fff" />
+                    <Text style={styles.postBtnText}>Publishing...</Text>
+                  </>
+                ) : (
+                  <Text style={styles.postBtnText}>Post</Text>
+                )}
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
+        </Animated.View>
+      </View>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
+  modalCenterOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+  },
   backdrop: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.55)',
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(15, 23, 42, 0.55)',
   },
   modalCard: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    maxHeight: height * 0.9,
-    backgroundColor: '#fff',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    paddingBottom: 24,
+    width: '100%',
+    maxWidth: 500,
+    maxHeight: height * 0.85,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    overflow: 'hidden',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.25,
+    shadowRadius: 24,
     elevation: 20,
-  },
-  dragHandle: {
-    width: 40,
-    height: 4,
-    backgroundColor: '#E5E7EB',
-    borderRadius: 2,
-    alignSelf: 'center',
-    marginTop: 10,
-    marginBottom: 4,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
+    paddingHorizontal: 18,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
   },
-  headerTitle: { fontSize: 17, fontWeight: '700', color: '#1E1B4B' },
+  headerTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#1F1735',
+  },
   closeBtn: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: '#F1F5F9',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  divider: { height: 1, backgroundColor: '#F3F4F6' },
-  scrollArea: { paddingHorizontal: 20, maxHeight: height * 0.65 },
+  scrollArea: {
+    paddingHorizontal: 18,
+    maxHeight: height * 0.62,
+  },
 
-  // User Row
+  // Author Row
   userRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
+    paddingTop: 14,
+    paddingBottom: 8,
     gap: 12,
+  },
+  avatarImage: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    borderWidth: 2,
+    borderColor: '#5A2CE4',
   },
   avatarCircle: {
     width: 44,
@@ -541,184 +572,266 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: '#5A2CE4',
   },
-  avatarText: { fontSize: 18, fontWeight: '800', color: '#fff' },
-  userInfo: { flex: 1 },
-  userName: { fontSize: 15, fontWeight: '700', color: '#1E1B4B', marginBottom: 4 },
-  pillsRow: { flexDirection: 'row', gap: 8, alignItems: 'center' },
-  rolePill: { paddingHorizontal: 10, paddingVertical: 2.5, borderRadius: 12 },
-  rolePillText: { fontSize: 10.5, fontWeight: '700', color: '#fff' },
-  visibilityPill: {
+  avatarText: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#fff',
+  },
+  userInfo: {
+    flex: 1,
+    gap: 3,
+  },
+  userName: {
+    fontSize: 14.5,
+    fontWeight: '700',
+    color: '#1F1735',
+  },
+  pillsRow: {
     flexDirection: 'row',
+    gap: 6,
     alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 2.5,
-    borderRadius: 12,
-    backgroundColor: '#EFF6FF',
-    borderWidth: 1,
-    borderColor: '#BFDBFE',
   },
-  visibilityText: { fontSize: 11, fontWeight: '600', color: '#2563EB' },
+  rolePill: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 12,
+    backgroundColor: '#F3E8FF',
+  },
+  rolePillText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#6B21A8',
+  },
+  visibilityPill: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 12,
+    backgroundColor: '#F1F5F9',
+  },
+  visibilityText: {
+    fontSize: 11,
+    color: '#64748B',
+    fontWeight: '500',
+  },
 
-  // Text Input
+  // Input
   postInput: {
-    minHeight: 90,
+    minHeight: 110,
     fontSize: 15,
-    color: '#1F2937',
+    color: '#1E293B',
     lineHeight: 22,
-    paddingTop: 8,
+    paddingVertical: 8,
   },
 
   // Preview Box
   previewBox: {
     position: 'relative',
-    height: 200,
     borderRadius: 12,
     overflow: 'hidden',
-    marginVertical: 10,
-    backgroundColor: '#0F092A',
-  },
-  previewMedia: { width: '100%', height: '100%' },
-  videoPreviewFallback: {
+    maxHeight: 220,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
     backgroundColor: '#F8FAFC',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 20,
+    marginBottom: 10,
   },
-  videoPreviewTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#1E1B4B',
-  },
-  videoPreviewSub: {
-    fontSize: 12,
-    color: '#64748B',
-    textAlign: 'center',
+  previewMedia: {
+    width: '100%',
+    height: 200,
   },
   removeMediaBtn: {
     position: 'absolute',
-    top: 10,
-    right: 10,
+    top: 8,
+    right: 8,
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: 'rgba(0,0,0,0.6)',
+    backgroundColor: 'rgba(15, 23, 42, 0.75)',
     alignItems: 'center',
     justifyContent: 'center',
+    zIndex: 10,
   },
-  mediaTypeBadge: {
-    position: 'absolute',
-    bottom: 10,
-    left: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
-  },
-  mediaTypeBadgeText: { fontSize: 11, color: '#fff', fontWeight: '600' },
 
   // Poll Builder
   pollBuilder: {
-    backgroundColor: '#F5F3FF',
+    backgroundColor: '#F8FAFC',
     borderWidth: 1,
-    borderColor: '#DDD6FE',
+    borderColor: '#E2E8F0',
     borderRadius: 12,
     padding: 12,
-    marginVertical: 10,
+    marginBottom: 10,
     gap: 8,
   },
-  pollHeaderRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  pollBuilderTitle: { fontSize: 13, fontWeight: '700', color: '#5321E8' },
+  pollHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  pollBuilderTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#5A2CE4',
+  },
+  pollCloseBtn: {
+    padding: 2,
+  },
   pollQuestionInput: {
     backgroundColor: '#fff',
     borderRadius: 8,
-    paddingHorizontal: 12,
+    paddingHorizontal: 10,
     paddingVertical: 8,
     fontSize: 13,
-    color: '#1F2937',
+    color: '#1E293B',
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: '#CBD5E1',
   },
-  pollOptionRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  pollOptionNum: { fontSize: 12, fontWeight: '700', color: '#5321E8', width: 16 },
+  pollOptionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  pollOptionNum: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#5A2CE4',
+    width: 16,
+  },
   pollOptionInput: {
     flex: 1,
     backgroundColor: '#fff',
     borderRadius: 8,
-    paddingHorizontal: 12,
+    paddingHorizontal: 10,
     paddingVertical: 7,
     fontSize: 13,
-    color: '#1F2937',
+    color: '#1E293B',
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: '#CBD5E1',
+  },
+  pollDelOptBtn: {
+    padding: 4,
   },
   addOptionBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
     alignSelf: 'flex-start',
     paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 6,
+    backgroundColor: '#F3E8FF',
   },
-  addOptionText: { fontSize: 12, fontWeight: '700', color: '#5321E8' },
+  addOptionText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#6B21A8',
+  },
 
   // Tags
   tagsContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F9FAFB',
+    backgroundColor: '#F8FAFC',
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: '#E2E8F0',
     paddingHorizontal: 10,
     paddingVertical: 6,
-    marginVertical: 8,
+    marginBottom: 10,
+    gap: 6,
+  },
+  tagsInput: {
+    flex: 1,
+    fontSize: 12.5,
+    color: '#1E293B',
+  },
+
+  // Toolbar Row
+  toolsRow: {
+    padding: 10,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 12,
+    backgroundColor: '#F8FAFC',
+    marginBottom: 12,
     gap: 8,
   },
-  tagsInput: { flex: 1, fontSize: 13, color: '#1F2937' },
-
-  // Media
-  mediaSection: { paddingVertical: 12 },
-  mediaSectionLabel: { fontSize: 12, fontWeight: '600', color: '#6B7280', marginBottom: 8 },
-  mediaOptions: { flexDirection: 'row', gap: 8 },
-  mediaBtn: {
+  toolsLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#475569',
+  },
+  toolsBtns: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  toolBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: '#F9FAFB',
+    gap: 6,
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: '#CBD5E1',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
   },
-  mediaBtnActive: { backgroundColor: '#F5F3FF', borderColor: '#5321E8' },
-  mediaBtnText: { fontSize: 12, color: '#374151', fontWeight: '600' },
-  mediaBtnTextActive: { color: '#5321E8' },
+  toolBtnActive: {
+    backgroundColor: '#F3E8FF',
+    borderColor: '#8B17F8',
+  },
+  toolBtnText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#334155',
+  },
+  toolBtnTextActive: {
+    color: '#8B17F8',
+    fontWeight: '700',
+  },
 
   // Footer
-  footer: { flexDirection: 'row', paddingHorizontal: 20, paddingTop: 12, gap: 12 },
-  cancelBtn: {
-    flex: 1,
+  footer: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    paddingHorizontal: 18,
     paddingVertical: 12,
-    borderRadius: 25,
-    borderWidth: 1.5,
-    borderColor: '#D1D5DB',
+    borderTopWidth: 1,
+    borderTopColor: '#E2E8F0',
+    gap: 10,
+  },
+  cancelBtn: {
+    paddingHorizontal: 18,
+    paddingVertical: 9,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#F9FAFB',
   },
-  cancelBtnText: { fontSize: 14, fontWeight: '700', color: '#374151' },
-  postBtn: { flex: 1, borderRadius: 25, overflow: 'hidden' },
-  postBtnDisabled: { opacity: 0.6 },
+  cancelBtnText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#475569',
+  },
+  postBtn: {
+    borderRadius: 20,
+    overflow: 'hidden',
+  },
+  postBtnDisabled: {
+    opacity: 0.65,
+  },
   postBtnGradient: {
-    paddingVertical: 12,
+    paddingHorizontal: 22,
+    paddingVertical: 9,
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
     gap: 6,
   },
-  postBtnText: { fontSize: 14, fontWeight: '700', color: '#fff' },
+  postBtnText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
 });

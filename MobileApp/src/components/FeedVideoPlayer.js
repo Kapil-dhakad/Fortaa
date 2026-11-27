@@ -22,13 +22,22 @@ if (Platform.OS === 'web' && typeof window !== 'undefined') {
   });
 }
 
+// Global mute/unmute state shared across all feed videos so unmuting once keeps audio on for subsequent videos
+let globalIsMuted = true;
+const muteListeners = new Set();
+
+function setGlobalMuted(nextMuted) {
+  globalIsMuted = nextMuted;
+  muteListeners.forEach((cb) => cb(nextMuted));
+}
+
 export default function FeedVideoPlayer({
   videoUrl,
   isActive = true,
   onDoubleTap,
   style,
 }) {
-  const [isMuted, setIsMuted] = useState(true);
+  const [isMuted, setIsMuted] = useState(globalIsMuted);
   const [isPlaying, setIsPlaying] = useState(true);
   const [showMuteIndicator, setShowMuteIndicator] = useState(false);
   const [hasError, setHasError] = useState(false);
@@ -38,13 +47,23 @@ export default function FeedVideoPlayer({
   // Validate video source
   const validUrl = typeof videoUrl === 'string' && videoUrl.trim().length > 0 ? videoUrl.trim() : null;
 
+  // Subscribe to global mute state updates across feed items
+  useEffect(() => {
+    const listener = (val) => setIsMuted(val);
+    muteListeners.add(listener);
+    setIsMuted(globalIsMuted);
+    return () => {
+      muteListeners.delete(listener);
+    };
+  }, []);
+
   // Initialize expo-video player
   let player = null;
   try {
     player = useVideoPlayer(validUrl, (p) => {
       if (p) {
         p.loop = true;
-        p.muted = isMuted;
+        p.muted = globalIsMuted;
         if (isActive) {
           try {
             const playPromise = p.play();
@@ -67,6 +86,7 @@ export default function FeedVideoPlayer({
   useEffect(() => {
     if (!player) return;
     try {
+      player.muted = globalIsMuted;
       if (isActive && isPlaying) {
         const playPromise = player.play();
         if (playPromise && typeof playPromise.catch === 'function') {
@@ -86,6 +106,16 @@ export default function FeedVideoPlayer({
     } catch (e) {}
   }, [isMuted, player]);
 
+  const toggleMute = () => {
+    const nextMuted = !globalIsMuted;
+    setGlobalMuted(nextMuted);
+    setShowMuteIndicator(true);
+    if (muteTimeoutRef.current) clearTimeout(muteTimeoutRef.current);
+    muteTimeoutRef.current = setTimeout(() => {
+      setShowMuteIndicator(false);
+    }, 1200);
+  };
+
   // Handle tap / double-tap
   const handlePress = () => {
     const now = Date.now();
@@ -99,15 +129,10 @@ export default function FeedVideoPlayer({
       lastTapRef.current = 0;
     } else {
       lastTapRef.current = now;
-      // Single tap: toggle mute like Instagram feed
+      // Single tap: toggle Play / Pause
       setTimeout(() => {
         if (lastTapRef.current === now) {
-          setIsMuted((prev) => !prev);
-          setShowMuteIndicator(true);
-          if (muteTimeoutRef.current) clearTimeout(muteTimeoutRef.current);
-          muteTimeoutRef.current = setTimeout(() => {
-            setShowMuteIndicator(false);
-          }, 1200);
+          handleTogglePlayPause();
         }
       }, DOUBLE_PRESS_DELAY);
     }
@@ -182,7 +207,10 @@ export default function FeedVideoPlayer({
         {/* Bottom Right Sound Badge */}
         <TouchableOpacity
           style={styles.cornerSoundBadge}
-          onPress={() => setIsMuted((prev) => !prev)}
+          onPress={(e) => {
+            if (e && e.stopPropagation) e.stopPropagation();
+            toggleMute();
+          }}
           activeOpacity={0.7}
         >
           <Feather

@@ -58,7 +58,6 @@ export default function LoginScreen({ onNavigateToSignUp, onLoginSuccess }) {
 
     try {
       const data = await loginApi({ identifier: emailOrPhone, password });
-      Alert.alert('Success', 'Welcome to FORTAA!');
       if (onLoginSuccess) {
         onLoginSuccess(data.user || data);
       }
@@ -78,7 +77,6 @@ export default function LoginScreen({ onNavigateToSignUp, onLoginSuccess }) {
         name: name.charAt(0).toUpperCase() + name.slice(1),
         picture: picture || null,
       });
-      Alert.alert('Google Sign-In Successful 🎉', `Welcome, ${data.user?.name || name}!`);
       if (onLoginSuccess) {
         onLoginSuccess(data.user || data);
       }
@@ -214,6 +212,14 @@ export default function LoginScreen({ onNavigateToSignUp, onLoginSuccess }) {
           </View>
         </View>
 
+        {/* Hero Section: "Join the Fortaa Community" (Exact Web Mobile Match) */}
+        <View style={styles.heroSection}>
+          <Text style={styles.heroTitle}>Join the Fortaa Community</Text>
+          <Text style={styles.heroSubtitle}>
+            Create your account and start your journey in the direct selling and network marketing ecosystem.
+          </Text>
+        </View>
+
         {/* Title & Subtitle */}
         <View style={styles.titleSection}>
           <Text style={styles.authTitle}>Welcome Back</Text>
@@ -327,7 +333,7 @@ export default function LoginScreen({ onNavigateToSignUp, onLoginSuccess }) {
             <Text style={styles.btnSignUpEmailText}>Sign Up with Email</Text>
           </TouchableOpacity>
 
-          {/* Primary Gradient Next Button (Figma #DC3AEE to #5321E8) */}
+          {/* Primary Gradient Next Button (Matching Web Mobile #BC45F8 to #6220FE) */}
           <TouchableOpacity
             onPress={handleLogin}
             disabled={loading}
@@ -335,7 +341,7 @@ export default function LoginScreen({ onNavigateToSignUp, onLoginSuccess }) {
             style={styles.nextBtnTouchable}
           >
             <LinearGradient
-              colors={['#DC3AEE', '#5321E8']}
+              colors={['#BC45F8', '#6220FE']}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
               style={styles.nextBtnGrad}
@@ -351,11 +357,11 @@ export default function LoginScreen({ onNavigateToSignUp, onLoginSuccess }) {
             </LinearGradient>
           </TouchableOpacity>
 
-          {/* Footer Switch Prompt */}
+          {/* Footer Switch Prompt: Don't have an account? Create one */}
           <View style={styles.footerPrompt}>
-            <Text style={styles.footerPromptText}>Don't have an account? </Text>
+            <Text style={styles.footerPromptText}>Don’t have an account? </Text>
             <TouchableOpacity onPress={onNavigateToSignUp} activeOpacity={0.7}>
-              <Text style={styles.footerLoginLink}>Sign Up</Text>
+              <Text style={styles.footerLoginLink}>Create one</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -443,17 +449,37 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#232356',
   },
+  heroSection: {
+    width: '100%',
+    maxWidth: 420,
+    alignSelf: 'center',
+    marginTop: 8,
+    marginBottom: 20,
+  },
+  heroTitle: {
+    fontSize: 26,
+    fontWeight: '800',
+    color: '#232356',
+    letterSpacing: -0.4,
+    marginBottom: 6,
+  },
+  heroSubtitle: {
+    fontSize: 13.5,
+    lineHeight: 19,
+    color: 'rgba(35, 35, 86, 0.75)',
+    fontWeight: '400',
+  },
   titleSection: {
     alignItems: 'center',
-    marginBottom: 14,
+    marginBottom: 16,
   },
   authTitle: {
     fontFamily: Platform.OS === 'ios' ? 'Inter' : 'sans-serif',
-    fontSize: 25,
+    fontSize: 24,
     fontWeight: '700',
     color: '#232356',
-    letterSpacing: 0.3,
-    marginBottom: 2,
+    letterSpacing: 0.2,
+    marginBottom: 4,
     textAlign: 'center',
   },
   authSubtitle: {
@@ -493,10 +519,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#232356',
+    borderWidth: 1.2,
+    borderColor: '#CBD5E1',
     borderRadius: 10,
-    height: 46,
+    height: 48,
     paddingHorizontal: 12,
     marginBottom: 10,
   },
@@ -515,7 +541,7 @@ const styles = StyleSheet.create({
   },
   forgotBtn: {
     alignSelf: 'flex-start',
-    marginBottom: 12,
+    marginBottom: 14,
     marginTop: -2,
   },
   forgotText: {
@@ -533,7 +559,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     height: 46,
     borderRadius: 10,
-    backgroundColor: '#0066FF',
+    backgroundColor: '#1A73E8',
     paddingHorizontal: 16,
     gap: 10,
   },
@@ -557,8 +583,8 @@ const styles = StyleSheet.create({
     height: 46,
     borderRadius: 10,
     backgroundColor: '#FFFFFF',
-    borderWidth: 1.5,
-    borderColor: '#38BDF8',
+    borderWidth: 1.2,
+    borderColor: '#CBD5E1',
     paddingHorizontal: 16,
     gap: 10,
   },
@@ -578,47 +604,46 @@ const styles = StyleSheet.create({
   dividerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: 8,
+    marginVertical: 10,
     gap: 12,
   },
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: '#000000',
-    opacity: 0.8,
+    backgroundColor: '#E2E8F0',
   },
   dividerText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#232356',
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#64748B',
   },
   btnSignUpEmail: {
-    height: 44,
+    height: 46,
     borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#53029E',
+    borderWidth: 1.2,
+    borderColor: '#7C3AED',
     backgroundColor: 'transparent',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 10,
   },
   btnSignUpEmailText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#53029E',
+    fontSize: 14.5,
+    fontWeight: '600',
+    color: '#7C3AED',
   },
   nextBtnTouchable: {
     width: '100%',
     borderRadius: 10,
     overflow: 'hidden',
-    shadowColor: '#DC3AEE',
+    shadowColor: '#BC45F8',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.25,
     shadowRadius: 10,
     elevation: 4,
   },
   nextBtnGrad: {
-    height: 46,
+    height: 48,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -635,15 +660,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 12,
+    marginTop: 14,
   },
   footerPromptText: {
     fontSize: 13.5,
-    color: 'rgba(83, 2, 158, 0.55)',
+    color: 'rgba(35, 35, 86, 0.7)',
   },
   footerLoginLink: {
     fontSize: 13.5,
     fontWeight: '700',
-    color: '#5321E8',
+    color: '#6220FE',
   },
 });

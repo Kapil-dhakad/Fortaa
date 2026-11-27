@@ -132,11 +132,19 @@ export default function ProfileScreen({
       >
         {/* 2. Cover Banner Card */}
         <View style={styles.coverCard}>
-          <Image
-            source={require('../../assets/dashboard/profile_cover_purple.png')}
-            style={styles.coverBgImg}
-            resizeMode="cover"
-          />
+          {profileUser?.cover_url || profileUser?.coverUrl ? (
+            <Image
+              source={{ uri: profileUser.cover_url || profileUser.coverUrl }}
+              style={styles.coverBgImg}
+              resizeMode="cover"
+            />
+          ) : (
+            <Image
+              source={require('../../assets/dashboard/profile_cover_purple.png')}
+              style={styles.coverBgImg}
+              resizeMode="cover"
+            />
+          )}
 
           {/* Edit Profile Button */}
           <TouchableOpacity
@@ -372,8 +380,8 @@ export default function ProfileScreen({
           ) : filteredPosts.length > 0 ? (
             filteredPosts.map((post) => (
               <View key={post.id} style={styles.postItem}>
-                {post.media_url ? (
-                  <Image source={{ uri: post.media_url }} style={styles.postThumb} />
+                {(post.media_url || post.image_url) ? (
+                  <Image source={{ uri: post.media_url || post.image_url }} style={styles.postThumb} resizeMode="cover" />
                 ) : null}
                 <View style={styles.postItemBody}>
                   <Text style={styles.postItemText} numberOfLines={3}>
